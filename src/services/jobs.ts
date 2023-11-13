@@ -28,7 +28,7 @@ export class Jobs extends SolanaManager {
    * Function to list a Nosana Job in a market
    * @param ipfsHash String of the IPFS hash locating the Nosana Job data.
    */
-  async list(ipfsHash: string) {
+  async list(ipfsHash: string, market?: PublicKey) {
     await this.loadNosanaJobs();
     await this.setAccounts();
     const jobKey = Keypair.generate();
@@ -41,6 +41,7 @@ export class Jobs extends SolanaManager {
           ...this.accounts,
           job: jobKey.publicKey,
           run: runKey.publicKey,
+          market: market ? market : this.accounts?.market
         })
         .signers([jobKey, runKey])
         .rpc();
