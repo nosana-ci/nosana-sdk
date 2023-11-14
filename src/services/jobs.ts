@@ -41,7 +41,8 @@ export class Jobs extends SolanaManager {
           ...this.accounts,
           job: jobKey.publicKey,
           run: runKey.publicKey,
-          market: market ? market : this.accounts?.market
+          market: market ? market : this.accounts?.market,
+          vault: market ? pda([market.toBuffer(), new PublicKey(this.config.nos_address).toBuffer()], this.jobs!.programId) : this.accounts?.vault,
         })
         .signers([jobKey, runKey])
         .rpc();
