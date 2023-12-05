@@ -54,7 +54,11 @@ export class SolanaManager {
     ) {
       let key = this.config.wallet;
       if (typeof key === 'string') {
-        key = JSON.parse(key);
+        if (key[0] === '[') {
+          key = JSON.parse(key);
+        } else {
+          key = Buffer.from(key).toJSON().data;
+        }
       }
       this.config.wallet = Keypair.fromSecretKey(
         new Uint8Array(key as Iterable<number>),
@@ -109,11 +113,11 @@ export class SolanaManager {
    */
   async getNosPrice() {
     let result = await fetch(
-      'https://api.coingecko.com/api/v3/coins/nosana/tickers'
+      'https://api.coingecko.com/api/v3/coins/nosana/tickers',
     );
     const data = await result.json();
     if (data && data.tickers) {
-      return data.tickers[0].converted_last
+      return data.tickers[0].converted_last;
     } else {
       return null;
     }
