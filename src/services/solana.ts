@@ -57,7 +57,8 @@ export class SolanaManager {
         if (key[0] === '[') {
           key = JSON.parse(key);
         } else {
-          key = Buffer.from(key).toJSON().data;
+          key = Buffer.from(bs58.decode(key)).toJSON().data;
+          // key = Buffer.from(key).toJSON().data;
         }
       }
       this.config.wallet = Keypair.fromSecretKey(
