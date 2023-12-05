@@ -240,6 +240,17 @@ export class Jobs extends SolanaManager {
     return runAccounts;
   }
 
+
+  /**
+   * Get all Runs
+   * @returns
+   */
+  async getActiveRuns(): Promise<Array<any>> {
+    await this.loadNosanaJobs();
+    const runAccounts = await this.jobs!.account.runAccount.all();
+    return runAccounts;
+  }
+
   /**
    * Function to fetch a market from chain
    * @param market Publickey address of the market to fetch
