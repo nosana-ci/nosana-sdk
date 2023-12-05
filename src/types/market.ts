@@ -12,5 +12,5 @@ export type Market = {
   nodeAccessKey: PublicKey;
   nodeXnosMinimum: number;
   queueType: number;
-  queue: PublicKey;
+  queue: Array<PublicKey>;
 };
