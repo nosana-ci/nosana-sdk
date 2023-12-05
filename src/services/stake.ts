@@ -13,6 +13,15 @@ export class Stake extends SolanaManager {
   }
 
   /**
+   * Function to fetch stake accounts from chain
+   */
+  async all() {
+    await this.loadNosanaStake();
+    // @ts-ignore
+    return await this.stake!.account.stakeAccount.all();
+  }
+
+  /**
    * Create a stake account
    * @param address NOS Token account
    * @param amount amount in whole NOS
