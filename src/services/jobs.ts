@@ -243,9 +243,7 @@ export class Jobs extends SolanaManager {
         payer: job.account.payer,
         price: job.account.price,
         project: job.account.project,
-        state: Number.isInteger(job.account.state)
-          ? jobStateMapping[job.account.state]
-          : job.account.state,
+        state: job.account.state,
         timeEnd: job.account.timeEnd
           ? parseInt(job.account.timeEnd)
           : job.account.timeEnd,
