@@ -226,7 +226,7 @@ export class Jobs extends SolanaManager {
     // @ts-ignore
     const filterExcludedJobs = accounts.filter(({ publicKey, account }) => {
       // @ts-ignore
-      if (excludedJobs.includes(publicKey.toString())) return false;
+      if (excludedJobs.includes(publicKey.toString()) || (account.state === 0 || account.state === 1)) return false;
       return true;
     });
     const accountsWithTimeStart =  await Promise.all(filterExcludedJobs.map(

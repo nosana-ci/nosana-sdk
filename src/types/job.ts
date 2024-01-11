@@ -8,7 +8,7 @@ export type Job = {
   payer: PublicKey;
   price: number;
   project: PublicKey;
-  state: string;
+  state: string | number;
   timeEnd: number;
   timeStart: number;
 };
