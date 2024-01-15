@@ -11,6 +11,8 @@ import {
   SystemProgram,
   clusterApiUrl,
   Connection,
+  SYSVAR_RENT_PUBKEY,
+  SYSVAR_CLOCK_PUBKEY
 } from '@solana/web3.js';
 import type { Cluster, TokenAmount } from '@solana/web3.js';
 import {
@@ -42,8 +44,10 @@ export class SolanaManager {
   provider: AnchorProvider | undefined;
   jobs: Program<NosanaJobs> | undefined;
   nodes: Program<NosanaNodes> | undefined;
-  stake: Program<NosanaStake> | undefined;
+  stake: { program: Program<NosanaStake>, poolsProgram: any, rewardsProgram: any } | undefined;
   accounts: { [key: string]: PublicKey } | undefined;
+  stakeAccounts: { [key: string]: any } = {};
+  poolAccounts: { [key: string]: any } = {};
   config: SolanaConfig = solanaConfigDefault;
   connection: Connection | undefined;
   constructor(config?: Partial<SolanaConfig>) {
@@ -240,11 +244,24 @@ export class SolanaManager {
   async loadNosanaStake() {
     if (!this.stake) {
       const programId = new PublicKey(this.config.stake_address);
+      const poolProgramId = new PublicKey(this.config.pools_address);
+      const rewardsProgramId = new PublicKey(this.config.rewards_address);
       const idl = (await Program.fetchIdl(programId.toString())) as Idl;
-      this.stake = new Program(
+      const poolIdl = (await Program.fetchIdl(poolProgramId.toString())) as Idl;
+      const rewardIdl = (await Program.fetchIdl(rewardsProgramId.toString())) as Idl;
+
+      this.stake!.program = new Program(
         idl,
         programId,
       ) as unknown as Program<NosanaStake>;
+      this.stake!.poolsProgram = new Program(
+        poolIdl,
+        poolProgramId,
+      );
+      this.stake!.rewardsProgram = new Program(
+        rewardIdl,
+        rewardsProgramId,
+      );
     }
   }
 
@@ -273,6 +290,61 @@ export class SolanaManager {
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
       };
+    }
+  }
+
+  async setStakeAccounts() {
+    if (!this.stakeAccounts) {
+      await this.loadNosanaStake();
+      const poolId = new PublicKey(this.config.pool_address);
+      const authority = this.provider!.wallet.publicKey;
+      const rewardsProgramId = new PublicKey(this.config.rewards_address);
+      const poolsProgramId = new PublicKey(this.config.pools_address);
+      const mint = new PublicKey(this.config.nos_address);
+
+      console.log('authority', authority);
+
+      this.stakeAccounts = {
+        // solana native
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        feePayer: authority,
+        clock: SYSVAR_CLOCK_PUBKEY,
+
+        // custom
+        authority,
+        stake: await PublicKey.findProgramAddress(
+          [utf8.encode('stake'), mint.toBuffer(), authority.toBuffer()],
+          new PublicKey(this.config.stake_address)
+        ),
+        reflection: await PublicKey.findProgramAddress(
+          [utf8.encode('reflection')],
+          new PublicKey(this.config.rewards_address)
+        ),
+        user: await getAssociatedTokenAddress(mint, authority),
+        vault: await PublicKey.findProgramAddress(
+          [utf8.encode('vault'), mint.toBuffer(), authority.toBuffer()],
+          new PublicKey(this.config.stake_address)
+        ),
+        reward: await PublicKey.findProgramAddress(
+          [utf8.encode('reward'), authority.toBuffer()],
+          new PublicKey(this.config.rewards_address)
+        ),
+        mint
+      };
+
+      this.poolAccounts = {
+        ...this.stakeAccounts,
+        pool: poolId,
+        vault: await PublicKey.findProgramAddress(
+          [utf8.encode('vault'), poolId.toBuffer()],
+          poolsProgramId
+        ),
+        rewardsVault: await PublicKey.findProgramAddress([mint.toBuffer()], rewardsProgramId),
+        rewardsReflection: this.stakeAccounts.reflection,
+        rewardsProgram: rewardsProgramId
+      }
     }
   }
 }
