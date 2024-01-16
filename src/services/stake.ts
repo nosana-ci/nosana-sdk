@@ -70,6 +70,42 @@ export class Stake extends SolanaManager {
   }
 
   /**
+   * Topup stake
+   * @param stakeAmount 
+   * @returns 
+   */
+  async topup (stakeAmount: number) {
+    try {
+      const preInstructions = [];
+
+      preInstructions.push(await this.stake!.poolsProgram.methods
+        .claimFee()
+        .accounts(this.poolAccounts).instruction());
+
+      // if reward account doesn't exists yet, create it
+      if (!this.$stake.rewardInfo || !this.$stake.rewardInfo.rewardAccount) {
+        preInstructions.push(await this.stake!.rewardsProgram.methods
+          .enter().accounts(this.stakeAccounts).instruction()
+        );
+      }
+
+      const response = await this.stake!.program.methods
+        .topup(new anchor.BN(stakeAmount))
+        .accounts(this.stakeAccounts)
+        .preInstructions(preInstructions)
+        .postInstructions([
+          await this.stake!.rewardsProgram.methods
+            .sync().accounts({ ...this.stakeAccounts, vault: this.$stake.rewardVault }).instruction()])
+        .rpc();
+      console.log(response);
+      return response;
+    } catch (error) {
+      console.error(error);
+      throw new Error('Something went wrong extending with topup');
+    }
+  };
+
+  /**
    * Extend existing stake
    * @param stakeDurationSeconds 
    * @returns 
@@ -218,4 +254,32 @@ export class Stake extends SolanaManager {
       throw new Error('Something went wrong while withdrawing');
     }
   }
+
+  async getRewardsAndPoolInfo () {
+    if (!this.stakeAccounts || !this.poolAccounts) { return null; }
+    const globalReflection = await this.stake!.rewardsProgram.account.reflectionAccount.fetch(this.stakeAccounts.reflection);
+    let rewardAccount, pool, poolBalance;
+
+    try {
+      pool = await this.stake!.poolsProgram.account.poolAccount.fetch(new PublicKey(this.config.pools_address));
+      poolBalance = await this.getNosBalance(this.poolAccounts.vault);
+      rewardAccount = await this.stake!.rewardsProgram.account.rewardAccount.fetch(this.stakeAccounts.reward);
+    } catch (error: any) {
+      if (!error.message.includes('Account does not exist')) {
+        throw new Error(error.message);
+      } else {
+        console.log('Reward account does not exists, skip');
+      }
+    }
+    const rewardInfo = {
+      global: globalReflection,
+      rewardAccount
+    };
+
+    const poolInfo = {
+      pool,
+      poolBalance
+    }
+    return { rewardInfo, poolInfo };
+  };
 }
