@@ -22,9 +22,25 @@ export class Stake extends SolanaManager {
   }
 
   /**
+   * Function to fetch a stake account from chain
+   * @param address
+   */
+  async get(address: PublicKey | string): Promise<any> {
+    if (typeof address === 'string') address = new PublicKey(address);
+    await this.loadNosanaStake();
+    const [stakeAddress] = await PublicKey.findProgramAddress(
+      [utf8.encode('stake'), new PublicKey(this.config.nos_address).toBuffer(), address.toBuffer()],
+      new PublicKey(this.config.stake_address)
+    );
+    // @ts-ignore
+    const stake = await this.stake!.program.account.stakeAccount.fetch(stakeAddress);
+    return stake
+  }
+
+  /**
    * Create a stake account
    * @param address NOS Token account
-   * @param amount amount in whole NOS
+   * @param amount amount
    * @param unstakeDays unstake period
    * @returns
    */
@@ -33,8 +49,7 @@ export class Stake extends SolanaManager {
     await this.setStakeAccounts();
 
     const stakeDurationSeconds = unstakeDays * SECONDS_PER_DAY;
-    const decimals = 1e6;
-    const stakeAmount = amount * decimals;
+    const stakeAmount = amount;
 
     try {
       const mint = new PublicKey(this.config.nos_address);
@@ -82,8 +97,10 @@ export class Stake extends SolanaManager {
         .claimFee()
         .accounts(this.poolAccounts).instruction());
 
+      const rewardsAndPool = await this.getRewardsAndPoolInfo();
+
       // if reward account doesn't exists yet, create it
-      if (!this.$stake.rewardInfo || !this.$stake.rewardInfo.rewardAccount) {
+      if (!rewardsAndPool || !rewardsAndPool.rewardInfo || !rewardsAndPool.rewardInfo.account) {
         preInstructions.push(await this.stake!.rewardsProgram.methods
           .enter().accounts(this.stakeAccounts).instruction()
         );
@@ -258,12 +275,13 @@ export class Stake extends SolanaManager {
   async getRewardsAndPoolInfo () {
     if (!this.stakeAccounts || !this.poolAccounts) { return null; }
     const globalReflection = await this.stake!.rewardsProgram.account.reflectionAccount.fetch(this.stakeAccounts.reflection);
-    let rewardAccount, pool, poolBalance;
+    let rewardAccount, pool, poolBalance, rewardVault;
 
     try {
-      pool = await this.stake!.poolsProgram.account.poolAccount.fetch(new PublicKey(this.config.pools_address));
+      pool = await this.stake!.poolsProgram.account.poolAccount.fetch(new PublicKey(this.config.pool_address));
       poolBalance = await this.getNosBalance(this.poolAccounts.vault);
       rewardAccount = await this.stake!.rewardsProgram.account.rewardAccount.fetch(this.stakeAccounts.reward);
+      rewardVault = await PublicKey.findProgramAddress([new PublicKey(this.config.nos_address).toBuffer()], new PublicKey(this.config.rewards_address));
     } catch (error: any) {
       if (!error.message.includes('Account does not exist')) {
         throw new Error(error.message);
@@ -273,7 +291,8 @@ export class Stake extends SolanaManager {
     }
     const rewardInfo = {
       global: globalReflection,
-      rewardAccount
+      account: rewardAccount,
+      vault: rewardVault
     };
 
     const poolInfo = {
