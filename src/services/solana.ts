@@ -44,10 +44,14 @@ export class SolanaManager {
   provider: AnchorProvider | undefined;
   jobs: Program<NosanaJobs> | undefined;
   nodes: Program<NosanaNodes> | undefined;
-  stake: { program: Program<NosanaStake>, poolsProgram: any, rewardsProgram: any } | undefined;
+  stake: { program: Program<NosanaStake> | null, poolsProgram: any, rewardsProgram: any } | undefined = {
+    program: null,
+    poolsProgram: null,
+    rewardsProgram: null,
+  };
   accounts: { [key: string]: PublicKey } | undefined;
-  stakeAccounts: { [key: string]: any } = {};
-  poolAccounts: { [key: string]: any } = {};
+  stakeAccounts: { [key: string]: any } | undefined;
+  poolAccounts: { [key: string]: any } | undefined;
   config: SolanaConfig = solanaConfigDefault;
   connection: Connection | undefined;
   constructor(config?: Partial<SolanaConfig>) {
@@ -70,12 +74,11 @@ export class SolanaManager {
       );
     }
 
-    // if (
-    //   this.config.wallet instanceof Keypair ||
-    // ) {
+    if (this.config.wallet instanceof Keypair) {
     // @ts-ignore
-    this.config.wallet = new KeyWallet(this.config.wallet as Keypair);
-    // }
+      this.config.wallet = new KeyWallet(this.config.wallet as Keypair);
+    }
+
     if (typeof process !== 'undefined' && process.env?.ANCHOR_PROVIDER_URL) {
       // TODO: figure out if we want to support this or not
       this.provider = AnchorProvider.env();
@@ -242,7 +245,7 @@ export class SolanaManager {
    * https://docs.nosana.io/programs/staking.html
    */
   async loadNosanaStake() {
-    if (!this.stake) {
+    if (!this.stake || !this.stake.program) {
       const programId = new PublicKey(this.config.stake_address);
       const poolProgramId = new PublicKey(this.config.pools_address);
       const rewardsProgramId = new PublicKey(this.config.rewards_address);
@@ -302,7 +305,22 @@ export class SolanaManager {
       const poolsProgramId = new PublicKey(this.config.pools_address);
       const mint = new PublicKey(this.config.nos_address);
 
-      console.log('authority', authority);
+      const [vault] = await PublicKey.findProgramAddress(
+        [utf8.encode('vault'), mint.toBuffer(), authority.toBuffer()],
+        new PublicKey(this.config.stake_address)
+      );
+      const [reward] = await PublicKey.findProgramAddress(
+        [utf8.encode('reward'), authority.toBuffer()],
+        rewardsProgramId
+      );
+      const [reflection] = await PublicKey.findProgramAddress(
+        [utf8.encode('reflection')],
+        rewardsProgramId
+      )
+      const [stake] = await PublicKey.findProgramAddress(
+        [utf8.encode('stake'), mint.toBuffer(), authority.toBuffer()],
+        new PublicKey(this.config.stake_address)
+      );
 
       this.stakeAccounts = {
         // solana native
@@ -314,34 +332,27 @@ export class SolanaManager {
 
         // custom
         authority,
-        stake: await PublicKey.findProgramAddress(
-          [utf8.encode('stake'), mint.toBuffer(), authority.toBuffer()],
-          new PublicKey(this.config.stake_address)
-        ),
-        reflection: await PublicKey.findProgramAddress(
-          [utf8.encode('reflection')],
-          new PublicKey(this.config.rewards_address)
-        ),
+        stake,
+        reflection,
         user: await getAssociatedTokenAddress(mint, authority),
-        vault: await PublicKey.findProgramAddress(
-          [utf8.encode('vault'), mint.toBuffer(), authority.toBuffer()],
-          new PublicKey(this.config.stake_address)
-        ),
-        reward: await PublicKey.findProgramAddress(
-          [utf8.encode('reward'), authority.toBuffer()],
-          new PublicKey(this.config.rewards_address)
-        ),
+        vault,
+        reward,
         mint
       };
+
+      const [poolVault] = await PublicKey.findProgramAddress(
+        [utf8.encode('vault'), poolId.toBuffer()],
+        poolsProgramId
+      );
+
+      const [rewardsVault] = await PublicKey.findProgramAddress(
+        [mint.toBuffer()], rewardsProgramId)
 
       this.poolAccounts = {
         ...this.stakeAccounts,
         pool: poolId,
-        vault: await PublicKey.findProgramAddress(
-          [utf8.encode('vault'), poolId.toBuffer()],
-          poolsProgramId
-        ),
-        rewardsVault: await PublicKey.findProgramAddress([mint.toBuffer()], rewardsProgramId),
+        vault: poolVault,
+        rewardsVault,
         rewardsReflection: this.stakeAccounts.reflection,
         rewardsProgram: rewardsProgramId
       }

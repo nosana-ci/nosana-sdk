@@ -65,7 +65,7 @@ export class Stake extends SolanaManager {
         new PublicKey(this.config.stake_address),
       );
 
-      return await this.stake!.program.methods.stake(
+      return await this.stake!.program?.methods.stake(
         new BN(stakeAmount),
         new BN(stakeDurationSeconds),
       )
@@ -91,34 +91,48 @@ export class Stake extends SolanaManager {
    */
   async topup (stakeAmount: number) {
     try {
-      const preInstructions = [];
+      await this.loadNosanaStake();
+      await this.setStakeAccounts();
 
-      preInstructions.push(await this.stake!.poolsProgram.methods
-        .claimFee()
-        .accounts(this.poolAccounts).instruction());
+      if (this.stakeAccounts && this.poolAccounts) {
+        const preInstructions = [];
+        console.log('this.poolAccounts', this.poolAccounts);
 
-      const rewardsAndPool = await this.getRewardsAndPoolInfo();
+        console.log('this.stakeAccounts', this.stakeAccounts)
 
-      // if reward account doesn't exists yet, create it
-      if (!rewardsAndPool || !rewardsAndPool.rewardInfo || !rewardsAndPool.rewardInfo.account) {
-        preInstructions.push(await this.stake!.rewardsProgram.methods
-          .enter().accounts(this.stakeAccounts).instruction()
-        );
+        const rewardsAndPool = await this.getRewardsAndPoolInfo();
+
+        // if reward account doesn't exists yet, create it
+        if (!rewardsAndPool || !rewardsAndPool.rewardInfo || !rewardsAndPool.rewardInfo.account) {
+          console.log('ja push');
+          preInstructions.push(await this.stake!.rewardsProgram.methods
+            .enter().accounts(this.stakeAccounts).instruction()
+          );
+        }
+        preInstructions.push(await this.stake!.poolsProgram.methods
+          .claimFee()
+          .accounts(this.poolAccounts).instruction());
+
+        console.log('rewardsAndPool', rewardsAndPool);
+        console.log('this.stakeAccounts', this.stakeAccounts);
+        console.log('vault:', rewardsAndPool?.rewardInfo.vault);
+
+        const response = await this.stake!.program?.methods
+          .topup(new anchor.BN(stakeAmount))
+          .accounts(this.stakeAccounts)
+          .preInstructions(preInstructions)
+          .postInstructions([
+            await this.stake!.rewardsProgram.methods
+              .sync().accounts({ ...this.stakeAccounts, vault: rewardsAndPool?.rewardInfo.vault }).instruction()])
+          .rpc();
+        console.log(response);
+        return response;
+      } else {
+        throw new Error('Stake accounts not found')
       }
-
-      const response = await this.stake!.program.methods
-        .topup(new anchor.BN(stakeAmount))
-        .accounts(this.stakeAccounts)
-        .preInstructions(preInstructions)
-        .postInstructions([
-          await this.stake!.rewardsProgram.methods
-            .sync().accounts({ ...this.stakeAccounts, vault: this.$stake.rewardVault }).instruction()])
-        .rpc();
-      console.log(response);
-      return response;
     } catch (error) {
       console.error(error);
-      throw new Error('Something went wrong extending with topup');
+      throw new Error('Something went wrong extending with topup: ' + error);
     }
   };
 
@@ -131,25 +145,29 @@ export class Stake extends SolanaManager {
     await this.loadNosanaStake();
     await this.setStakeAccounts();
 
-    try {
-      const response = await this.stake!.program.methods
-        .extend(new anchor.BN(stakeDurationSeconds))
-        .accounts(this.stakeAccounts)
-        .preInstructions([
-          await this.stake!.poolsProgram.methods
-            .claimFee()
-            .accounts(this.poolAccounts).instruction()
-        ])
-        .postInstructions([
-          await this.stake!.rewardsProgram.methods
-            .sync().accounts({ ...this.stakeAccounts, vault: this.poolAccounts.rewardsVault }).instruction()])
-        .rpc();
+    if (this.stakeAccounts && this.poolAccounts) {
+      try {
+        const response = await this.stake!.program?.methods
+          .extend(new anchor.BN(stakeDurationSeconds))
+          .accounts(this.stakeAccounts)
+          .preInstructions([
+            await this.stake!.poolsProgram.methods
+              .claimFee()
+              .accounts(this.poolAccounts).instruction()
+          ])
+          .postInstructions([
+            await this.stake!.rewardsProgram.methods
+              .sync().accounts({ ...this.stakeAccounts, vault: this.poolAccounts.rewardsVault }).instruction()])
+          .rpc();
 
-      console.log(response);
-      return response;
-    } catch (error) {
-      console.error(error);
-      throw new Error('Something went wrong extending the stake');
+        console.log(response);
+        return response;
+      } catch (error) {
+        console.error(error);
+        throw new Error('Something went wrong extending the stake');
+      }
+    } else {
+      throw new Error('Stake accounts not found')
     }
   };
 
@@ -160,40 +178,45 @@ export class Stake extends SolanaManager {
   async unstake () {
     await this.loadNosanaStake();
     await this.setStakeAccounts();
-    // check if user has has reward account
-    const preInstructions = [];
-    try {
-      const rewardAccount = (
-        await this.stake!.rewardsProgram.account.rewardAccount.fetch(this.stakeAccounts.reward)).reflection;
-      console.log('User has reward account', rewardAccount);
-      preInstructions.push(
-        await this.stake!.poolsProgram.methods
-          .claimFee()
-          .accounts(this.poolAccounts).instruction(),
-        await this.stake!.rewardsProgram.methods
-          .claim()
-          .accounts({ ...this.stakeAccounts, vault: this.poolAccounts.rewardVault }).instruction(),
-        await this.stake!.rewardsProgram.methods.close().accounts(this.stakeAccounts).instruction()
-      );
-    } catch (error) {
-      // @ts-ignore
-      if (error.message.includes('Account does not exist')) {
-        console.log(error);
-        throw new Error('Something went wrong while restaking');
-      }
-    }
 
-    try {
-      const response = await this.stake!.program.methods
-        .unstake()
-        .accounts(this.stakeAccounts)
-        .preInstructions(preInstructions)
-        .rpc();
-      console.log(response)
-      return response;
-    } catch (error) {
-      console.log(error);
-      throw new Error('Something went wrong while unstaking');
+    if (this.stakeAccounts && this.poolAccounts) {
+      // check if user has has reward account
+      const preInstructions = [];
+      try {
+        const rewardAccount = (
+          await this.stake!.rewardsProgram.account.rewardAccount.fetch(this.stakeAccounts.reward)).reflection;
+        console.log('User has reward account', rewardAccount);
+        preInstructions.push(
+          await this.stake!.poolsProgram.methods
+            .claimFee()
+            .accounts(this.poolAccounts).instruction(),
+          await this.stake!.rewardsProgram.methods
+            .claim()
+            .accounts({ ...this.stakeAccounts, vault: this.poolAccounts.rewardVault }).instruction(),
+          await this.stake!.rewardsProgram.methods.close().accounts(this.stakeAccounts).instruction()
+        );
+      } catch (error) {
+        // @ts-ignore
+        if (error.message.includes('Account does not exist')) {
+          console.log(error);
+          throw new Error('Something went wrong while restaking');
+        }
+      }
+
+      try {
+        const response = await this.stake!.program?.methods
+          .unstake()
+          .accounts(this.stakeAccounts)
+          .preInstructions(preInstructions)
+          .rpc();
+        console.log(response)
+        return response;
+      } catch (error) {
+        console.log(error);
+        throw new Error('Something went wrong while unstaking');
+      }
+    } else {
+      throw new Error('Stake accounts not found')
     }
   }
 
@@ -206,19 +229,23 @@ export class Stake extends SolanaManager {
     await this.setStakeAccounts();
 
     try {
-      const response = await this.stake!.program.methods
-        .restake()
-        .accounts(this.stakeAccounts)
-        .preInstructions([
-          await this.stake!.poolsProgram.methods
-            .claimFee()
-            .accounts(this.poolAccounts).instruction()
-        ])
-        .postInstructions(
-          [await this.stake!.rewardsProgram.methods.enter().accounts(this.stakeAccounts).instruction()])
-        .rpc();
-      console.log(response);
-      return response;
+      if (this.stakeAccounts) {
+        const response = await this.stake!.program?.methods
+          .restake()
+          .accounts(this.stakeAccounts)
+          .preInstructions([
+            await this.stake!.poolsProgram.methods
+              .claimFee()
+              .accounts(this.poolAccounts).instruction()
+          ])
+          .postInstructions(
+            [await this.stake!.rewardsProgram.methods.enter().accounts(this.stakeAccounts).instruction()])
+          .rpc();
+        console.log(response);
+        return response;
+      } else {
+        throw Error('Stake accounts not found');
+      }
     } catch (error) {
       console.log(error);
       throw new Error('Something went wrong while restaking');
@@ -233,21 +260,26 @@ export class Stake extends SolanaManager {
     await this.loadNosanaStake();
     await this.setStakeAccounts();
 
-    try {
-      const withdraw = await this.stake!.program.methods
-        .withdraw()
-        .accounts(this.stakeAccounts)
-        .rpc();
-      console.log(withdraw);
-      const response = await this.stake!.program.methods
-        .close()
-        .accounts(this.stakeAccounts)
-        .rpc();
-      console.log(response);
-      return [withdraw, response]
-    } catch (error) {
-      console.error(error);
-      throw new Error('Something went wrong while closing');
+    if (this.stakeAccounts) {
+
+      try {
+        const withdraw = await this.stake!.program?.methods
+          .withdraw()
+          .accounts(this.stakeAccounts)
+          .rpc();
+        console.log(withdraw);
+        const response = await this.stake!.program?.methods
+          .close()
+          .accounts(this.stakeAccounts)
+          .rpc();
+        console.log(response);
+        return [withdraw, response]
+      } catch (error) {
+        console.error(error);
+        throw new Error('Something went wrong while closing');
+      }
+    } else {
+      throw new Error('Staking accounts not found');
     }
   }
 
@@ -259,16 +291,20 @@ export class Stake extends SolanaManager {
     await this.loadNosanaStake();
     await this.setStakeAccounts();
 
-    try {
-      const response = await this.stake!.program.methods
-        .withdraw()
-        .accounts(this.stakeAccounts)
-        .rpc();
-      console.log(response);
-      return response;
-    } catch (error) {
-      console.error(error);
-      throw new Error('Something went wrong while withdrawing');
+    if (this.stakeAccounts && this.poolAccounts) {
+      try {
+        const response = await this.stake!.program?.methods
+          .withdraw()
+          .accounts(this.stakeAccounts)
+          .rpc();
+        console.log(response);
+        return response;
+      } catch (error) {
+        console.error(error);
+        throw new Error('Something went wrong while withdrawing');
+      }
+    } else {
+      throw new Error('Staking accounts not found');
     }
   }
 
