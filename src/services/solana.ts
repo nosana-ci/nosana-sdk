@@ -74,8 +74,9 @@ export class SolanaManager {
       );
     }
 
-    if (this.config.wallet instanceof Keypair) {
+    // If .signTransaction exists, it's already type Wallet
     // @ts-ignore
+    if (!this.config.wallet.signTransaction) {
       this.config.wallet = new KeyWallet(this.config.wallet as Keypair);
     }
 
@@ -299,6 +300,11 @@ export class SolanaManager {
   async setStakeAccounts() {
     if (!this.stakeAccounts) {
       await this.loadNosanaStake();
+      console.log('setStakeAccounts');
+      console.log('this.config.pool_address', this.config.pool_address);
+      console.log('this.config.pools_address', this.config.pools_address);
+      console.log('this.config.rewards_address', this.config.rewards_address);
+
       const poolId = new PublicKey(this.config.pool_address);
       const authority = this.provider!.wallet.publicKey;
       const rewardsProgramId = new PublicKey(this.config.rewards_address);
