@@ -97,14 +97,12 @@ export class Stake extends SolanaManager {
       if (this.stakeAccounts && this.poolAccounts) {
         const preInstructions = [];
         console.log('this.poolAccounts', this.poolAccounts);
-
         console.log('this.stakeAccounts', this.stakeAccounts)
 
-        const rewardsAndPool = await this.getRewardsAndPoolInfo();
+        const rewardsInfo = await this.getRewardsInfo();
 
         // if reward account doesn't exists yet, create it
-        if (!rewardsAndPool || !rewardsAndPool.rewardInfo || !rewardsAndPool.rewardInfo.account) {
-          console.log('ja push');
+        if (!rewardsInfo || !rewardsInfo.account) {
           preInstructions.push(await this.stake!.rewardsProgram.methods
             .enter().accounts(this.stakeAccounts).instruction()
           );
@@ -113,9 +111,9 @@ export class Stake extends SolanaManager {
           .claimFee()
           .accounts(this.poolAccounts).instruction());
 
-        console.log('rewardsAndPool', rewardsAndPool);
+        console.log('rewardsAndPool', rewardsInfo);
         console.log('this.stakeAccounts', this.stakeAccounts);
-        console.log('vault:', rewardsAndPool?.rewardInfo.vault);
+        console.log('vault:', rewardsInfo?.vault);
 
         const response = await this.stake!.program?.methods
           .topup(new anchor.BN(stakeAmount))
@@ -123,7 +121,7 @@ export class Stake extends SolanaManager {
           .preInstructions(preInstructions)
           .postInstructions([
             await this.stake!.rewardsProgram.methods
-              .sync().accounts({ ...this.stakeAccounts, vault: rewardsAndPool?.rewardInfo.vault }).instruction()])
+              .sync().accounts({ ...this.stakeAccounts, vault: rewardsInfo?.vault }).instruction()])
           .rpc();
         console.log(response);
         return response;
@@ -308,14 +306,34 @@ export class Stake extends SolanaManager {
     }
   }
 
-  async getRewardsAndPoolInfo () {
+  async getPoolInfo () {
+    await this.loadNosanaStake();
+    await this.setStakeAccounts();
+
     if (!this.stakeAccounts || !this.poolAccounts) { return null; }
-    const globalReflection = await this.stake!.rewardsProgram.account.reflectionAccount.fetch(this.stakeAccounts.reflection);
-    let rewardAccount, pool, poolBalance, rewardVault;
+    let pool, poolBalance;
 
     try {
       pool = await this.stake!.poolsProgram.account.poolAccount.fetch(new PublicKey(this.config.pool_address));
       poolBalance = await this.getNosBalance(this.poolAccounts.vault);
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
+    if (poolBalance) {
+      pool.poolBalance = poolBalance.uiAmount;
+      }
+    return pool;
+  };
+
+  async getRewardsInfo () {
+    await this.loadNosanaStake();
+    await this.setStakeAccounts();
+
+    if (!this.stakeAccounts ) { return null; }
+    const globalReflection = await this.stake!.rewardsProgram.account.reflectionAccount.fetch(this.stakeAccounts.reflection);
+    let rewardAccount, rewardVault;
+
+    try {
       rewardAccount = await this.stake!.rewardsProgram.account.rewardAccount.fetch(this.stakeAccounts.reward);
       rewardVault = await PublicKey.findProgramAddress([new PublicKey(this.config.nos_address).toBuffer()], new PublicKey(this.config.rewards_address));
     } catch (error: any) {
@@ -330,11 +348,6 @@ export class Stake extends SolanaManager {
       account: rewardAccount,
       vault: rewardVault
     };
-
-    const poolInfo = {
-      pool,
-      poolBalance
-    }
-    return { rewardInfo, poolInfo };
-  };
+    return rewardInfo;
+  }
 }
