@@ -176,10 +176,10 @@ export class Stake extends SolanaManager {
   async unstake () {
     await this.loadNosanaStake();
     await this.setStakeAccounts();
+    const preInstructions: any = [];
 
     if (this.stakeAccounts && this.poolAccounts) {
       // check if user has has reward account
-      const preInstructions = [];
       try {
         const rewardAccount = (
           await this.stake!.rewardsProgram.account.rewardAccount.fetch(this.stakeAccounts.reward)).reflection;
@@ -190,14 +190,14 @@ export class Stake extends SolanaManager {
             .accounts(this.poolAccounts).instruction(),
           await this.stake!.rewardsProgram.methods
             .claim()
-            .accounts({ ...this.stakeAccounts, vault: this.poolAccounts.rewardVault }).instruction(),
+            .accounts({ ...this.stakeAccounts, vault: this.poolAccounts.rewardsVault }).instruction(),
           await this.stake!.rewardsProgram.methods.close().accounts(this.stakeAccounts).instruction()
         );
       } catch (error) {
         // @ts-ignore
         if (error.message.includes('Account does not exist')) {
           console.log(error);
-          throw new Error('Something went wrong while restaking');
+          throw new Error('Something went wrong while unstaking');
         }
       }
 
@@ -360,7 +360,7 @@ export class Stake extends SolanaManager {
               .topup(new anchor.BN(stakeAmount))
               .accounts(this.stakeAccounts).instruction(),
             await this.stake!.rewardsProgram.methods
-              .sync().accounts({ ...this.stakeAccounts, vault: this.poolAccounts.rewardVault }).instruction()
+              .sync().accounts({ ...this.stakeAccounts, vault: this.poolAccounts.rewardsVault }).instruction()
           ])
           .rpc();
         console.log(response);
@@ -393,7 +393,7 @@ export class Stake extends SolanaManager {
     }
     if (poolBalance) {
       pool.poolBalance = poolBalance.uiAmount;
-      }
+    }
     return pool;
   };
 
@@ -425,5 +425,23 @@ export class Stake extends SolanaManager {
       vault: rewardVault
     };
     return rewardInfo;
+  }
+
+  /**
+   * Get NOS balance of stake vault
+   * @returns
+   */
+  async getStakeVaultBalance () {
+    await this.loadNosanaStake();
+    await this.setStakeAccounts();
+    if (!this.stakeAccounts) { return null; }
+
+    const balance = await this.getNosBalance(this.stakeAccounts.vault);
+    let uiBalance;
+    if (balance) {
+      uiBalance = balance.uiAmount;
+    }
+    console.log('balance', balance);
+    return uiBalance;
   }
 }
