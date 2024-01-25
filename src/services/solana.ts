@@ -301,9 +301,6 @@ export class SolanaManager {
     if (!this.stakeAccounts) {
       await this.loadNosanaStake();
       console.log('setStakeAccounts');
-      console.log('this.config.pool_address', this.config.pool_address);
-      console.log('this.config.pools_address', this.config.pools_address);
-      console.log('this.config.rewards_address', this.config.rewards_address);
 
       const poolId = new PublicKey(this.config.pool_address);
       const authority = this.provider!.wallet.publicKey;

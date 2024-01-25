@@ -18,7 +18,7 @@ export class Stake extends SolanaManager {
   async all() {
     await this.loadNosanaStake();
     // @ts-ignore
-    return await this.stake!.account.stakeAccount.all();
+    return await this.stake!.program.account.stakeAccount.all();
   }
 
   /**
