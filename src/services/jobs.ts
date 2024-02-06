@@ -8,6 +8,7 @@ import { getAssociatedTokenAddress } from '@solana/spl-token';
 
 import type { Job, Market, Run } from '../types/index.js';
 import { SolanaManager } from './solana.js';
+import { IPFS } from '../services/ipfs.js';
 import * as anchor from '@coral-xyz/anchor';
 const { BN } = anchor;
 
@@ -197,6 +198,60 @@ export class Jobs extends SolanaManager {
         timeEnd: parseFloat(new BN(account.data.slice(1, 9), 'le')),
       }),
     );
+
+    // sort by desc timeStart & put 0 on top
+    const sortedAccounts = accountsWithTimeStart.sort((a, b) => {
+      if (a.state === b.state) {
+        if (a.timeStart === b.timeStart) {
+          return a.pubkey.toString().localeCompare(b.pubkey.toString());
+        }
+        if (a.timeStart === 0) return -1;
+        if (b.timeStart === 0) return 1;
+        return b.timeStart - a.timeStart;
+      }
+      return a.state - b.state;
+    });
+
+    return sortedAccounts;
+  }
+
+  /**
+   * Function to fetch ALL job accounts from chain
+   * NOTE: should only be used to make an export of all jobs
+   */
+  async allFullJobs() {
+    await this.loadNosanaJobs();
+    const accounts = await this.jobs!.account.jobAccount.all();
+    console.log('accounts', accounts);
+    // @ts-ignore
+    const filterExcludedJobs = accounts.filter(({ publicKey, account }) => {
+      // @ts-ignore
+      if (excludedJobs.includes(publicKey.toString()) || (account.state === 0 || account.state === 1)) return false;
+      return true;
+    });
+    const accountsWithTimeStart =  await Promise.all(filterExcludedJobs.map(
+      async (job) => ({
+        pubkey: job.publicKey,
+        ipfsJob: await IPFS.solHashToIpfsHash(
+          job.account.ipfsJob,
+        ),
+        ipfsResult: await IPFS.solHashToIpfsHash(
+          job.account.ipfsResult,
+        ),
+        market: job.account.market,
+        node: job.account.node,
+        payer: job.account.payer,
+        price: job.account.price,
+        project: job.account.project,
+        state: job.account.state,
+        timeEnd: job.account.timeEnd
+          ? parseInt(job.account.timeEnd)
+          : job.account.timeEnd,
+        timeStart: job.account.timeStart
+          ? parseInt(job.account.timeStart)
+          : job.account.timeStart,
+      }),
+    ));
 
     // sort by desc timeStart & put 0 on top
     const sortedAccounts = accountsWithTimeStart.sort((a, b) => {

@@ -9,6 +9,8 @@ export type SolanaConfig = {
   rewards_address: string;
   nodes_address: string;
   stake_address: string;
+  pools_address: string;
+  pool_address: string;
   wallet: Wallet | string | Keypair | Iterable<number> | null;
 };
 

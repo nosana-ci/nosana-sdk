@@ -24,6 +24,12 @@ export const solanaConfigDefault: SolanaConfig = {
   stake_address:
     process?.env?.NODES_ADDRESS ||
     'nosScmHY2uR24Zh751PmGj9ww9QRNHewh9H59AfrTJE',
+  pools_address:
+    process?.env?.POOLS_ADDRESS ||
+    'nosPdZrfDzND1LAR28FLMDEATUPK53K8xbRBXAirevD',
+  pool_address:
+    process?.env?.POOL_ADDRESS ||
+    '6CJ9UPNnXzcwuLSE9ebTz4FPbBw1VXJkPxDgTi9ybHBj',
   wallet: wallet,
 };
 
