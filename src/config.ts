@@ -1,12 +1,8 @@
 import type { SolanaConfig, IPFSConfig, SecretsConfig } from './types/index.js';
-import { KeyWallet } from './utils.js';
-import { Keypair } from '@solana/web3.js';
-
-const wallet = process?.env?.SOLANA_WALLET || new KeyWallet(Keypair.generate());
 
 export const solanaConfigPreset: { [key: string]: SolanaConfig } = {
   mainnet: {
-    network: 'devnet',
+    network: 'mainnet-beta',
     jobs_address: 'nosJTmGQxvwXy23vng5UjkTbfv91Bzf9jEuro78dAGR',
     nos_address: 'devr1BGQndEW5k5zfvG5FsLyZv1Ap73vNgAHcQ9sUVP',
     market_address: '7nxXoihx65yRGZiGzWZsFMz8D7qwxFePNKvDBWZnxc41',
