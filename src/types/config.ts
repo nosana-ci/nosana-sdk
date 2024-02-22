@@ -1,6 +1,3 @@
-import type { Wallet } from '@coral-xyz/anchor/dist/cjs/provider.js';
-import type { Keypair } from '@solana/web3.js';
-
 export type SolanaConfig = {
   network: string;
   jobs_address: string;
@@ -11,12 +8,10 @@ export type SolanaConfig = {
   stake_address: string;
   pools_address: string;
   pool_address: string;
-  wallet: Wallet | string | Keypair | Iterable<number> | null;
 };
 
 export type SecretsConfig = {
   manager: string;
-  wallet: Wallet | string | Keypair | Iterable<number>;
 };
 
 export type IPFSConfig = {
