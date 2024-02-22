@@ -5,7 +5,7 @@ import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 import nacl from 'tweetnacl';
 
 // local imports
-import { now, KeyWallet } from '../utils.js';
+import { now, KeyWallet, getWallet } from '../utils.js';
 import { Keypair, PublicKey } from '@solana/web3.js';
 
 import type { SecretsConfig } from '../types/index.js';
@@ -27,19 +27,7 @@ export class SecretManager {
   ) {
     this.config = secretsConfigPreset[environment];
     Object.assign(this.config, config);
-    if (typeof wallet === 'string' || Array.isArray(wallet)) {
-      let key = wallet;
-      if (typeof key === 'string') {
-        key = JSON.parse(key);
-      }
-      wallet = Keypair.fromSecretKey(new Uint8Array(key as Iterable<number>));
-    }
-
-    if (wallet instanceof Keypair) {
-      //@ts-ignore
-      wallet = new KeyWallet(wallet);
-    }
-    this.wallet = wallet as Wallet;
+    this.wallet = getWallet(wallet);
     this.api = axios.create({ baseURL: this.config.manager });
     // if (existsSync(process.env.SECRET_TOKEN))
     //   this.setToken(readFileSync(process.env.SECRET_TOKEN).toString());

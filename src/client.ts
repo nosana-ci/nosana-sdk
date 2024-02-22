@@ -36,8 +36,8 @@ export class Client {
     this.solana = new SolanaManager(environment, wallet, config?.solana);
     this.ipfs = new IPFS(environment, config?.ipfs);
     this.secrets = new SecretManager(environment, wallet, config?.secrets);
-    this.jobs = new Jobs(environment, config?.solana);
-    this.nodes = new Nodes(environment, config?.solana);
-    this.stake = new Stake(environment, config?.solana);
+    this.jobs = new Jobs(environment, wallet, config?.solana);
+    this.nodes = new Nodes(environment, wallet, config?.solana);
+    this.stake = new Stake(environment, wallet, config?.solana);
   }
 }

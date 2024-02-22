@@ -19,7 +19,7 @@ import {
   associatedAddress,
   TOKEN_PROGRAM_ID,
 } from '@coral-xyz/anchor/dist/cjs/utils/token.js';
-import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
+import { utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 
 import type {
   NosanaJobs,
@@ -27,7 +27,7 @@ import type {
   NosanaNodes,
   NosanaStake,
 } from '../types/index.js';
-import { KeyWallet, pda } from '../utils.js';
+import { KeyWallet, getWallet, pda } from '../utils.js';
 import { solanaConfigPreset } from '../config.js';
 import { Wallet } from '@coral-xyz/anchor/dist/cjs/provider.js';
 
@@ -63,25 +63,8 @@ export class SolanaManager {
   ) {
     this.config = solanaConfigPreset[environment];
     Object.assign(this.config, config);
-    if (typeof wallet === 'string' || Array.isArray(wallet)) {
-      let key = wallet;
-      if (typeof key === 'string') {
-        if (key[0] === '[') {
-          key = JSON.parse(key);
-        } else {
-          key = Buffer.from(bs58.decode(key)).toJSON().data;
-          // key = Buffer.from(key).toJSON().data;
-        }
-      }
-      wallet = Keypair.fromSecretKey(new Uint8Array(key as Iterable<number>));
-    }
 
-    // If .signTransaction exists, it's already type Wallet
-    // @ts-ignore
-    if (!wallet.signTransaction) {
-      wallet = new KeyWallet(wallet as Keypair);
-    }
-    this.wallet = wallet as Wallet;
+    this.wallet = getWallet(wallet);
 
     if (typeof process !== 'undefined' && process.env?.ANCHOR_PROVIDER_URL) {
       // TODO: figure out if we want to support this or not

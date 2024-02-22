@@ -22,9 +22,6 @@ const pda = (
  * https://docs.nosana.io/secrets/start.html
  */
 export class Jobs extends SolanaManager {
-  constructor(...args: any) {
-    super(...args);
-  }
   /**
    * Function to list a Nosana Job in a market
    * @param ipfsHash String of the IPFS hash locating the Nosana Job data.
@@ -43,7 +40,15 @@ export class Jobs extends SolanaManager {
           job: jobKey.publicKey,
           run: runKey.publicKey,
           market: market ? market : this.accounts?.market,
-          vault: market ? pda([market.toBuffer(), new PublicKey(this.config.nos_address).toBuffer()], this.jobs!.programId) : this.accounts?.vault,
+          vault: market
+            ? pda(
+                [
+                  market.toBuffer(),
+                  new PublicKey(this.config.nos_address).toBuffer(),
+                ],
+                this.jobs!.programId,
+              )
+            : this.accounts?.vault,
         })
         .signers([jobKey, runKey])
         .rpc();
@@ -226,18 +231,19 @@ export class Jobs extends SolanaManager {
     // @ts-ignore
     const filterExcludedJobs = accounts.filter(({ publicKey, account }) => {
       // @ts-ignore
-      if (excludedJobs.includes(publicKey.toString()) || (account.state === 0 || account.state === 1)) return false;
+      if (
+        excludedJobs.includes(publicKey.toString()) ||
+        account.state === 0 ||
+        account.state === 1
+      )
+        return false;
       return true;
     });
-    const accountsWithTimeStart =  await Promise.all(filterExcludedJobs.map(
-      async (job) => ({
+    const accountsWithTimeStart = await Promise.all(
+      filterExcludedJobs.map(async (job) => ({
         pubkey: job.publicKey,
-        ipfsJob: await IPFS.solHashToIpfsHash(
-          job.account.ipfsJob,
-        ),
-        ipfsResult: await IPFS.solHashToIpfsHash(
-          job.account.ipfsResult,
-        ),
+        ipfsJob: await IPFS.solHashToIpfsHash(job.account.ipfsJob),
+        ipfsResult: await IPFS.solHashToIpfsHash(job.account.ipfsResult),
         market: job.account.market,
         node: job.account.node,
         payer: job.account.payer,
@@ -250,8 +256,8 @@ export class Jobs extends SolanaManager {
         timeStart: job.account.timeStart
           ? parseInt(job.account.timeStart)
           : job.account.timeStart,
-      }),
-    ));
+      })),
+    );
 
     // sort by desc timeStart & put 0 on top
     const sortedAccounts = accountsWithTimeStart.sort((a, b) => {
@@ -278,8 +284,8 @@ export class Jobs extends SolanaManager {
     await this.loadNosanaJobs();
     return {
       publicKey: run,
-      account: await this.jobs!.account.runAccount.fetch(run)
-    }
+      account: await this.jobs!.account.runAccount.fetch(run),
+    };
   }
   /**
    * Function to fetch a run of a job from chain
@@ -289,12 +295,12 @@ export class Jobs extends SolanaManager {
     if (typeof filter === 'string') filter = new PublicKey(filter);
     await this.loadNosanaJobs();
     const runAccounts = await this.jobs!.account.runAccount.all(
-      Array.isArray(filter) ? filter :
-      [{ memcmp: { offset: 8, bytes: filter.toString() } },
-    ]);
+      Array.isArray(filter)
+        ? filter
+        : [{ memcmp: { offset: 8, bytes: filter.toString() } }],
+    );
     return runAccounts;
   }
-
 
   /**
    * Get all Runs
@@ -344,15 +350,24 @@ export class Jobs extends SolanaManager {
       const runKey = Keypair.generate();
       const accounts = {
         ...this.accounts,
-        stake: pda([utf8.encode('stake'), new PublicKey(this.config.nos_address).toBuffer(), this.provider!.wallet.publicKey.toBuffer()], new PublicKey(this.config.stake_address)),
+        stake: pda(
+          [
+            utf8.encode('stake'),
+            new PublicKey(this.config.nos_address).toBuffer(),
+            this.provider!.wallet.publicKey.toBuffer(),
+          ],
+          new PublicKey(this.config.stake_address),
+        ),
         run: runKey.publicKey,
-        nft: await getAssociatedTokenAddress(new PublicKey(this.config.nos_address), this.provider!.wallet.publicKey),
+        nft: await getAssociatedTokenAddress(
+          new PublicKey(this.config.nos_address),
+          this.provider!.wallet.publicKey,
+        ),
         metadata: new PublicKey('11111111111111111111111111111111'),
         feePayer: this.provider!.wallet.publicKey,
-        market
-      }
-      const tx = await this.jobs!.methods
-        .work()
+        market,
+      };
+      const tx = await this.jobs!.methods.work()
         .accounts(accounts)
         .signers([runKey])
         .rpc();
@@ -380,7 +395,11 @@ export class Jobs extends SolanaManager {
    * @param run Market account of job
    * @returns transaction
    */
-  async submitResult (result: Array<any>, run: Run | string | PublicKey, market: Market | string | PublicKey) {
+  async submitResult(
+    result: Array<any>,
+    run: Run | string | PublicKey,
+    market: Market | string | PublicKey,
+  ) {
     try {
       await this.loadNosanaJobs();
       await this.setAccounts();
@@ -388,31 +407,39 @@ export class Jobs extends SolanaManager {
       if (typeof market === 'string') market = new PublicKey(market);
       let marketAddress;
       if (market instanceof PublicKey) {
-        marketAddress = market
+        marketAddress = market;
         market = await this.getMarket(market);
       }
 
       if (typeof run === 'string') run = new PublicKey(run);
       if (run instanceof PublicKey) {
-        run = await this.getRun(run) as Run;
+        run = (await this.getRun(run)) as Run;
       }
 
-      const job: Job = await this.get(run.account.job)
-      const depositAta = (job.price > 0) ? await getAssociatedTokenAddress(new PublicKey(this.config.nos_address), job.project) : market.vault;
+      const job: Job = await this.get(run.account.job);
+      const depositAta =
+        job.price > 0
+          ? await getAssociatedTokenAddress(
+              new PublicKey(this.config.nos_address),
+              job.project,
+            )
+          : market.vault;
 
-      const tx = await this.jobs!.methods
-        .finish(result)
+      const tx = await this.jobs!.methods.finish(result)
         .accounts({
           ...this.accounts,
           job: run.account.job,
           run: run.publicKey,
           vault: market.vault,
-          user: await getAssociatedTokenAddress(new PublicKey(this.config.nos_address), this.provider!.wallet.publicKey),
+          user: await getAssociatedTokenAddress(
+            new PublicKey(this.config.nos_address),
+            this.provider!.wallet.publicKey,
+          ),
           payer: run.account.payer,
           // @ts-ignore
           deposit: depositAta,
           project: job.project,
-          market: marketAddress ? marketAddress : market.address
+          market: marketAddress ? marketAddress : market.address,
         })
         .rpc();
       return tx;
@@ -420,23 +447,22 @@ export class Jobs extends SolanaManager {
       console.error(error);
       throw error;
     }
-  };
+  }
 
   /**
    * Function to quit a job
    * @param run Run account of the job
    * @returns
    */
-  async quit (run: Run | string | PublicKey) {
+  async quit(run: Run | string | PublicKey) {
     try {
       await this.loadNosanaJobs();
       await this.setAccounts();
       if (typeof run === 'string') run = new PublicKey(run);
       if (run instanceof PublicKey) {
-        run = await this.getRun(run) as Run;
+        run = (await this.getRun(run)) as Run;
       }
-      const tx = await this.jobs!.methods
-        .quit()
+      const tx = await this.jobs!.methods.quit()
         .accounts({
           ...this.accounts,
           job: run.account.job,
@@ -449,22 +475,21 @@ export class Jobs extends SolanaManager {
       console.error(error);
       throw error;
     }
-  };
+  }
 
   /**
    * Exit the node queue
    * @returns
    */
-  async stop (market: string | PublicKey) {
+  async stop(market: string | PublicKey) {
     try {
       await this.loadNosanaJobs();
       await this.setAccounts();
       if (typeof market === 'string') market = new PublicKey(market);
-      const tx = await this.jobs!.methods
-        .stop()
+      const tx = await this.jobs!.methods.stop()
         .accounts({
           ...this.accounts,
-          market
+          market,
         })
         .rpc();
       return tx;
@@ -472,5 +497,5 @@ export class Jobs extends SolanaManager {
       console.error(error);
       throw error;
     }
-  };
+  }
 }
