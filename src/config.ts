@@ -3,8 +3,8 @@ import type { SolanaConfig, IPFSConfig, SecretsConfig } from './types/index.js';
 export const solanaConfigPreset: { [key: string]: SolanaConfig } = {
   mainnet: {
     network: 'mainnet-beta',
-    jobs_address: 'nosJTmGQxvwXy23vng5UjkTbfv91Bzf9jEuro78dAGR',
-    nos_address: 'devr1BGQndEW5k5zfvG5FsLyZv1Ap73vNgAHcQ9sUVP',
+    jobs_address: 'nosJhNRqr2bc9g1nfGDcXXTXvYUmxD4cVwy2pMWhrYM',
+    nos_address: 'nosXBVoaCTtYdLvKY6Csb4AC8JCdQKKAaWYtx2ZMoo7',
     market_address: '7nxXoihx65yRGZiGzWZsFMz8D7qwxFePNKvDBWZnxc41',
     rewards_address: 'nosRB8DUV67oLNrL45bo2pFLrmsWPiewe2Lk2DRNYCp',
     nodes_address: 'nosNeZR64wiEhQc5j251bsP4WqDabT6hmz4PHyoHLGD',
@@ -27,7 +27,7 @@ export const solanaConfigPreset: { [key: string]: SolanaConfig } = {
 
 export const secretsConfigPreset: { [key: string]: SecretsConfig } = {
   mainnet: {
-    manager: 'https://secrets.k8s.dev.nos.ci/',
+    manager: 'https://secrets.k8s.prd.nos.ci/',
   },
   devnet: {
     manager: 'https://secrets.k8s.dev.nos.ci/',
