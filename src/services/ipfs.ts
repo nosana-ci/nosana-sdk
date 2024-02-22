@@ -1,7 +1,7 @@
 import axios, { AxiosHeaders, AxiosInstance, AxiosRequestConfig } from 'axios';
 import bs58 from 'bs58';
 import type { IPFSConfig } from '../types/config.js';
-import { IPFSConfigDefault } from '../config_defaults.js';
+import { IPFSConfigPreset } from '../config.js';
 import fs from 'fs';
 import FormData from 'form-data';
 
@@ -11,9 +11,10 @@ import FormData from 'form-data';
  */
 export class IPFS {
   private api: AxiosInstance;
-  config: IPFSConfig = IPFSConfigDefault;
+  config: IPFSConfig;
 
-  constructor(config?: Partial<IPFSConfig>) {
+  constructor(environment: string = 'devnet', config?: Partial<IPFSConfig>) {
+    this.config = IPFSConfigPreset[environment];
     Object.assign(this.config, config);
     const headers: AxiosHeaders = new AxiosHeaders();
     if (this.config.jwt) {

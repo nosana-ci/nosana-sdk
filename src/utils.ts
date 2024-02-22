@@ -7,6 +7,7 @@ import {
 import { Wallet } from '@coral-xyz/anchor';
 import type { Job } from './types/index.js';
 import { IPFS } from './services/ipfs.js';
+import * as buffer from 'buffer';
 
 const excludedJobs = [
   'Af6vBZSM3eLfJHvfMXKUa3CCeP4b8VEFbBaRhMsJHvtb',
@@ -87,6 +88,13 @@ const mapJob = (job: any): Job => {
   job.ipfsResult = IPFS.solHashToIpfsHash(job.ipfsResult);
 
   return job;
+};
+
+const polyfill = () => {
+  // polyfill buffer for browser
+  if (typeof window !== 'undefined') {
+    window.Buffer = buffer.Buffer;
+  }
 };
 
 export { now, sleep, KeyWallet, mapJob, jobStateMapping, excludedJobs };

@@ -9,7 +9,7 @@ import { now, KeyWallet } from '../utils.js';
 import { Keypair, PublicKey } from '@solana/web3.js';
 
 import type { SecretsConfig } from '../types/index.js';
-import { secretsConfigDefault } from '../config_defaults.js';
+import { secretsConfigPreset } from '../config.js';
 import { Wallet } from '@coral-xyz/anchor/dist/cjs/provider.js';
 
 /**
@@ -18,28 +18,28 @@ import { Wallet } from '@coral-xyz/anchor/dist/cjs/provider.js';
  */
 export class SecretManager {
   public api: AxiosInstance;
-  config: SecretsConfig = secretsConfigDefault;
+  config: SecretsConfig;
   wallet: Wallet;
-  constructor(config?: Partial<SecretsConfig>) {
+  constructor(
+    environment: string = 'devnet',
+    wallet: Wallet | string | Keypair | Iterable<number>,
+    config?: Partial<SecretsConfig>,
+  ) {
+    this.config = secretsConfigPreset[environment];
     Object.assign(this.config, config);
-    if (
-      typeof this.config.wallet === 'string' ||
-      Array.isArray(this.config.wallet)
-    ) {
-      let key = this.config.wallet;
+    if (typeof wallet === 'string' || Array.isArray(wallet)) {
+      let key = wallet;
       if (typeof key === 'string') {
         key = JSON.parse(key);
       }
-      this.config.wallet = Keypair.fromSecretKey(
-        new Uint8Array(key as Iterable<number>),
-      );
+      wallet = Keypair.fromSecretKey(new Uint8Array(key as Iterable<number>));
     }
 
-    if (this.config.wallet instanceof Keypair) {
+    if (wallet instanceof Keypair) {
       //@ts-ignore
-      this.config.wallet = new KeyWallet(this.config.wallet);
+      wallet = new KeyWallet(wallet);
     }
-    this.wallet = this.config.wallet as Wallet;
+    this.wallet = wallet as Wallet;
     this.api = axios.create({ baseURL: this.config.manager });
     // if (existsSync(process.env.SECRET_TOKEN))
     //   this.setToken(readFileSync(process.env.SECRET_TOKEN).toString());
