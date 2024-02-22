@@ -10,10 +10,10 @@ const config: ClientConfig = {
   },
 };
 
-const nosana: Client = new Client(config);
+const nosana: Client = new Client('mainnet', undefined, config);
 console.log(
   'Logged in as',
-  (nosana.solana.config.wallet as Wallet).publicKey.toString(),
+  (nosana.solana.wallet as Wallet).publicKey.toString(),
 );
 
 (async () => {

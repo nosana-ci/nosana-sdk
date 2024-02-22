@@ -1,7 +1,7 @@
 import { Wallet } from '@coral-xyz/anchor';
-import { Client, IPFS } from './src';
-import type { ClientConfig } from './src/types';
-import { sleep } from './src/utils';
+import { Client } from '../src';
+import type { ClientConfig } from '../src/types';
+import { sleep } from '../src/utils';
 
 const config: ClientConfig = {
   solana: {
@@ -9,10 +9,10 @@ const config: ClientConfig = {
   },
 };
 
-const nosana: Client = new Client(config);
+const nosana: Client = new Client('devnet', undefined, config);
 console.log(
   'Logged in as',
-  (nosana.solana.config.wallet as Wallet).publicKey.toString(),
+  (nosana.solana.wallet as Wallet).publicKey.toString(),
 );
 
 (async () => {
@@ -37,6 +37,7 @@ console.log(
   const response = await nosana.jobs.list(ipfsHash);
   console.log('job posted!', response);
   let job;
+  // @ts-ignore
   while (!job || parseInt(job.state) < 2) {
     console.log('checking job state..');
     job = await nosana.jobs.get(response.job);
