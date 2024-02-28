@@ -198,10 +198,12 @@ export class SolanaManager {
         new PublicKey(parsedData.mint),
       );
       const info = await this.connection!.getAccountInfo(metadataAddress);
-
       if (info) {
         const collectionFromToken = bs58.encode(
-          info.data.reverse().subarray(245, 277).reverse(),
+          info.data
+            .reverse()
+            .subarray(279, 279 + 32)
+            .reverse(),
         );
         if (collectionFromToken === collection) {
           return new PublicKey(parsedData.mint);
