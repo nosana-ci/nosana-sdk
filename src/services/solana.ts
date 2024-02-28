@@ -4,6 +4,7 @@ import {
   getAccount,
   createAssociatedTokenAccount,
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import {
   Keypair,
@@ -14,12 +15,9 @@ import {
   SYSVAR_RENT_PUBKEY,
   SYSVAR_CLOCK_PUBKEY,
 } from '@solana/web3.js';
-import type { Cluster, TokenAmount } from '@solana/web3.js';
-import {
-  associatedAddress,
-  TOKEN_PROGRAM_ID,
-} from '@coral-xyz/anchor/dist/cjs/utils/token.js';
-import { utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
+import type { Cluster, ParsedAccountData, TokenAmount } from '@solana/web3.js';
+import { associatedAddress } from '@coral-xyz/anchor/dist/cjs/utils/token.js';
+import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 
 import type {
   NosanaJobs,
@@ -150,6 +148,67 @@ export class SolanaManager {
     if (typeof address === 'string') address = new PublicKey(address);
     const tokenBalance = await this.connection!.getBalance(address!);
     return tokenBalance;
+  }
+
+  /**
+   * Finds the MetaPlex metadata address for an NFT mint
+   * See https://docs.metaplex.com/programs/token-metadata/changelog/v1.0
+   * @param mint Publickey address of the NFT
+   */
+  getMetadataPDA(mint: PublicKey): PublicKey {
+    const metaplexMetadata = new PublicKey(
+      'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
+    );
+    return pda(
+      [utf8.encode('metadata'), metaplexMetadata.toBuffer(), mint.toBuffer()],
+      metaplexMetadata,
+    );
+  }
+
+  /**
+   * Find the first NFT from `collection` owned by `owner`
+   * @param owner Publickey address of the owner of the NFT
+   * @param collection Publickey address of the NFT collection
+   */
+  async getNftFromCollection(
+    owner: PublicKey | string,
+    collection: string,
+  ): Promise<PublicKey | undefined> {
+    if (typeof owner === 'string') owner = new PublicKey(owner);
+    const tokens = await this.connection!.getParsedProgramAccounts(
+      TOKEN_PROGRAM_ID,
+      {
+        filters: [
+          {
+            dataSize: 165, // number of bytes
+          },
+          {
+            memcmp: {
+              offset: 32, // number of bytes
+              bytes: owner.toString(), // base58 encoded string
+            },
+          },
+        ],
+      },
+    );
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      const parsedData = (token.account.data as ParsedAccountData).parsed.info;
+      const metadataAddress = this.getMetadataPDA(
+        new PublicKey(parsedData.mint),
+      );
+      const info = await this.connection!.getAccountInfo(metadataAddress);
+
+      if (info) {
+        const collectionFromToken = bs58.encode(
+          info.data.reverse().subarray(245, 277).reverse(),
+        );
+        if (collectionFromToken === collection) {
+          return new PublicKey(parsedData.mint);
+        }
+      }
+    }
+    return;
   }
 
   /**

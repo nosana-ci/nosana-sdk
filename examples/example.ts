@@ -2,6 +2,7 @@ import { Wallet } from '@coral-xyz/anchor';
 import { Client } from '../src';
 import type { ClientConfig } from '../src/types';
 import { sleep } from '../src/utils';
+import { PublicKey } from '@solana/web3.js';
 
 const config: ClientConfig = {
   solana: {
