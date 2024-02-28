@@ -10,7 +10,8 @@ import type { Job, Market, Run } from '../types/index.js';
 import { SolanaManager } from './solana.js';
 import { IPFS } from '../services/ipfs.js';
 import * as anchor from '@coral-xyz/anchor';
-const { BN } = anchor;
+// @ts-ignore
+const { BN } = anchor.default ? anchor.default : anchor;
 
 const pda = (
   seeds: Array<Buffer | Uint8Array>,

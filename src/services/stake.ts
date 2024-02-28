@@ -1,7 +1,8 @@
 import { utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 import { SolanaManager } from './solana.js';
 import * as anchor from '@coral-xyz/anchor';
-const { BN } = anchor;
+//@ts-ignore
+const { BN } = anchor.default ? anchor.default : anchor;
 import { PublicKey, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 
