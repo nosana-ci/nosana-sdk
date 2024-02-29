@@ -349,13 +349,18 @@ export class Jobs extends SolanaManager {
       await this.setAccounts();
       if (typeof market === 'string') market = new PublicKey(market);
       const runKey = Keypair.generate();
-      let metadata = new PublicKey('11111111111111111111111111111111');
+      let nftAta: PublicKey, metadata: PublicKey;
       if (!nft) {
-        nft = await getAssociatedTokenAddress(
+        nftAta = await getAssociatedTokenAddress(
           new PublicKey(this.config.nos_address),
           this.provider!.wallet.publicKey,
         );
+        metadata = new PublicKey('11111111111111111111111111111111');
       } else {
+        nftAta = await getAssociatedTokenAddress(
+          nft,
+          this.provider!.wallet.publicKey,
+        );
         metadata = this.getMetadataPDA(nft);
       }
       const accounts = {
@@ -369,7 +374,7 @@ export class Jobs extends SolanaManager {
           new PublicKey(this.config.stake_address),
         ),
         run: runKey.publicKey,
-        nft,
+        nft: nftAta,
         metadata,
         feePayer: this.provider!.wallet.publicKey,
         market,
