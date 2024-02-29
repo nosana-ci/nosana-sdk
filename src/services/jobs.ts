@@ -383,7 +383,6 @@ export class Jobs extends SolanaManager {
         .accounts(accounts)
         .signers([runKey])
         .rpc();
-      console.log(tx);
       return tx;
     } catch (e) {
       if (e instanceof SendTransactionError) {
