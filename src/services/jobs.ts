@@ -343,12 +343,25 @@ export class Jobs extends SolanaManager {
    * Function to queue a Node or work on a job
    * @returns
    */
-  async work(market: string | PublicKey) {
+  async work(
+    market: string | PublicKey,
+    nft?: PublicKey,
+    metadata?: PublicKey,
+  ) {
     try {
       await this.loadNosanaJobs();
       await this.setAccounts();
       if (typeof market === 'string') market = new PublicKey(market);
       const runKey = Keypair.generate();
+      if (!nft) {
+        nft = await getAssociatedTokenAddress(
+          new PublicKey(this.config.nos_address),
+          this.provider!.wallet.publicKey,
+        );
+      }
+      if (!metadata) {
+        metadata = new PublicKey('11111111111111111111111111111111');
+      }
       const accounts = {
         ...this.accounts,
         stake: pda(
@@ -360,11 +373,8 @@ export class Jobs extends SolanaManager {
           new PublicKey(this.config.stake_address),
         ),
         run: runKey.publicKey,
-        nft: await getAssociatedTokenAddress(
-          new PublicKey(this.config.nos_address),
-          this.provider!.wallet.publicKey,
-        ),
-        metadata: new PublicKey('11111111111111111111111111111111'),
+        nft,
+        metadata,
         feePayer: this.provider!.wallet.publicKey,
         market,
       };
