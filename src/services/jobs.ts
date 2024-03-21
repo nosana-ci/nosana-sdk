@@ -411,53 +411,48 @@ export class Jobs extends SolanaManager {
     run: Run | string | PublicKey,
     market: Market | string | PublicKey,
   ) {
-    try {
-      await this.loadNosanaJobs();
-      await this.setAccounts();
+    await this.loadNosanaJobs();
+    await this.setAccounts();
 
-      if (typeof market === 'string') market = new PublicKey(market);
-      let marketAddress;
-      if (market instanceof PublicKey) {
-        marketAddress = market;
-        market = await this.getMarket(market);
-      }
-
-      if (typeof run === 'string') run = new PublicKey(run);
-      if (run instanceof PublicKey) {
-        run = (await this.getRun(run)) as Run;
-      }
-
-      const job: Job = await this.get(run.account.job);
-      const depositAta =
-        job.price > 0
-          ? await getAssociatedTokenAddress(
-              new PublicKey(this.config.nos_address),
-              job.project,
-            )
-          : market.vault;
-
-      const tx = await this.jobs!.methods.finish(result)
-        .accounts({
-          ...this.accounts,
-          job: run.account.job,
-          run: run.publicKey,
-          vault: market.vault,
-          user: await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            this.provider!.wallet.publicKey,
-          ),
-          payer: run.account.payer,
-          // @ts-ignore
-          deposit: depositAta,
-          project: job.project,
-          market: marketAddress ? marketAddress : market.address,
-        })
-        .rpc();
-      return tx;
-    } catch (error) {
-      console.error(error);
-      throw error;
+    if (typeof market === 'string') market = new PublicKey(market);
+    let marketAddress;
+    if (market instanceof PublicKey) {
+      marketAddress = market;
+      market = await this.getMarket(market);
     }
+
+    if (typeof run === 'string') run = new PublicKey(run);
+    if (run instanceof PublicKey) {
+      run = (await this.getRun(run)) as Run;
+    }
+
+    const job: Job = await this.get(run.account.job);
+    const depositAta =
+      job.price > 0
+        ? await getAssociatedTokenAddress(
+            new PublicKey(this.config.nos_address),
+            job.project,
+          )
+        : market.vault;
+
+    const tx = await this.jobs!.methods.finish(result)
+      .accounts({
+        ...this.accounts,
+        job: run.account.job,
+        run: run.publicKey,
+        vault: market.vault,
+        user: await getAssociatedTokenAddress(
+          new PublicKey(this.config.nos_address),
+          this.provider!.wallet.publicKey,
+        ),
+        payer: run.account.payer,
+        // @ts-ignore
+        deposit: depositAta,
+        project: job.project,
+        market: marketAddress ? marketAddress : market.address,
+      })
+      .rpc();
+    return tx;
   }
 
   /**
@@ -466,26 +461,21 @@ export class Jobs extends SolanaManager {
    * @returns
    */
   async quit(run: Run | string | PublicKey) {
-    try {
-      await this.loadNosanaJobs();
-      await this.setAccounts();
-      if (typeof run === 'string') run = new PublicKey(run);
-      if (run instanceof PublicKey) {
-        run = (await this.getRun(run)) as Run;
-      }
-      const tx = await this.jobs!.methods.quit()
-        .accounts({
-          ...this.accounts,
-          job: run.account.job,
-          run: run.publicKey,
-          payer: run.account.payer,
-        })
-        .rpc();
-      return tx;
-    } catch (error) {
-      console.error(error);
-      throw error;
+    await this.loadNosanaJobs();
+    await this.setAccounts();
+    if (typeof run === 'string') run = new PublicKey(run);
+    if (run instanceof PublicKey) {
+      run = (await this.getRun(run)) as Run;
     }
+    const tx = await this.jobs!.methods.quit()
+      .accounts({
+        ...this.accounts,
+        job: run.account.job,
+        run: run.publicKey,
+        payer: run.account.payer,
+      })
+      .rpc();
+    return tx;
   }
 
   /**
@@ -493,20 +483,15 @@ export class Jobs extends SolanaManager {
    * @returns
    */
   async stop(market: string | PublicKey) {
-    try {
-      await this.loadNosanaJobs();
-      await this.setAccounts();
-      if (typeof market === 'string') market = new PublicKey(market);
-      const tx = await this.jobs!.methods.stop()
-        .accounts({
-          ...this.accounts,
-          market,
-        })
-        .rpc();
-      return tx;
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
+    await this.loadNosanaJobs();
+    await this.setAccounts();
+    if (typeof market === 'string') market = new PublicKey(market);
+    const tx = await this.jobs!.methods.stop()
+      .accounts({
+        ...this.accounts,
+        market,
+      })
+      .rpc();
+    return tx;
   }
 }
