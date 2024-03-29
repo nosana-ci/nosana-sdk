@@ -3,7 +3,13 @@ import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 
 // local imports
 import { jobStateMapping, mapJob, excludedJobs } from '../utils.js';
-import { Keypair, PublicKey, SendTransactionError } from '@solana/web3.js';
+import {
+  ComputeBudgetProgram,
+  Keypair,
+  PublicKey,
+  SendTransactionError,
+  TransactionInstruction,
+} from '@solana/web3.js';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 
 import type { Job, Market, Run } from '../types/index.js';
@@ -33,9 +39,17 @@ export class Jobs extends SolanaManager {
     const jobKey = Keypair.generate();
     const runKey = Keypair.generate();
     try {
+      const preInstructions: TransactionInstruction[] = [];
+      if (this.config.priority_fee) {
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: this.config.priority_fee,
+        });
+        preInstructions.push(addPriorityFee);
+      }
       const tx = await this.jobs!.methods.list([
         ...bs58.decode(ipfsHash).subarray(2),
       ])
+        .preInstructions(preInstructions)
         .accounts({
           ...this.accounts,
           job: jobKey.publicKey,
@@ -379,7 +393,15 @@ export class Jobs extends SolanaManager {
         feePayer: this.provider!.wallet.publicKey,
         market,
       };
+      const preInstructions: TransactionInstruction[] = [];
+      if (this.config.priority_fee) {
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: this.config.priority_fee,
+        });
+        preInstructions.push(addPriorityFee);
+      }
       const tx = await this.jobs!.methods.work()
+        .preInstructions(preInstructions)
         .accounts(accounts)
         .signers([runKey])
         .rpc();
@@ -434,8 +456,15 @@ export class Jobs extends SolanaManager {
             job.project,
           )
         : market.vault;
-
+    const preInstructions: TransactionInstruction[] = [];
+    if (this.config.priority_fee) {
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: this.config.priority_fee,
+      });
+      preInstructions.push(addPriorityFee);
+    }
     const tx = await this.jobs!.methods.finish(result)
+      .preInstructions(preInstructions)
       .accounts({
         ...this.accounts,
         job: run.account.job,
@@ -467,7 +496,15 @@ export class Jobs extends SolanaManager {
     if (run instanceof PublicKey) {
       run = (await this.getRun(run)) as Run;
     }
+    const preInstructions: TransactionInstruction[] = [];
+    if (this.config.priority_fee) {
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: this.config.priority_fee,
+      });
+      preInstructions.push(addPriorityFee);
+    }
     const tx = await this.jobs!.methods.quit()
+      .preInstructions(preInstructions)
       .accounts({
         ...this.accounts,
         job: run.account.job,
@@ -486,7 +523,15 @@ export class Jobs extends SolanaManager {
     await this.loadNosanaJobs();
     await this.setAccounts();
     if (typeof market === 'string') market = new PublicKey(market);
+    const preInstructions: TransactionInstruction[] = [];
+    if (this.config.priority_fee) {
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: this.config.priority_fee,
+      });
+      preInstructions.push(addPriorityFee);
+    }
     const tx = await this.jobs!.methods.stop()
+      .preInstructions(preInstructions)
       .accounts({
         ...this.accounts,
         market,

@@ -8,6 +8,7 @@ export type SolanaConfig = {
   stake_address: string;
   pools_address: string;
   pool_address: string;
+  priority_fee?: number;
 };
 
 export type SecretsConfig = {

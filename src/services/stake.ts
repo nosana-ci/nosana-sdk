@@ -3,7 +3,12 @@ import { SolanaManager } from './solana.js';
 import * as anchor from '@coral-xyz/anchor';
 //@ts-ignore
 const { BN } = anchor.default ? anchor.default : anchor;
-import { PublicKey, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import {
+  ComputeBudgetProgram,
+  PublicKey,
+  SYSVAR_RENT_PUBKEY,
+  TransactionInstruction,
+} from '@solana/web3.js';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
@@ -67,11 +72,18 @@ export class Stake extends SolanaManager {
         [utf8.encode('stake'), mint.toBuffer(), address.toBuffer()],
         new PublicKey(this.config.stake_address),
       );
-
+      const preInstructions: TransactionInstruction[] = [];
+      if (this.config.priority_fee) {
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: this.config.priority_fee,
+        });
+        preInstructions.push(addPriorityFee);
+      }
       return await this.stake!.program?.methods.stake(
         new BN(stakeAmount),
         new BN(stakeDurationSeconds),
       )
+        .preInstructions(preInstructions)
         .accounts({
           ...this.accounts,
           mint,
@@ -98,11 +110,17 @@ export class Stake extends SolanaManager {
       await this.setStakeAccounts();
 
       if (this.stakeAccounts && this.poolAccounts) {
-        const preInstructions = [];
+        const preInstructions: TransactionInstruction[] = [];
         console.log('this.poolAccounts', this.poolAccounts);
         console.log('this.stakeAccounts', this.stakeAccounts);
 
         const rewardsInfo = await this.getRewardsInfo();
+        if (this.config.priority_fee) {
+          const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: this.config.priority_fee,
+          });
+          preInstructions.push(addPriorityFee);
+        }
 
         // if reward account doesn't exists yet, create it
         if (!rewardsInfo || !rewardsInfo.account) {
@@ -155,11 +173,19 @@ export class Stake extends SolanaManager {
 
     if (this.stakeAccounts && this.poolAccounts) {
       try {
+        const preInstructions: TransactionInstruction[] = [];
+        if (this.config.priority_fee) {
+          const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: this.config.priority_fee,
+          });
+          preInstructions.push(addPriorityFee);
+        }
         const response = await this.stake!.program?.methods.extend(
           new anchor.BN(stakeDurationSeconds),
         )
           .accounts(this.stakeAccounts)
           .preInstructions([
+            ...preInstructions,
             await this.stake!.poolsProgram.methods.claimFee()
               .accounts(this.poolAccounts)
               .instruction(),
@@ -192,11 +218,17 @@ export class Stake extends SolanaManager {
   async unstake() {
     await this.loadNosanaStake();
     await this.setStakeAccounts();
-    const preInstructions: any = [];
+    const preInstructions: TransactionInstruction[] = [];
 
     if (this.stakeAccounts && this.poolAccounts) {
       // check if user has has reward account
       try {
+        if (this.config.priority_fee) {
+          const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: this.config.priority_fee,
+          });
+          preInstructions.push(addPriorityFee);
+        }
         const rewardAccount = (
           await this.stake!.rewardsProgram.account.rewardAccount.fetch(
             this.stakeAccounts.reward,
@@ -251,9 +283,17 @@ export class Stake extends SolanaManager {
 
     try {
       if (this.stakeAccounts) {
+        const preInstructions: TransactionInstruction[] = [];
+        if (this.config.priority_fee) {
+          const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: this.config.priority_fee,
+          });
+          preInstructions.push(addPriorityFee);
+        }
         const response = await this.stake!.program?.methods.restake()
           .accounts(this.stakeAccounts)
           .preInstructions([
+            ...preInstructions,
             await this.stake!.poolsProgram.methods.claimFee()
               .accounts(this.poolAccounts)
               .instruction(),
@@ -285,11 +325,20 @@ export class Stake extends SolanaManager {
 
     if (this.stakeAccounts) {
       try {
+        const preInstructions: TransactionInstruction[] = [];
+        if (this.config.priority_fee) {
+          const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: this.config.priority_fee,
+          });
+          preInstructions.push(addPriorityFee);
+        }
         const withdraw = await this.stake!.program?.methods.withdraw()
+          .preInstructions(preInstructions)
           .accounts(this.stakeAccounts)
           .rpc();
         console.log(withdraw);
         const response = await this.stake!.program?.methods.close()
+          .preInstructions(preInstructions)
           .accounts(this.stakeAccounts)
           .rpc();
         console.log(response);
@@ -313,7 +362,15 @@ export class Stake extends SolanaManager {
 
     if (this.stakeAccounts && this.poolAccounts) {
       try {
+        const preInstructions: TransactionInstruction[] = [];
+        if (this.config.priority_fee) {
+          const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: this.config.priority_fee,
+          });
+          preInstructions.push(addPriorityFee);
+        }
         const response = await this.stake!.program?.methods.withdraw()
+          .preInstructions(preInstructions)
           .accounts(this.stakeAccounts)
           .rpc();
         console.log(response);
@@ -337,12 +394,20 @@ export class Stake extends SolanaManager {
 
     if (this.stakeAccounts && this.poolAccounts) {
       try {
+        const preInstructions: TransactionInstruction[] = [];
+        if (this.config.priority_fee) {
+          const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: this.config.priority_fee,
+          });
+          preInstructions.push(addPriorityFee);
+        }
         const response = await this.stake!.rewardsProgram?.methods.claim()
           .accounts({
             ...this.stakeAccounts,
             vault: this.poolAccounts.rewardsVault,
           })
           .preInstructions([
+            ...preInstructions,
             await this.stake!.poolsProgram?.methods.claimFee()
               .accounts(this.poolAccounts)
               .instruction(),
@@ -369,13 +434,20 @@ export class Stake extends SolanaManager {
       try {
         const decimals = 1e6;
         const stakeAmount = amount * decimals;
-        console.log('stakeAmount', stakeAmount);
+        const preInstructions: TransactionInstruction[] = [];
+        if (this.config.priority_fee) {
+          const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: this.config.priority_fee,
+          });
+          preInstructions.push(addPriorityFee);
+        }
         const response = await this.stake!.rewardsProgram?.methods.claim()
           .accounts({
             ...this.stakeAccounts,
             vault: this.poolAccounts.rewardsVault,
           })
           .preInstructions([
+            ...preInstructions,
             await this.stake!.poolsProgram?.methods.claimFee()
               .accounts(this.poolAccounts)
               .instruction(),
