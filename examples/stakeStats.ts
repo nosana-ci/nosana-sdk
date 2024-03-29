@@ -11,18 +11,12 @@ const config: ClientConfig = {
 };
 
 const nosana: Client = new Client('mainnet', undefined, config);
-console.log(
-  'Logged in as',
-  (nosana.solana.wallet as Wallet).publicKey.toString(),
-);
-
 (async () => {
   const response = await nosana.stake.all();
   let totalNos = new BN(0);
   let totalXNos = new BN(0);
   let totalDuration = new BN(0);
   let totalDurationW = new BN(0);
-  console.log(response[0].account);
   for (let i = 0; i < response.length; i++) {
     totalNos = totalNos.add(response[i].account.amount);
     totalXNos = totalXNos.add(response[i].account.xnos);
