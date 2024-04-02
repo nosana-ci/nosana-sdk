@@ -72,7 +72,10 @@ export class SolanaManager {
       if (!this.config.network.includes('http')) {
         node = clusterApiUrl(this.config.network as Cluster);
       }
-      this.connection = new Connection(node, 'confirmed');
+      this.connection = new Connection(node, {
+        commitment: 'confirmed',
+        confirmTransactionInitialTimeout: 60000,
+      });
       this.provider = new AnchorProvider(this.connection, this.wallet, {});
     }
     setProvider(this.provider);
