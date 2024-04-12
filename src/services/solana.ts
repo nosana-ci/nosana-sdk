@@ -5,6 +5,8 @@ import {
   createAssociatedTokenAccount,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddressSync,
 } from '@solana/spl-token';
 import {
   Keypair,
@@ -14,6 +16,9 @@ import {
   Connection,
   SYSVAR_RENT_PUBKEY,
   SYSVAR_CLOCK_PUBKEY,
+  sendAndConfirmTransaction,
+  Transaction,
+  ComputeBudgetProgram,
 } from '@solana/web3.js';
 import type { Cluster, ParsedAccountData, TokenAmount } from '@solana/web3.js';
 import { associatedAddress } from '@coral-xyz/anchor/dist/cjs/utils/token.js';
@@ -232,15 +237,40 @@ export class SolanaManager {
       await getAccount(this.connection!, ata);
     } catch (error) {
       try {
-        tx = await createAssociatedTokenAccount(
-          this.connection!,
-          (this.provider?.wallet as KeyWallet).payer,
+        const associatedToken = getAssociatedTokenAddressSync(
           new PublicKey(this.config.nos_address),
           address,
-          {},
+          false,
           TOKEN_PROGRAM_ID,
           ASSOCIATED_TOKEN_PROGRAM_ID,
         );
+
+        const transaction = new Transaction();
+        if (this.config.priority_fee) {
+          const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: this.config.priority_fee,
+          });
+          transaction.add(addPriorityFee);
+        }
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            (this.provider?.wallet as KeyWallet).payer.publicKey,
+            associatedToken,
+            address,
+            new PublicKey(this.config.nos_address),
+            TOKEN_PROGRAM_ID,
+            ASSOCIATED_TOKEN_PROGRAM_ID,
+          ),
+        );
+
+        await sendAndConfirmTransaction(
+          this.connection!,
+          transaction,
+          [(this.provider?.wallet as KeyWallet).payer],
+          {},
+        );
+
+        tx = associatedToken;
       } catch (e) {
         console.error('createAssociatedTokenAccount', e);
       }
