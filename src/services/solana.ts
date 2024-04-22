@@ -7,6 +7,7 @@ import {
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddressSync,
+  createTransferInstruction,
 } from '@solana/spl-token';
 import {
   Keypair,
@@ -219,6 +220,74 @@ export class SolanaManager {
       }
     }
     return;
+  }
+
+  /**
+   * Transfer NFT to other address
+   * @param destination 
+   * @param nftAddress 
+   * @returns 
+   */
+  async transferNft(
+    destination: string | PublicKey,
+    nftAddress: string | PublicKey,
+  ) {
+    if (typeof destination === 'string')
+      destination = new PublicKey(destination);
+    if (typeof nftAddress === 'string') nftAddress = new PublicKey(nftAddress);
+
+    try {
+      const transaction = new Transaction();
+      if (this.config.priority_fee) {
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: this.config.priority_fee,
+        });
+        transaction.add(addPriorityFee);
+      }
+
+      const destinationAta = await getAssociatedTokenAddress(
+        nftAddress,
+        destination,
+      );
+
+      const sourceAta = await getAssociatedTokenAddress(
+        nftAddress,
+        (this.provider?.wallet as KeyWallet).payer.publicKey,
+      );
+
+      transaction.add(
+        createAssociatedTokenAccountInstruction(
+          (this.provider?.wallet as KeyWallet).payer.publicKey,
+          destinationAta,
+          destination,
+          nftAddress,
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID,
+        ),
+      );
+
+      transaction.add(
+        createTransferInstruction(
+          sourceAta,
+          destinationAta,
+          (this.provider?.wallet as KeyWallet).payer.publicKey,
+          1,
+        ),
+      );
+
+      const hash = await this.connection!.getLatestBlockhash();
+      transaction.recentBlockhash = hash.blockhash;
+
+      const tx = await sendAndConfirmTransaction(
+        this.connection!,
+        transaction,
+        [(this.provider?.wallet as KeyWallet).payer],
+        {},
+      );
+      return tx;
+    } catch (error: any) {
+      throw new Error(error);
+    }
   }
 
   /**
