@@ -203,6 +203,9 @@ export class SolanaManager {
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
       const parsedData = (token.account.data as ParsedAccountData).parsed.info;
+      if (parsedData.tokenAmount.uiAmount < 1) {
+        continue;
+      }
       const metadataAddress = this.getMetadataPDA(
         new PublicKey(parsedData.mint),
       );
@@ -224,9 +227,9 @@ export class SolanaManager {
 
   /**
    * Transfer NFT to other address
-   * @param destination 
-   * @param nftAddress 
-   * @returns 
+   * @param destination
+   * @param nftAddress
+   * @returns
    */
   async transferNft(
     destination: string | PublicKey,
