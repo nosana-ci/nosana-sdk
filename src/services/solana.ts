@@ -211,13 +211,17 @@ export class SolanaManager {
       );
       const info = await this.connection!.getAccountInfo(metadataAddress);
       if (info) {
+        const verified = Buffer.from(info.data)
+          .reverse()
+          .subarray(279 + 32, 279 + 33)
+          .reverse()[0];
         const collectionFromToken = bs58.encode(
           info.data
             .reverse()
             .subarray(279, 279 + 32)
             .reverse(),
         );
-        if (collectionFromToken === collection) {
+        if (collectionFromToken === collection && verified) {
           return new PublicKey(parsedData.mint);
         }
       }
