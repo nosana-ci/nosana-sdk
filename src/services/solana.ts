@@ -262,16 +262,22 @@ export class SolanaManager {
         (this.provider?.wallet as KeyWallet).payer.publicKey,
       );
 
-      transaction.add(
-        createAssociatedTokenAccountInstruction(
-          (this.provider?.wallet as KeyWallet).payer.publicKey,
-          destinationAta,
-          destination,
-          nftAddress,
-          TOKEN_PROGRAM_ID,
-          ASSOCIATED_TOKEN_PROGRAM_ID,
-        ),
-      );
+      // check if destination ATA already exists, if not create it
+      try {
+        const account = await getAccount(this.connection!, destinationAta);
+      } catch (error) {
+        // ata not found, try to create one
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            (this.provider?.wallet as KeyWallet).payer.publicKey,
+            destinationAta,
+            destination,
+            nftAddress,
+            TOKEN_PROGRAM_ID,
+            ASSOCIATED_TOKEN_PROGRAM_ID,
+          ),
+        );
+      }
 
       transaction.add(
         createTransferInstruction(
