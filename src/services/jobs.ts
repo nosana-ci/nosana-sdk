@@ -341,6 +341,64 @@ export class Jobs extends SolanaManager {
     return { ...marketAccount, address: market };
   }
 
+  async updateMarket(
+    market: PublicKey | string,
+    updatedData: {
+      nodeAccessKey?: string;
+      jobExpiration?: typeof BN;
+      jobType?: number;
+      jobPrice?: typeof BN;
+      nodeStakeMinimum: typeof BN;
+    },
+  ): Promise<string> {
+    if (typeof market === 'string') market = new PublicKey(market);
+    await this.loadNosanaJobs();
+    const marketAccount = await this.jobs!.account.marketAccount.fetch(
+      market.toString(),
+    );
+    const data = {
+      jobExpiration: updatedData.jobExpiration
+        ? new BN(updatedData.jobExpiration)
+        : new BN(marketAccount.jobExpiration),
+      jobPrice: updatedData.jobPrice
+        ? new BN(updatedData.jobPrice)
+        : new BN(marketAccount.jobPrice),
+      jobType: updatedData.jobType
+        ? new BN(updatedData.jobType)
+        : marketAccount.jobType,
+      nodeStakeMinimum: updatedData.nodeStakeMinimum
+        ? new BN(updatedData.nodeStakeMinimum)
+        : new BN(marketAccount.nodeXnosMinimum),
+    };
+
+    const preInstructions: TransactionInstruction[] = [];
+    if (this.config.priority_fee) {
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: this.config.priority_fee,
+      });
+      preInstructions.push(addPriorityFee);
+    }
+
+    const tx = await this.jobs!.methods.update(
+      // @ts-ignore
+      data.jobExpiration,
+      data.jobPrice,
+      data.jobType,
+      data.nodeStakeMinimum,
+    )
+      .preInstructions(preInstructions)
+      .accounts({
+        market: market,
+        accessKey:
+          updatedData && updatedData.nodeAccessKey
+            ? updatedData.nodeAccessKey
+            : marketAccount.nodeAccessKey,
+        authority: this.provider!.wallet.publicKey,
+      })
+      .rpc();
+    return tx;
+  }
+
   /**
    * Function to fetch all markets
    */
