@@ -111,14 +111,10 @@ export class SolanaManager {
    */
   async getNosPrice() {
     let result = await fetch(
-      'https://api.coingecko.com/api/v3/coins/nosana/tickers',
+      'https://api.coingecko.com/api/v3/simple/price?ids=nosana&vs_currencies=usd',
     );
     const data = await result.json();
-    if (data && data.tickers) {
-      return data.tickers[0].converted_last;
-    } else {
-      return null;
-    }
+    return data.nosana;
   }
 
   /**
