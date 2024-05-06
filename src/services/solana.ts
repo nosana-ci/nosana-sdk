@@ -24,6 +24,9 @@ import {
 import type { Cluster, ParsedAccountData, TokenAmount } from '@solana/web3.js';
 import { associatedAddress } from '@coral-xyz/anchor/dist/cjs/utils/token.js';
 import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
+import nacl from 'tweetnacl';
+import tweetnaclutil from 'tweetnacl-util';
+const { decodeUTF8 } = tweetnaclutil;
 
 import type {
   NosanaJobs,
@@ -511,5 +514,31 @@ export class SolanaManager {
         rewardsProgram: rewardsProgramId,
       };
     }
+  }
+
+  /**
+   * Sign message with wallet
+   * @param message 
+   * @param verify 
+   * @returns 
+   */
+  async signMessage(message: string, verify: boolean = false): Promise<Boolean | Uint8Array> {
+    const messageBytes = decodeUTF8(message);
+
+    const signature = nacl.sign.detached(
+      messageBytes,
+      (this.provider?.wallet as KeyWallet).payer.secretKey,
+    );
+    if (verify) {
+      const result = nacl.sign.detached.verify(
+        messageBytes,
+        signature,
+        (this.provider?.wallet as KeyWallet).payer.publicKey.toBytes(),
+      );
+
+      return result;
+    }
+
+    return signature;
   }
 }
