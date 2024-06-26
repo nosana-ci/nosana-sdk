@@ -104,8 +104,16 @@ export class Jobs extends SolanaManager {
           jobAccount.node = runAccount.account.node.toString();
           jobAccount.timeStart = runAccount.account.time;
         }
-      } catch (error) {
-        console.error('error fetching run account', error);
+      } catch (error: any) {
+        if (
+          error &&
+          error.message &&
+          error.message.includes('RPC call or parameters have been disabled')
+        ) {
+          console.error('WARNING: Current RPC cannot check if job is RUNNING');
+        } else {
+          console.error('error fetching run account', error);
+        }
       }
     }
 
