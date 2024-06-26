@@ -112,7 +112,7 @@ export class Jobs extends SolanaManager {
         ) {
           console.error('WARNING: Current RPC cannot check if job is RUNNING');
         } else {
-          console.error('error fetching run account', error);
+          console.error('WARNING: Could not check if job is RUNNING', error);
         }
       }
     }
