@@ -2,7 +2,8 @@ import type { SolanaConfig, IPFSConfig, SecretsConfig } from './types/index.js';
 
 export const solanaConfigPreset: { [key: string]: SolanaConfig } = {
   mainnet: {
-    network: 'mainnet-beta',
+    network:
+      'https://rpc.ironforge.network/mainnet?apiKey=01J46GZTWRNZKW34CZ4DJMP55M',
     jobs_address: 'nosJhNRqr2bc9g1nfGDcXXTXvYUmxD4cVwy2pMWhrYM',
     nos_address: 'nosXBVoaCTtYdLvKY6Csb4AC8JCdQKKAaWYtx2ZMoo7',
     market_address: '7nxXoihx65yRGZiGzWZsFMz8D7qwxFePNKvDBWZnxc41',
