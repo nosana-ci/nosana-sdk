@@ -579,7 +579,7 @@ export type NosanaJobs = {
   ];
   accounts: [
     {
-      name: 'MarketAccount';
+      name: 'marketAccount';
       docs: [
         'The `MarketAccount` struct holds all the information about jobs and the nodes queue.',
       ];
@@ -636,7 +636,7 @@ export type NosanaJobs = {
       };
     },
     {
-      name: 'JobAccount';
+      name: 'jobAccount';
       docs: [
         'The `JobAccount` struct holds all the information about any individual jobs.',
       ];
@@ -691,7 +691,7 @@ export type NosanaJobs = {
       };
     },
     {
-      name: 'RunAccount';
+      name: 'runAccount';
       docs: [
         'The `RunAccount` struct holds temporary information that matches nodes to jobs.',
       ];

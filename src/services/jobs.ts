@@ -299,6 +299,36 @@ export class Jobs extends SolanaManager {
   }
 
   /**
+   * Function to clean a job from chain
+   * @param job Publickey address of the job to fetch
+   */
+  async clean(jobAddress: PublicKey | string): Promise<string> {
+    if (typeof jobAddress === 'string') jobAddress = new PublicKey(jobAddress);
+    await this.loadNosanaJobs();
+    await this.setAccounts();
+    const job = await this.jobs!.account.jobAccount.fetch(jobAddress);
+
+    const accounts = {
+      authority: this.accounts!.authority,
+      payer: job.payer,
+      job: jobAddress,
+    };
+    const preInstructions: TransactionInstruction[] = [];
+    if (this.config.priority_fee) {
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: this.config.priority_fee,
+      });
+      preInstructions.push(addPriorityFee);
+    }
+    const tx = await this.jobs!.methods.cleanAdmin()
+      .preInstructions(preInstructions)
+      .accounts(accounts)
+      .rpc();
+
+    return tx;
+  }
+
+  /**
    * Function to fetch a run from chain
    * @param run Publickey address of the run to fetch
    */

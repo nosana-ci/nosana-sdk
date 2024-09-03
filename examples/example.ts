@@ -21,11 +21,11 @@ console.log(
     ops: [
       {
         op: 'container/run',
-        id: 'echo',
+        id: 'hello-world',
         args: {
           cmds: [
             {
-              cmd: "sh -c 'echo '\"'\"'#!/bin/sh\necho '\"'\"'\"'\"'\"'\"'\"'\"'\u001b[1;32m$ echo \"Hello World!\"\u001b[0m'\"'\"'\"'\"'\"'\"'\"'\"'\necho \"Hello World!\" '\"'\"' | sh'",
+              cmd: 'echo hello world',
             },
           ],
           image: 'ubuntu',
@@ -35,6 +35,10 @@ console.log(
   };
   const ipfsHash = await nosana.ipfs.pin(json_flow);
   console.log('ipfs uploaded!', nosana.ipfs.config.gateway + ipfsHash);
+  if (await nosana.solana.requestAirdrop(1e9)) {
+    console.log(`Received airdrop of 1 SOL!`);
+  }
+  await sleep(3);
   const response = await nosana.jobs.list(ipfsHash);
   console.log('job posted!', response);
   let job;
