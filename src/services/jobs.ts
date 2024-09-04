@@ -9,6 +9,7 @@ import {
   PublicKey,
   SendTransactionError,
   TransactionInstruction,
+  TransactionSignature,
 } from '@solana/web3.js';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 
@@ -302,7 +303,10 @@ export class Jobs extends SolanaManager {
    * Function to clean a job from chain
    * @param job Publickey address of the job to fetch
    */
-  async clean(jobAddress: PublicKey | string): Promise<string> {
+  async cleanAdmin(
+    jobAddress: PublicKey | string,
+    instructionOnly?: boolean,
+  ): Promise<TransactionSignature | TransactionInstruction> {
     if (typeof jobAddress === 'string') jobAddress = new PublicKey(jobAddress);
     await this.loadNosanaJobs();
     await this.setAccounts();
@@ -314,18 +318,20 @@ export class Jobs extends SolanaManager {
       job: jobAddress,
     };
     const preInstructions: TransactionInstruction[] = [];
-    if (this.config.priority_fee) {
+    if (this.config.priority_fee && !instructionOnly) {
       const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
         microLamports: this.config.priority_fee,
       });
       preInstructions.push(addPriorityFee);
     }
-    const tx = await this.jobs!.methods.cleanAdmin()
+    const tx = this.jobs!.methods.cleanAdmin()
       .preInstructions(preInstructions)
-      .accounts(accounts)
-      .rpc();
-
-    return tx;
+      .accounts(accounts);
+    if (instructionOnly) {
+      return await tx.rpc();
+    } else {
+      return await tx.instruction();
+    }
   }
 
   /**
