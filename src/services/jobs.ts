@@ -328,9 +328,9 @@ export class Jobs extends SolanaManager {
       .preInstructions(preInstructions)
       .accounts(accounts);
     if (instructionOnly) {
-      return await tx.rpc();
-    } else {
       return await tx.instruction();
+    } else {
+      return await tx.rpc();
     }
   }
 
