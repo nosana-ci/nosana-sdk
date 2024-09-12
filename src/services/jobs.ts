@@ -443,6 +443,53 @@ export class Jobs extends SolanaManager {
     return tx;
   }
 
+  async createMarket(data: {
+    nodeAccessKey?: PublicKey;
+    jobExpiration?: typeof BN;
+    jobType?: number;
+    jobPrice?: typeof BN;
+    jobTimeout?: typeof BN;
+    nodeStakeMinimum: typeof BN;
+  }): Promise<string> {
+    await this.loadNosanaJobs();
+    await this.setAccounts();
+
+    const preInstructions: TransactionInstruction[] = [];
+    if (this.config.priority_fee) {
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: this.config.priority_fee,
+      });
+      preInstructions.push(addPriorityFee);
+    }
+    const mintAccount = new PublicKey(this.config.nos_address);
+    const marketKeypair = Keypair.generate();
+    const tx = await this.jobs!.methods.open(
+      // @ts-ignore
+      data.jobExpiration,
+      data.jobPrice,
+      data.jobTimeout,
+      data.jobType,
+      data.nodeStakeMinimum,
+    )
+      .preInstructions(preInstructions)
+      .accounts({
+        ...this.accounts,
+        mint: mintAccount,
+        market: marketKeypair.publicKey,
+        accessKey: data.nodeAccessKey,
+        vault: pda(
+          [
+            marketKeypair.publicKey.toBuffer(),
+            new PublicKey(this.config.nos_address).toBuffer(),
+          ],
+          this.jobs!.programId,
+        ),
+      })
+      .signers([marketKeypair])
+      .rpc();
+    return tx;
+  }
+
   /**
    * Function to fetch all markets
    */
