@@ -111,8 +111,6 @@ export class Stake extends SolanaManager {
 
       if (this.stakeAccounts && this.poolAccounts) {
         const preInstructions: TransactionInstruction[] = [];
-        console.log('this.poolAccounts', this.poolAccounts);
-        console.log('this.stakeAccounts', this.stakeAccounts);
 
         const rewardsInfo = await this.getRewardsInfo();
         if (this.config.priority_fee) {
@@ -136,12 +134,8 @@ export class Stake extends SolanaManager {
             .instruction(),
         );
 
-        console.log('rewardsAndPool', rewardsInfo);
-        console.log('this.stakeAccounts', this.stakeAccounts);
-        console.log('vault:', rewardsInfo?.vault);
-
         const response = await this.stake!.program?.methods.topup(
-          new anchor.BN(stakeAmount),
+          new BN(stakeAmount)
         )
           .accounts(this.stakeAccounts)
           .preInstructions(preInstructions)
@@ -151,13 +145,11 @@ export class Stake extends SolanaManager {
               .instruction(),
           ])
           .rpc();
-        console.log(response);
         return response;
       } else {
         throw new Error('Stake accounts not found');
       }
     } catch (error) {
-      console.error(error);
       throw new Error('Something went wrong extending with topup: ' + error);
     }
   }
