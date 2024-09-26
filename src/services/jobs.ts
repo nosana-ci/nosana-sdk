@@ -392,7 +392,7 @@ export class Jobs extends SolanaManager {
       jobExpiration?: typeof BN;
       jobType?: number;
       jobPrice?: typeof BN;
-      nodeStakeMinimum: typeof BN;
+      nodeStakeMinimum?: typeof BN;
     },
   ): Promise<string> {
     if (typeof market === 'string') market = new PublicKey(market);
