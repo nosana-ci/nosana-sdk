@@ -92,6 +92,11 @@ export class Stake extends SolanaManager {
           stake: stake,
           rent: SYSVAR_RENT_PUBKEY,
         })
+        .postInstructions([
+          await this.stake!.rewardsProgram.methods.enter()
+            .accounts(this.stakeAccounts)
+            .instruction(),
+        ])
         .rpc();
     } catch (error) {
       console.error(error);
@@ -135,7 +140,7 @@ export class Stake extends SolanaManager {
         );
 
         const response = await this.stake!.program?.methods.topup(
-          new BN(stakeAmount)
+          new BN(stakeAmount),
         )
           .accounts(this.stakeAccounts)
           .preInstructions(preInstructions)
