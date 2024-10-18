@@ -105,9 +105,9 @@ export class Stake extends SolanaManager {
   }
   /**
    * Separate method to create reward account
-   * @returns
+   * @returns tx hash
    */
-  async createRewardAccount() {
+  async createRewardAccount(): Promise<string | undefined> {
     await this.loadNosanaStake();
     await this.setStakeAccounts();
 
