@@ -103,6 +103,31 @@ export class Stake extends SolanaManager {
       throw new Error('Something went wrong while creating stake account');
     }
   }
+  /**
+   * Separate method to create reward account
+   * @returns
+   */
+  async createRewardAccount() {
+    await this.loadNosanaStake();
+    await this.setStakeAccounts();
+
+    try {
+      const preInstructions: TransactionInstruction[] = [];
+      if (this.config.priority_fee) {
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: this.config.priority_fee,
+        });
+        preInstructions.push(addPriorityFee);
+      }
+      return await this.stake!.rewardsProgram.methods.enter()
+        .preInstructions(preInstructions)
+        .accounts(this.stakeAccounts)
+        .rpc();
+    } catch (error) {
+      console.error(error);
+      throw new Error('Something went wrong while creating reward account');
+    }
+  }
 
   /**
    * Topup stake
