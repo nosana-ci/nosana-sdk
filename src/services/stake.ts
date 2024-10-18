@@ -9,7 +9,7 @@ import {
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { getAssociatedTokenAddress } from '@solana/spl-token';
+import { createAssociatedTokenAccountInstruction, getAccount, getAssociatedTokenAddress } from '@solana/spl-token';
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
 
@@ -391,6 +391,25 @@ export class Stake extends SolanaManager {
           });
           preInstructions.push(addPriorityFee);
         }
+
+        // check if NOS ATA exists
+        const nosAta = await this.getNosATA(this.wallet.publicKey);
+        try {
+          await getAccount(this.connection!, nosAta);
+        } catch (error) {
+          console.log('ATA doesnt exists, create', nosAta.toString());
+          try {
+            preInstructions.push(createAssociatedTokenAccountInstruction(
+              new PublicKey(this.wallet.publicKey),
+              nosAta,
+              new PublicKey(this.wallet.publicKey),
+              new PublicKey(this.config.nos_address)
+            ));
+          } catch (e) {
+            console.log('createAssociatedTokenAccountInstruction', e);
+          }
+        }
+
         const response = await this.stake!.program?.methods.withdraw()
           .preInstructions(preInstructions)
           .accounts(this.stakeAccounts)
@@ -423,6 +442,25 @@ export class Stake extends SolanaManager {
           });
           preInstructions.push(addPriorityFee);
         }
+
+        // check if NOS ATA exists
+        const nosAta = await this.getNosATA(this.wallet.publicKey);
+        try {
+          await getAccount(this.connection!, nosAta);
+        } catch (error) {
+          console.log('ATA doesnt exists', nosAta.toString());
+          try {
+            preInstructions.push(createAssociatedTokenAccountInstruction(
+              new PublicKey(this.wallet.publicKey),
+              nosAta,
+              new PublicKey(this.wallet.publicKey),
+              new PublicKey(this.config.nos_address)
+            ));
+          } catch (e) {
+            console.log('createAssociatedTokenAccountInstruction', e);
+          }
+        }
+
         const response = await this.stake!.rewardsProgram?.methods.claim()
           .accounts({
             ...this.stakeAccounts,
@@ -435,7 +473,6 @@ export class Stake extends SolanaManager {
               .instruction(),
           ])
           .rpc();
-        console.log(response);
         return response;
       } catch (error) {
         console.error(error);
@@ -463,6 +500,25 @@ export class Stake extends SolanaManager {
           });
           preInstructions.push(addPriorityFee);
         }
+
+        // check if NOS ATA exists
+        const nosAta = await this.getNosATA(this.wallet.publicKey);
+        try {
+          await getAccount(this.connection!, nosAta);
+        } catch (error) {
+          console.log('ATA doesnt exists, create', nosAta.toString());
+          try {
+            preInstructions.push(createAssociatedTokenAccountInstruction(
+              new PublicKey(this.wallet.publicKey),
+              nosAta,
+              new PublicKey(this.wallet.publicKey),
+              new PublicKey(this.config.nos_address)
+            ));
+          } catch (e) {
+            console.log('createAssociatedTokenAccountInstruction', e);
+          }
+        }
+
         const response = await this.stake!.rewardsProgram?.methods.claim()
           .accounts({
             ...this.stakeAccounts,
