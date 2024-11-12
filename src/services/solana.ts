@@ -21,7 +21,7 @@ import {
   Transaction,
   ComputeBudgetProgram,
 } from '@solana/web3.js';
-import type { Cluster, ParsedAccountData, TokenAmount } from '@solana/web3.js';
+import type { Cluster, GetVersionedTransactionConfig, ParsedAccountData, TokenAmount } from '@solana/web3.js';
 import { associatedAddress } from '@coral-xyz/anchor/dist/cjs/utils/token.js';
 import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 import nacl from 'tweetnacl';
@@ -540,5 +540,15 @@ export class SolanaManager {
     }
 
     return signature;
+  }
+
+  /**
+   * Get transaction data
+   * @param txs - array of transaction hashes
+   * @param options - config GetVersionedTransactionConfig
+   * @returns transactions[]
+   */
+  async getParsedTransactions(txs: string[], options: GetVersionedTransactionConfig) {
+    return await this.connection!.getParsedTransactions(txs, options);
   }
 }
