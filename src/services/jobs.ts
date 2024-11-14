@@ -394,7 +394,8 @@ export class Jobs extends SolanaManager {
       jobPrice?: typeof BN;
       nodeStakeMinimum?: typeof BN;
     },
-  ): Promise<string> {
+    instructionOnly?: boolean,
+  ): Promise<string | TransactionInstruction> {
     if (typeof market === 'string') market = new PublicKey(market);
     await this.loadNosanaJobs();
     const marketAccount = await this.jobs!.account.marketAccount.fetch(
@@ -416,7 +417,7 @@ export class Jobs extends SolanaManager {
     };
 
     const preInstructions: TransactionInstruction[] = [];
-    if (this.config.priority_fee) {
+    if (this.config.priority_fee && !instructionOnly) {
       const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
         microLamports: this.config.priority_fee,
       });
@@ -438,9 +439,13 @@ export class Jobs extends SolanaManager {
             ? updatedData.nodeAccessKey
             : marketAccount.nodeAccessKey,
         authority: this.provider!.wallet.publicKey,
-      })
-      .rpc();
-    return tx;
+      });
+
+    if (instructionOnly) {
+      return await tx.instruction();
+    } else {
+      return await tx.rpc();
+    }
   }
 
   async createMarket(data: {
