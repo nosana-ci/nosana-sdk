@@ -455,7 +455,10 @@ export class Jobs extends SolanaManager {
     jobPrice?: typeof BN;
     jobTimeout?: typeof BN;
     nodeStakeMinimum: typeof BN;
-  }): Promise<string> {
+  }): Promise<{
+    transaction: string;
+    market: string;
+  }> {
     await this.loadNosanaJobs();
     await this.setAccounts();
 
@@ -492,7 +495,10 @@ export class Jobs extends SolanaManager {
       })
       .signers([marketKeypair])
       .rpc();
-    return tx;
+    return {
+      transaction: tx,
+      market: marketKeypair.publicKey.toString()
+    };
   }
 
   /**
