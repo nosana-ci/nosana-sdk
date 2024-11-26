@@ -1,4 +1,13 @@
 import { PublicKey } from "@solana/web3.js";
+import { EnumValues } from "./utils.js";
+
+export const MarketQueue = {
+  "JOB_QUEUE": 0,
+  "NODE_QUEUE": 1,
+  "EMPTY": undefined
+} as const
+
+export type QueueType = EnumValues<typeof MarketQueue>
 
 export type Market = {
   address: PublicKey;
@@ -11,6 +20,6 @@ export type Market = {
   vaultBump: number;
   nodeAccessKey: PublicKey;
   nodeXnosMinimum: number;
-  queueType: number;
+  queueType: QueueType;
   queue: Array<PublicKey>;
 };
