@@ -188,22 +188,11 @@ export class SolanaManager {
     collection: string,
   ): Promise<PublicKey | undefined> {
     if (typeof owner === 'string') owner = new PublicKey(owner);
-    const tokens = await this.connection!.getParsedProgramAccounts(
-      TOKEN_PROGRAM_ID,
-      {
-        filters: [
-          {
-            dataSize: 165, // number of bytes
-          },
-          {
-            memcmp: {
-              offset: 32, // number of bytes
-              bytes: owner.toString(), // base58 encoded string
-            },
-          },
-        ],
-      },
-    );
+    const tokens = (
+      await this.connection!.getParsedTokenAccountsByOwner(owner, {
+        programId: TOKEN_PROGRAM_ID,
+      })
+    ).value;
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
       try {
