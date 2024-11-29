@@ -253,6 +253,10 @@ export type NosanaJobs = {
             array: ['u8', 32];
           };
         },
+        {
+          name: 'timeout';
+          type: 'i64';
+        }
       ];
     },
     {

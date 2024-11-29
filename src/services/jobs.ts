@@ -34,7 +34,7 @@ export class Jobs extends SolanaManager {
    * Function to list a Nosana Job in a market
    * @param ipfsHash String of the IPFS hash locating the Nosana Job data.
    */
-  async list(ipfsHash: string, market?: PublicKey) {
+  async list(ipfsHash: string, jobTimeout: number, market?: PublicKey) {
     await this.loadNosanaJobs();
     await this.setAccounts();
     const jobKey = Keypair.generate();
@@ -49,7 +49,7 @@ export class Jobs extends SolanaManager {
       }
       const tx = await this.jobs!.methods.list([
         ...bs58.decode(ipfsHash).subarray(2),
-      ])
+      ], new BN(jobTimeout))
         .preInstructions(preInstructions)
         .accounts({
           ...this.accounts,

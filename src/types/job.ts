@@ -124,4 +124,5 @@ export type Job = {
   state: string | number;
   timeEnd: number;
   timeStart: number;
+  timeout: number;
 };
