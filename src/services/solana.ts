@@ -21,7 +21,12 @@ import {
   Transaction,
   ComputeBudgetProgram,
 } from '@solana/web3.js';
-import type { Cluster, GetVersionedTransactionConfig, ParsedAccountData, TokenAmount } from '@solana/web3.js';
+import type {
+  Cluster,
+  GetVersionedTransactionConfig,
+  ParsedAccountData,
+  TokenAmount,
+} from '@solana/web3.js';
 import { associatedAddress } from '@coral-xyz/anchor/dist/cjs/utils/token.js';
 import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 import nacl from 'tweetnacl';
@@ -201,28 +206,33 @@ export class SolanaManager {
     );
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
-      const parsedData = (token.account.data as ParsedAccountData).parsed.info;
-      if (parsedData.tokenAmount.uiAmount < 1) {
-        continue;
-      }
-      const metadataAddress = this.getMetadataPDA(
-        new PublicKey(parsedData.mint),
-      );
-      const info = await this.connection!.getAccountInfo(metadataAddress);
-      if (info) {
-        const verified = Buffer.from(info.data)
-          .reverse()
-          .subarray(279 + 32, 279 + 33)
-          .reverse()[0];
-        const collectionFromToken = bs58.encode(
-          info.data
-            .reverse()
-            .subarray(279, 279 + 32)
-            .reverse(),
-        );
-        if (collectionFromToken === collection && verified) {
-          return new PublicKey(parsedData.mint);
+      try {
+        const parsedData = (token.account.data as ParsedAccountData).parsed
+          .info;
+        if (parsedData.tokenAmount.uiAmount < 1) {
+          continue;
         }
+        const metadataAddress = this.getMetadataPDA(
+          new PublicKey(parsedData.mint),
+        );
+        const info = await this.connection!.getAccountInfo(metadataAddress);
+        if (info) {
+          const verified = Buffer.from(info.data)
+            .reverse()
+            .subarray(279 + 32, 279 + 33)
+            .reverse()[0];
+          const collectionFromToken = bs58.encode(
+            info.data
+              .reverse()
+              .subarray(279, 279 + 32)
+              .reverse(),
+          );
+          if (collectionFromToken === collection && verified) {
+            return new PublicKey(parsedData.mint);
+          }
+        }
+      } catch (e: any) {
+        // continue
       }
     }
     return;
@@ -518,11 +528,14 @@ export class SolanaManager {
 
   /**
    * Sign message with wallet
-   * @param message 
-   * @param verify 
-   * @returns 
+   * @param message
+   * @param verify
+   * @returns
    */
-  async signMessage(message: string, verify: boolean = false): Promise<Boolean | Uint8Array> {
+  async signMessage(
+    message: string,
+    verify: boolean = false,
+  ): Promise<Boolean | Uint8Array> {
     const messageBytes = decodeUTF8(message);
 
     const signature = nacl.sign.detached(
@@ -548,7 +561,10 @@ export class SolanaManager {
    * @param options - config GetVersionedTransactionConfig
    * @returns transactions[]
    */
-  async getParsedTransactions(txs: string[], options: GetVersionedTransactionConfig) {
+  async getParsedTransactions(
+    txs: string[],
+    options: GetVersionedTransactionConfig,
+  ) {
     return await this.connection!.getParsedTransactions(txs, options);
   }
 }
