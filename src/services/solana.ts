@@ -206,14 +206,19 @@ export class SolanaManager {
         );
         const info = await this.connection!.getAccountInfo(metadataAddress);
         if (info) {
+          let offset = 279;
+          if (info.data.length === 607) {
+            // New metadata account format
+            offset = 207;
+          }
           const verified = Buffer.from(info.data)
             .reverse()
-            .subarray(279 + 32, 279 + 33)
+            .subarray(offset + 32, offset + 33)
             .reverse()[0];
           const collectionFromToken = bs58.encode(
             info.data
               .reverse()
-              .subarray(279, 279 + 32)
+              .subarray(offset, offset + 32)
               .reverse(),
           );
           if (collectionFromToken === collection && verified) {
