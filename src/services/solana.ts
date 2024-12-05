@@ -311,7 +311,7 @@ export class SolanaManager {
    * @param address
    * @returns ATA public key
    */
-  async createNosAta(address: string | PublicKey) {
+  async createNosAta(address: string | PublicKey, instructionOnly: Boolean = false) {
     if (typeof address === 'string') address = new PublicKey(address);
     const ata = await getAssociatedTokenAddress(
       new PublicKey(this.config.nos_address),
@@ -348,14 +348,17 @@ export class SolanaManager {
           ),
         );
 
-        await sendAndConfirmTransaction(
-          this.connection!,
-          transaction,
-          [(this.provider?.wallet as KeyWallet).payer],
-          {},
-        );
-
-        tx = associatedToken;
+        if (instructionOnly) {
+          return transaction.instructions;
+        } else {
+          await sendAndConfirmTransaction(
+            this.connection!,
+            transaction,
+            [(this.provider?.wallet as KeyWallet).payer],
+            {},
+          );
+          tx = associatedToken;
+        }
       } catch (e) {
         console.error('createAssociatedTokenAccount', e);
       }
