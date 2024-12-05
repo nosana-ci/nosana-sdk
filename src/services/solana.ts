@@ -311,7 +311,10 @@ export class SolanaManager {
    * @param address
    * @returns ATA public key
    */
-  async createNosAta(address: string | PublicKey, instructionOnly: Boolean = false) {
+  async createNosAta(
+    address: string | PublicKey,
+    instructionOnly: Boolean = false,
+  ) {
     if (typeof address === 'string') address = new PublicKey(address);
     const ata = await getAssociatedTokenAddress(
       new PublicKey(this.config.nos_address),
@@ -564,4 +567,73 @@ export class SolanaManager {
   ) {
     return await this.connection!.getParsedTransactions(txs, options);
   }
+
+  /**
+   * Send NOS to address
+   * @param amount 
+   * @param destination 
+   * @returns 
+   */
+    async sendNos(amount: number, destination: string | PublicKey) {
+      if (typeof destination === 'string')
+        destination = new PublicKey(destination);
+      try {
+        const transaction = new Transaction();
+        if (this.config.priority_fee) {
+          const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: this.config.priority_fee,
+          });
+          transaction.add(addPriorityFee);
+        }
+  
+        const destinationAta = await getAssociatedTokenAddress(
+          new PublicKey(this.config.nos_address),
+          destination,
+        );
+  
+        const sourceAta = await getAssociatedTokenAddress(
+          new PublicKey(this.config.nos_address),
+          (this.provider?.wallet as KeyWallet).payer.publicKey,
+        );
+  
+        // check if destination ATA already exists, if not create it
+        try {
+          await getAccount(this.connection!, destinationAta);
+        } catch (error) {
+          // ata not found, try to create one
+          transaction.add(
+            createAssociatedTokenAccountInstruction(
+              (this.provider?.wallet as KeyWallet).payer.publicKey,
+              destinationAta,
+              destination,
+              new PublicKey(this.config.nos_address),
+              TOKEN_PROGRAM_ID,
+              ASSOCIATED_TOKEN_PROGRAM_ID,
+            ),
+          );
+        }
+  
+        transaction.add(
+          createTransferInstruction(
+            sourceAta,
+            destinationAta,
+            (this.provider?.wallet as KeyWallet).payer.publicKey,
+            amount,
+          ),
+        );
+  
+        const hash = await this.connection!.getLatestBlockhash();
+        transaction.recentBlockhash = hash.blockhash;
+  
+        const tx = await sendAndConfirmTransaction(
+          this.connection!,
+          transaction,
+          [(this.provider?.wallet as KeyWallet).payer],
+          {},
+        );
+        return tx;
+      } catch (error: any) {
+        throw new Error(error);
+      }
+    }
 }
