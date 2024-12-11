@@ -9,7 +9,11 @@ import {
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { createAssociatedTokenAccountInstruction, getAccount, getAssociatedTokenAddress } from '@solana/spl-token';
+import {
+  createAssociatedTokenAccountInstruction,
+  getAccount,
+  getAssociatedTokenAddress,
+} from '@solana/spl-token';
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
 
@@ -354,16 +358,25 @@ export class Stake extends SolanaManager {
           });
           preInstructions.push(addPriorityFee);
         }
-        const withdraw = await this.stake!.program?.methods.withdraw()
-          .preInstructions(preInstructions)
-          .accounts(this.stakeAccounts)
-          .rpc();
-        console.log(withdraw);
+        let withdraw;
+        try {
+          withdraw = await this.stake!.program?.methods.withdraw()
+            .preInstructions(preInstructions)
+            .accounts(this.stakeAccounts)
+            .rpc();
+        } catch (error: any) {
+          if (error.message.includes('VaultEmpty')) {
+            console.log('vault already empty, skipping withdraw');
+          } else {
+            throw error;
+          }
+        }
+        console.log('withdraw tx', withdraw);
         const response = await this.stake!.program?.methods.close()
           .preInstructions(preInstructions)
           .accounts(this.stakeAccounts)
           .rpc();
-        console.log(response);
+        console.log('close tx', response);
         return [withdraw, response];
       } catch (error) {
         console.error(error);
@@ -399,12 +412,14 @@ export class Stake extends SolanaManager {
         } catch (error) {
           console.log('ATA doesnt exists, create', nosAta.toString());
           try {
-            preInstructions.push(createAssociatedTokenAccountInstruction(
-              new PublicKey(this.wallet.publicKey),
-              nosAta,
-              new PublicKey(this.wallet.publicKey),
-              new PublicKey(this.config.nos_address)
-            ));
+            preInstructions.push(
+              createAssociatedTokenAccountInstruction(
+                new PublicKey(this.wallet.publicKey),
+                nosAta,
+                new PublicKey(this.wallet.publicKey),
+                new PublicKey(this.config.nos_address),
+              ),
+            );
           } catch (e) {
             console.log('createAssociatedTokenAccountInstruction', e);
           }
@@ -450,12 +465,14 @@ export class Stake extends SolanaManager {
         } catch (error) {
           console.log('ATA doesnt exists', nosAta.toString());
           try {
-            preInstructions.push(createAssociatedTokenAccountInstruction(
-              new PublicKey(this.wallet.publicKey),
-              nosAta,
-              new PublicKey(this.wallet.publicKey),
-              new PublicKey(this.config.nos_address)
-            ));
+            preInstructions.push(
+              createAssociatedTokenAccountInstruction(
+                new PublicKey(this.wallet.publicKey),
+                nosAta,
+                new PublicKey(this.wallet.publicKey),
+                new PublicKey(this.config.nos_address),
+              ),
+            );
           } catch (e) {
             console.log('createAssociatedTokenAccountInstruction', e);
           }
@@ -508,12 +525,14 @@ export class Stake extends SolanaManager {
         } catch (error) {
           console.log('ATA doesnt exists, create', nosAta.toString());
           try {
-            preInstructions.push(createAssociatedTokenAccountInstruction(
-              new PublicKey(this.wallet.publicKey),
-              nosAta,
-              new PublicKey(this.wallet.publicKey),
-              new PublicKey(this.config.nos_address)
-            ));
+            preInstructions.push(
+              createAssociatedTokenAccountInstruction(
+                new PublicKey(this.wallet.publicKey),
+                nosAta,
+                new PublicKey(this.wallet.publicKey),
+                new PublicKey(this.config.nos_address),
+              ),
+            );
           } catch (e) {
             console.log('createAssociatedTokenAccountInstruction', e);
           }
