@@ -206,14 +206,19 @@ export class SolanaManager {
         );
         const info = await this.connection!.getAccountInfo(metadataAddress);
         if (info) {
+          let offset = 279;
+          if (info.data.length === 607) {
+            // New metadata account format
+            offset = 207;
+          }
           const verified = Buffer.from(info.data)
             .reverse()
-            .subarray(279 + 32, 279 + 33)
+            .subarray(offset + 32, offset + 33)
             .reverse()[0];
           const collectionFromToken = bs58.encode(
             info.data
               .reverse()
-              .subarray(279, 279 + 32)
+              .subarray(offset, offset + 32)
               .reverse(),
           );
           if (collectionFromToken === collection && verified) {
@@ -306,7 +311,10 @@ export class SolanaManager {
    * @param address
    * @returns ATA public key
    */
-  async createNosAta(address: string | PublicKey) {
+  async createNosAta(
+    address: string | PublicKey,
+    instructionOnly: Boolean = false,
+  ) {
     if (typeof address === 'string') address = new PublicKey(address);
     const ata = await getAssociatedTokenAddress(
       new PublicKey(this.config.nos_address),
@@ -343,14 +351,17 @@ export class SolanaManager {
           ),
         );
 
-        await sendAndConfirmTransaction(
-          this.connection!,
-          transaction,
-          [(this.provider?.wallet as KeyWallet).payer],
-          {},
-        );
-
-        tx = associatedToken;
+        if (instructionOnly) {
+          return transaction.instructions;
+        } else {
+          await sendAndConfirmTransaction(
+            this.connection!,
+            transaction,
+            [(this.provider?.wallet as KeyWallet).payer],
+            {},
+          );
+          tx = associatedToken;
+        }
       } catch (e) {
         console.error('createAssociatedTokenAccount', e);
       }
@@ -555,5 +566,127 @@ export class SolanaManager {
     options: GetVersionedTransactionConfig,
   ) {
     return await this.connection!.getParsedTransactions(txs, options);
+  }
+
+  /**
+   * Send NOS to address
+   * @param amount
+   * @param destination
+   * @returns
+   */
+  async sendNos(
+    amount: number,
+    destination: string | PublicKey,
+    instructionOnly: Boolean = false,
+  ) {
+    if (typeof destination === 'string')
+      destination = new PublicKey(destination);
+    try {
+      const transaction = new Transaction();
+      if (this.config.priority_fee && !instructionOnly) {
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: this.config.priority_fee,
+        });
+        transaction.add(addPriorityFee);
+      }
+
+      const destinationAta = await getAssociatedTokenAddress(
+        new PublicKey(this.config.nos_address),
+        destination,
+      );
+
+      const sourceAta = await getAssociatedTokenAddress(
+        new PublicKey(this.config.nos_address),
+        (this.provider?.wallet as KeyWallet).payer.publicKey,
+      );
+
+      // check if destination ATA already exists, if not create it
+      try {
+        await getAccount(this.connection!, destinationAta);
+      } catch (error) {
+        // ata not found, try to create one
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            (this.provider?.wallet as KeyWallet).payer.publicKey,
+            destinationAta,
+            destination,
+            new PublicKey(this.config.nos_address),
+            TOKEN_PROGRAM_ID,
+            ASSOCIATED_TOKEN_PROGRAM_ID,
+          ),
+        );
+      }
+
+      transaction.add(
+        createTransferInstruction(
+          sourceAta,
+          destinationAta,
+          (this.provider?.wallet as KeyWallet).payer.publicKey,
+          amount,
+        ),
+      );
+
+      if (instructionOnly) {
+        return transaction.instructions;
+      } else {
+        const hash = await this.connection!.getLatestBlockhash();
+        transaction.recentBlockhash = hash.blockhash;
+        return await sendAndConfirmTransaction(
+          this.connection!,
+          transaction,
+          [(this.provider?.wallet as KeyWallet).payer],
+          {},
+        );
+      }
+    } catch (error: any) {
+      throw new Error(error);
+    }
+  }
+
+  /**
+   * Send SOL to address
+   * @param amount
+   * @param destination
+   * @param instructionOnly
+   * @returns
+   */
+  async sendSol(
+    amount: number,
+    destination: string | PublicKey,
+    instructionOnly: Boolean = false,
+  ) {
+    if (typeof destination === 'string')
+      destination = new PublicKey(destination);
+    try {
+      const transaction = new Transaction();
+      if (this.config.priority_fee && !instructionOnly) {
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: this.config.priority_fee,
+        });
+        transaction.add(addPriorityFee);
+      }
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: (this.provider?.wallet as KeyWallet).payer.publicKey,
+          toPubkey: destination,
+          lamports: amount,
+        }),
+      );
+
+      if (instructionOnly) {
+        return transaction.instructions;
+      } else {
+        const hash = await this.connection!.getLatestBlockhash();
+        transaction.recentBlockhash = hash.blockhash;
+        return await sendAndConfirmTransaction(
+          this.connection!,
+          transaction,
+          [(this.provider?.wallet as KeyWallet).payer],
+          {},
+        );
+      }
+    } catch (error: any) {
+      throw new Error(error);
+    }
   }
 }
