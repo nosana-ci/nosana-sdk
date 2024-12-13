@@ -97,7 +97,7 @@ export class Jobs extends SolanaManager {
     await this.setAccounts();
 
     const jobAccount = await this.jobs!.account.jobAccount.fetch(jobAddress);
-    if (jobAccount.state !== 0) {
+    if (jobAccount.state != 0) {
       throw new Error('job cannot be delisted except when in queue')
     }
 
@@ -159,7 +159,7 @@ export class Jobs extends SolanaManager {
     await this.setAccounts();
 
     const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
-    if (jobAccount.state == 2 || jobAccount.state == 0) {
+    if (jobAccount.state != 1) {
       throw new Error('job cannot be extended when finished or is in queue')
     }
 
@@ -217,7 +217,7 @@ export class Jobs extends SolanaManager {
     await this.setAccounts();
 
     const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
-    if (jobAccount.state == 2 || jobAccount.state == 0) {
+    if (jobAccount.state != 1) {
       throw new Error('job cannot be ended when finished or is in queue')
     }
 
