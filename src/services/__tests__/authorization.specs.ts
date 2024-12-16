@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
-import { AuthorizationManager } from '../authorization';
+import { AuthorizationManager } from '../authorization.js';
 
 describe('AuthorizationManager', () => {
   beforeAll(() => {

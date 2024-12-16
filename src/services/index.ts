@@ -1,4 +1,4 @@
-export * from './authorization';
+export * from './authorization.js';
 export * from './ipfs.js';
 export * from './solana.js';
 export * from './secrets.js';

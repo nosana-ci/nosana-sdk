@@ -3,8 +3,8 @@ import { decodeUTF8 } from 'tweetnacl-util';
 import { PublicKey } from '@solana/web3.js';
 import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
 
-import { Wallet } from '../types';
-import { getWallet } from '../utils';
+import { Wallet } from '../types/index.js';
+import { getWallet } from '../utils.js';
 import base58 from 'bs58';
 
 type AuthorizationOptions = {
