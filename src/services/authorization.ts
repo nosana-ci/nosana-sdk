@@ -1,11 +1,12 @@
+import base58 from 'bs58';
 import nacl from 'tweetnacl';
-import { decodeUTF8 } from 'tweetnacl-util';
+import naclUtil from 'tweetnacl-util';
+import { IncomingHttpHeaders } from 'http';
 import { PublicKey } from '@solana/web3.js';
 import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
 
-import { Wallet } from '../types/index.js';
 import { getWallet } from '../utils.js';
-import base58 from 'bs58';
+import { Wallet } from '../types/index.js';
 
 type AuthorizationOptions = {
   expiry: number;
@@ -38,7 +39,7 @@ export class AuthorizationManager {
       ...options,
     };
 
-    const messageBytes = decodeUTF8(message);
+    const messageBytes = naclUtil.decodeUTF8(message);
 
     const signature = nacl.sign.detached(
       messageBytes,
@@ -102,16 +103,19 @@ export class AuthorizationManager {
   }
 
   public validateHeader(
-    header: Headers,
-    {
-      key = 'Authorization',
-      expiry,
-    }: Omit<AuthorizationOptions, 'includeTime'>,
+    headers: IncomingHttpHeaders,
+    options?: Partial<Omit<AuthorizationOptions, 'includeTime'>>,
   ): boolean {
-    const validationHeader = header.get(key);
+    const { key, expiry } = { key: 'Authorization', expiry: 300, ...options };
+
+    const validationHeader = headers[key];
 
     if (!validationHeader) {
-      throw new Error(`Validation header not found with key ${key}.`);
+      throw new Error(`Header not found with key ${key}.`);
+    }
+
+    if (typeof validationHeader !== 'string') {
+      throw new Error('Header has invalid type.');
     }
 
     return this.validate(validationHeader, { expiry });
