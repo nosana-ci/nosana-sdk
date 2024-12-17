@@ -104,9 +104,16 @@ export class AuthorizationManager {
 
   public validateHeader(
     headers: IncomingHttpHeaders,
-    options?: Partial<Omit<AuthorizationOptions, 'includeTime'>>,
+    options?: Partial<Pick<AuthorizationOptions, 'key'>> &
+      Partial<ValidateOptions>,
   ): boolean {
-    const { key, expiry } = { key: 'Authorization', expiry: 300, ...options };
+    const { key, expiry, seperator, publicKey } = {
+      key: 'authorization',
+      expiry: 300,
+      seperator: ':',
+      publicKey: this.wallet.publicKey,
+      ...options,
+    };
 
     const validationHeader = headers[key];
 
@@ -118,6 +125,6 @@ export class AuthorizationManager {
       throw new Error('Header has invalid type.');
     }
 
-    return this.validate(validationHeader, { expiry });
+    return this.validate(validationHeader, { expiry, seperator, publicKey });
   }
 }

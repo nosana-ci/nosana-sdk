@@ -57,6 +57,17 @@ describe('AuthorizationManager', () => {
     });
   });
 
+  describe('validateHeaders', () => {
+    it('should validate header', () => {
+      expect(
+        authorizationManager.validateHeader({
+          authorization:
+            'validationString:4hEXBxCVbFm6uPYScs5k24UcqpqHpTh4XrxrArg7uW57LW3i5e7WPJdZyYgL5nzacxYEHjywpbrL4Dq1ryHaC2ot',
+        }),
+      ).toBeTruthy();
+    });
+  });
+
   describe('validate', () => {
     it('should validate authication', () => {
       expect(
