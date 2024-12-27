@@ -47,9 +47,10 @@ export class Jobs extends SolanaManager {
         });
         preInstructions.push(addPriorityFee);
       }
-      const tx = await this.jobs!.methods.list([
-        ...bs58.decode(ipfsHash).subarray(2),
-      ], new BN(jobTimeout))
+      const tx = await this.jobs!.methods.list(
+        [...bs58.decode(ipfsHash).subarray(2)],
+        new BN(jobTimeout),
+      )
         .preInstructions(preInstructions)
         .accounts({
           ...this.accounts,
@@ -58,12 +59,12 @@ export class Jobs extends SolanaManager {
           market: market ? market : this.accounts?.market,
           vault: market
             ? pda(
-              [
-                market.toBuffer(),
-                new PublicKey(this.config.nos_address).toBuffer(),
-              ],
-              this.jobs!.programId,
-            )
+                [
+                  market.toBuffer(),
+                  new PublicKey(this.config.nos_address).toBuffer(),
+                ],
+                this.jobs!.programId,
+              )
             : this.accounts?.vault,
         })
         .signers([jobKey, runKey])
@@ -88,9 +89,9 @@ export class Jobs extends SolanaManager {
     }
   }
   /**
- * Function to delist a Nosana Job in a market
- * @param jobAddress Publickey address of the job to delist.
- */
+   * Function to delist a Nosana Job in a market
+   * @param jobAddress Publickey address of the job to delist.
+   */
   async delist(jobAddress: PublicKey | string) {
     if (typeof jobAddress === 'string') jobAddress = new PublicKey(jobAddress);
     await this.loadNosanaJobs();
@@ -98,7 +99,7 @@ export class Jobs extends SolanaManager {
 
     const jobAccount = await this.jobs!.account.jobAccount.fetch(jobAddress);
     if (jobAccount.state != 0) {
-      throw new Error('job cannot be delisted except when in queue')
+      throw new Error('job cannot be delisted except when in queue');
     }
 
     const market = await this.getMarket(jobAccount.market);
@@ -106,9 +107,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       jobAccount.price > 0
         ? await getAssociatedTokenAddress(
-          new PublicKey(this.config.nos_address),
-          jobAccount.project,
-        )
+            new PublicKey(this.config.nos_address),
+            jobAccount.project,
+          )
         : market.vault;
 
     try {
@@ -160,7 +161,7 @@ export class Jobs extends SolanaManager {
 
     const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
     if (jobAccount.state != 1) {
-      throw new Error('job cannot be extended when finished or is in queue')
+      throw new Error('job cannot be extended when finished or is in queue');
     }
 
     const market = await this.getMarket(jobAccount.market);
@@ -208,9 +209,9 @@ export class Jobs extends SolanaManager {
     }
   }
   /**
- * Function to end a running job from chain
- * @param job Publickey address of the job to end
- */
+   * Function to end a running job from chain
+   * @param job Publickey address of the job to end
+   */
   async end(job: PublicKey | string) {
     if (typeof job === 'string') job = new PublicKey(job);
     await this.loadNosanaJobs();
@@ -218,19 +219,19 @@ export class Jobs extends SolanaManager {
 
     const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
     if (jobAccount.state !== 0) {
-      throw new Error('job cannot be ended when finished')
+      throw new Error('job cannot be ended when finished');
     }
 
     let runAccount;
 
     try {
-      const runs = (await this.getRuns(job));
+      const runs = await this.getRuns(job);
 
-      if(runs.length == 0){
-        throw new Error('job cannot be ended when queued')
+      if (runs.length == 0) {
+        throw new Error('job cannot be ended when queued');
       }
 
-      runAccount = runs[0]
+      runAccount = runs[0];
     } catch (error: any) {
       if (
         error &&
@@ -248,9 +249,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       jobAccount.price > 0
         ? await getAssociatedTokenAddress(
-          new PublicKey(this.config.nos_address),
-          jobAccount.project,
-        )
+            new PublicKey(this.config.nos_address),
+            jobAccount.project,
+          )
         : market.vault;
 
     try {
@@ -275,7 +276,7 @@ export class Jobs extends SolanaManager {
             this.provider!.wallet.publicKey,
           ),
           payer: jobAccount.payer,
-          deposit: depositAta
+          deposit: depositAta,
         })
         .signers([])
         .rpc();
@@ -641,6 +642,7 @@ export class Jobs extends SolanaManager {
       data.jobPrice,
       data.jobType,
       data.nodeStakeMinimum,
+      new BN(7200), // TODO: make timeout a parameter
     )
       .preInstructions(preInstructions)
       .accounts({
@@ -708,7 +710,7 @@ export class Jobs extends SolanaManager {
       .rpc();
     return {
       transaction: tx,
-      market: marketKeypair.publicKey.toString()
+      market: marketKeypair.publicKey.toString(),
     };
   }
 
@@ -823,9 +825,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       job.price > 0
         ? await getAssociatedTokenAddress(
-          new PublicKey(this.config.nos_address),
-          job.project,
-        )
+            new PublicKey(this.config.nos_address),
+            job.project,
+          )
         : market.vault;
     const preInstructions: TransactionInstruction[] = [];
     if (this.config.priority_fee) {
