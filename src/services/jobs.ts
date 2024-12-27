@@ -34,7 +34,7 @@ export class Jobs extends SolanaManager {
    * Function to list a Nosana Job in a market
    * @param ipfsHash String of the IPFS hash locating the Nosana Job data.
    */
-  async list(ipfsHash: string, market?: PublicKey) {
+  async list(ipfsHash: string, jobTimeout: number, market?: PublicKey) {
     await this.loadNosanaJobs();
     await this.setAccounts();
     const jobKey = Keypair.generate();
@@ -49,7 +49,7 @@ export class Jobs extends SolanaManager {
       }
       const tx = await this.jobs!.methods.list([
         ...bs58.decode(ipfsHash).subarray(2),
-      ])
+      ], new BN(jobTimeout))
         .preInstructions(preInstructions)
         .accounts({
           ...this.accounts,
@@ -58,12 +58,12 @@ export class Jobs extends SolanaManager {
           market: market ? market : this.accounts?.market,
           vault: market
             ? pda(
-                [
-                  market.toBuffer(),
-                  new PublicKey(this.config.nos_address).toBuffer(),
-                ],
-                this.jobs!.programId,
-              )
+              [
+                market.toBuffer(),
+                new PublicKey(this.config.nos_address).toBuffer(),
+              ],
+              this.jobs!.programId,
+            )
             : this.accounts?.vault,
         })
         .signers([jobKey, runKey])
@@ -72,6 +72,217 @@ export class Jobs extends SolanaManager {
         tx,
         job: jobKey.publicKey.toBase58(),
         run: runKey.publicKey.toBase58(),
+      };
+    } catch (e: any) {
+      if (e instanceof SendTransactionError) {
+        if (
+          e.message.includes(
+            'Attempt to debit an account but found no record of a prior credit',
+          )
+        ) {
+          e.message = 'Not enough SOL to make transaction';
+          throw e;
+        }
+      }
+      throw e;
+    }
+  }
+  /**
+ * Function to delist a Nosana Job in a market
+ * @param jobAddress Publickey address of the job to delist.
+ */
+  async delist(jobAddress: PublicKey | string) {
+    if (typeof jobAddress === 'string') jobAddress = new PublicKey(jobAddress);
+    await this.loadNosanaJobs();
+    await this.setAccounts();
+
+    const jobAccount = await this.jobs!.account.jobAccount.fetch(jobAddress);
+    if (jobAccount.state != 0) {
+      throw new Error('job cannot be delisted except when in queue')
+    }
+
+    const market = await this.getMarket(jobAccount.market);
+
+    const depositAta =
+      jobAccount.price > 0
+        ? await getAssociatedTokenAddress(
+          new PublicKey(this.config.nos_address),
+          jobAccount.project,
+        )
+        : market.vault;
+
+    try {
+      const preInstructions: TransactionInstruction[] = [];
+      if (this.config.priority_fee) {
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: this.config.priority_fee,
+        });
+        preInstructions.push(addPriorityFee);
+      }
+      const tx = await this.jobs!.methods.delist()
+        .preInstructions(preInstructions)
+        .accounts({
+          ...this.accounts,
+          job: jobAddress,
+          market: market.address,
+          vault: market.vault,
+          payer: jobAccount.payer,
+          deposit: depositAta,
+        })
+        .signers([])
+        .rpc();
+      return {
+        tx,
+        job: jobAddress.toBase58(),
+      };
+    } catch (e: any) {
+      if (e instanceof SendTransactionError) {
+        if (
+          e.message.includes(
+            'Attempt to debit an account but found no record of a prior credit',
+          )
+        ) {
+          e.message = 'Not enough SOL to make transaction';
+          throw e;
+        }
+      }
+      throw e;
+    }
+  }
+  /**
+   * Function to extend a running job from chain
+   * @param job Publickey address of the job to extend
+   */
+  async extend(job: PublicKey | string, jobTimeout: number) {
+    if (typeof job === 'string') job = new PublicKey(job);
+    await this.loadNosanaJobs();
+    await this.setAccounts();
+
+    const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
+    if (jobAccount.state != 1) {
+      throw new Error('job cannot be extended when finished or is in queue')
+    }
+
+    const market = await this.getMarket(jobAccount.market);
+
+    try {
+      const preInstructions: TransactionInstruction[] = [];
+      if (this.config.priority_fee) {
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: this.config.priority_fee,
+        });
+        preInstructions.push(addPriorityFee);
+      }
+
+      const tx = await this.jobs!.methods.extend(new BN(jobTimeout))
+        .preInstructions(preInstructions)
+        .accounts({
+          ...this.accounts,
+          job: job,
+          market: market.address,
+          vault: market.vault,
+          user: await getAssociatedTokenAddress(
+            new PublicKey(this.config.nos_address),
+            this.provider!.wallet.publicKey,
+          ),
+        })
+        .signers([])
+        .rpc();
+
+      return {
+        tx,
+        job: job.toBase58(),
+      };
+    } catch (e: any) {
+      if (e instanceof SendTransactionError) {
+        if (
+          e.message.includes(
+            'Attempt to debit an account but found no record of a prior credit',
+          )
+        ) {
+          e.message = 'Not enough SOL to make transaction';
+          throw e;
+        }
+      }
+      throw e;
+    }
+  }
+  /**
+ * Function to end a running job from chain
+ * @param job Publickey address of the job to end
+ */
+  async end(job: PublicKey | string) {
+    if (typeof job === 'string') job = new PublicKey(job);
+    await this.loadNosanaJobs();
+    await this.setAccounts();
+
+    const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
+    if (jobAccount.state !== 0) {
+      throw new Error('job cannot be ended when finished')
+    }
+
+    let runAccount;
+
+    try {
+      const runs = (await this.getRuns(job));
+
+      if(runs.length == 0){
+        throw new Error('job cannot be ended when queued')
+      }
+
+      runAccount = runs[0]
+    } catch (error: any) {
+      if (
+        error &&
+        error.message &&
+        error.message.includes('RPC call or parameters have been disabled')
+      ) {
+        throw new Error('WARNING: Current RPC cannot check if job is RUNNING');
+      } else {
+        throw new Error(`WARNING: Could not check if job is RUNNING, ${error}`);
+      }
+    }
+
+    const market = await this.getMarket(jobAccount.market);
+
+    const depositAta =
+      jobAccount.price > 0
+        ? await getAssociatedTokenAddress(
+          new PublicKey(this.config.nos_address),
+          jobAccount.project,
+        )
+        : market.vault;
+
+    try {
+      const preInstructions: TransactionInstruction[] = [];
+      if (this.config.priority_fee) {
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: this.config.priority_fee,
+        });
+        preInstructions.push(addPriorityFee);
+      }
+
+      const tx = await this.jobs!.methods.end()
+        .preInstructions(preInstructions)
+        .accounts({
+          ...this.accounts,
+          job: job,
+          market: market.address,
+          vault: market.vault,
+          run: runAccount,
+          user: await getAssociatedTokenAddress(
+            new PublicKey(this.config.nos_address),
+            this.provider!.wallet.publicKey,
+          ),
+          payer: jobAccount.payer,
+          deposit: depositAta
+        })
+        .signers([])
+        .rpc();
+
+      return {
+        tx,
+        job: job.toBase58(),
       };
     } catch (e: any) {
       if (e instanceof SendTransactionError) {
@@ -612,9 +823,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       job.price > 0
         ? await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            job.project,
-          )
+          new PublicKey(this.config.nos_address),
+          job.project,
+        )
         : market.vault;
     const preInstructions: TransactionInstruction[] = [];
     if (this.config.priority_fee) {

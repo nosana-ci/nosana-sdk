@@ -88,6 +88,7 @@ const mapJob = (job: any): Job => {
   job.timeEnd = job.timeEnd ? parseInt(job.timeEnd) : job.timeEnd;
   job.ipfsJob = IPFS.solHashToIpfsHash(job.ipfsJob);
   job.ipfsResult = IPFS.solHashToIpfsHash(job.ipfsResult);
+  job.timeout = job.timeout;
 
   return job;
 };

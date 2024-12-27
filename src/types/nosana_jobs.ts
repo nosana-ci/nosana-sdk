@@ -253,7 +253,168 @@ export type NosanaJobs = {
             array: ['u8', 32];
           };
         },
+        {
+          name: 'timeout';
+          type: 'i64';
+        }
       ];
+    },
+    {
+      name: 'delist';
+      docs: [
+        'Remove a [JobAccount](#job-account) from market job queue.',
+      ];
+      accounts: [
+        {
+          name: 'job';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'market';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'deposit';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'vault';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payer';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'authority';
+          isMut: true;
+          isSigner: true;
+        },
+        {
+          name: 'tokenProgram';
+          isMut: false;
+          isSigner: false;
+        },
+      ];
+      args: [];
+    },
+    {
+      name: 'extend';
+      docs: [
+        'Extend a [JobAccount](#job-account) timeout.',
+      ];
+      accounts: [
+        {
+          name: 'job';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'market';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'user';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'vault';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'rewardsReflection';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'rewardsVault';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'authority';
+          isMut: false;
+          isSigner: true;
+        },
+        {
+          name: 'rewardsProgram';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'tokenProgram';
+          isMut: false;
+          isSigner: false;
+        },
+      ];
+      args: [
+        {
+          name: 'timeout';
+          type: 'i64';
+        }
+      ];
+    },
+    {
+      name: 'end';
+      docs: [
+        'End a running [JobAccount](#job-account) and close [RunAccount](#run-account).',
+      ];
+      accounts: [
+        {
+          name: 'job';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'market';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'run';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'deposit';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'user';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'vault';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payer';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'authority';
+          isMut: true;
+          isSigner: true;
+        },
+        {
+          name: 'tokenProgram';
+          isMut: false;
+          isSigner: false;
+        },
+      ];
+      args: [];
     },
     {
       name: 'recover';
