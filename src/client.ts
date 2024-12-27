@@ -1,22 +1,25 @@
-import type { ClientConfig } from './types/index.js';
+import { Keypair } from '@solana/web3.js';
+
 import {
   IPFS,
+  AuthorizationManager,
   SolanaManager,
   SecretManager,
   Jobs,
   Nodes,
   Stake,
 } from './services/index.js';
-import type { Wallet } from '@coral-xyz/anchor/dist/cjs/provider.js';
-import { KeyWallet } from './utils.js';
-import { Keypair } from '@solana/web3.js';
-import { polyfill } from './utils.js';
+import { KeyWallet, polyfill } from './utils.js';
+
+import type { ClientConfig, Wallet } from './types/index.js';
+
 export * from './types/index.js';
 export * from './utils.js';
 
 polyfill();
 
 export class Client {
+  authorization: AuthorizationManager;
   solana: SolanaManager;
   ipfs: IPFS;
   secrets: SecretManager;
@@ -26,13 +29,14 @@ export class Client {
 
   constructor(
     environment: string = 'devnet',
-    wallet?: Wallet | string | Keypair | Iterable<number>,
+    wallet?: Wallet,
     config?: Partial<ClientConfig>,
   ) {
     if (!wallet) {
       wallet = process?.env?.SOLANA_WALLET || new KeyWallet(Keypair.generate());
     }
 
+    this.authorization = new AuthorizationManager(wallet);
     this.solana = new SolanaManager(environment, wallet, config?.solana);
     this.ipfs = new IPFS(environment, config?.ipfs);
     this.secrets = new SecretManager(environment, wallet, config?.secrets);

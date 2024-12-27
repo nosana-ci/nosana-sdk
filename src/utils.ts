@@ -1,15 +1,15 @@
+import * as buffer from 'buffer';
 import {
   Keypair,
   PublicKey,
   Transaction,
   VersionedTransaction,
 } from '@solana/web3.js';
-// import { Wallet } from '@coral-xyz/anchor';
-import { Wallet } from '@coral-xyz/anchor/dist/cjs/provider.js';
-import type { Job } from './types/index.js';
-import { IPFS } from './services/ipfs.js';
 import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
-import * as buffer from 'buffer';
+import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
+
+import { IPFS } from './services/ipfs.js';
+import type { Job, Wallet } from './types/index.js';
 
 const excludedJobs = [
   'Af6vBZSM3eLfJHvfMXKUa3CCeP4b8VEFbBaRhMsJHvtb',
@@ -44,7 +44,7 @@ const sleep = (seconds: number): Promise<void> =>
  * Method to easily get a universal timestamp
  */
 const now = (): number => Math.floor(Date.now() / 1e3);
-class KeyWallet implements Wallet {
+class KeyWallet implements AnchorWallet {
   constructor(readonly payer: Keypair) {}
 
   async signTransaction<T extends Transaction | VersionedTransaction>(
@@ -100,9 +100,7 @@ const polyfill = () => {
   }
 };
 
-const getWallet = (
-  wallet: Wallet | string | Keypair | Iterable<number>,
-): Wallet => {
+const getWallet = (wallet: Wallet): AnchorWallet => {
   if (typeof wallet === 'string' || Array.isArray(wallet)) {
     let key = wallet;
     if (typeof key === 'string') {
@@ -121,7 +119,7 @@ const getWallet = (
   if (!wallet.signTransaction) {
     wallet = new KeyWallet(wallet as Keypair);
   }
-  return wallet as Wallet;
+  return wallet as AnchorWallet;
 };
 
 const pda = (

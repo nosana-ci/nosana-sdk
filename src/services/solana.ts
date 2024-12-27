@@ -2,7 +2,6 @@ import { AnchorProvider, Idl, Program, setProvider } from '@coral-xyz/anchor';
 import {
   getAssociatedTokenAddress,
   getAccount,
-  createAssociatedTokenAccount,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
@@ -10,7 +9,6 @@ import {
   createTransferInstruction,
 } from '@solana/spl-token';
 import {
-  Keypair,
   PublicKey,
   SystemProgram,
   clusterApiUrl,
@@ -20,8 +18,6 @@ import {
   sendAndConfirmTransaction,
   Transaction,
   ComputeBudgetProgram,
-} from '@solana/web3.js';
-import type {
   Cluster,
   GetVersionedTransactionConfig,
   ParsedAccountData,
@@ -31,18 +27,19 @@ import { associatedAddress } from '@coral-xyz/anchor/dist/cjs/utils/token.js';
 import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 import nacl from 'tweetnacl';
 import tweetnaclutil from 'tweetnacl-util';
-const { decodeUTF8 } = tweetnaclutil;
+import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
 
+import { solanaConfigPreset } from '../config.js';
 import type {
   NosanaJobs,
   SolanaConfig,
   NosanaNodes,
   NosanaStake,
+  Wallet,
 } from '../types/index.js';
 import { KeyWallet, getWallet, pda } from '../utils.js';
-import { solanaConfigPreset } from '../config.js';
-import { Wallet } from '@coral-xyz/anchor/dist/cjs/provider.js';
 
+const { decodeUTF8 } = tweetnaclutil;
 /**
  * Class to interact with Nosana Programs on the Solana Blockchain,
  * with the use of Anchor.
@@ -66,11 +63,11 @@ export class SolanaManager {
   stakeAccounts: { [key: string]: any } | undefined;
   poolAccounts: { [key: string]: any } | undefined;
   config: SolanaConfig;
-  wallet: Wallet;
+  wallet: AnchorWallet;
   connection: Connection | undefined;
   constructor(
     environment: string = 'devnet',
-    wallet: Wallet | string | Keypair | Iterable<number>,
+    wallet: Wallet,
     config?: Partial<SolanaConfig>,
   ) {
     this.config = solanaConfigPreset[environment];
@@ -532,10 +529,7 @@ export class SolanaManager {
    * @param verify
    * @returns
    */
-  async signMessage(
-    message: string,
-    verify: boolean = false,
-  ): Promise<Boolean | Uint8Array> {
+  signMessage(message: string, verify: boolean = false): Boolean | Uint8Array {
     const messageBytes = decodeUTF8(message);
 
     const signature = nacl.sign.detached(

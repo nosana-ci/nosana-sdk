@@ -217,12 +217,33 @@ export class Jobs extends SolanaManager {
     await this.setAccounts();
 
     const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
-    if (jobAccount.state != 1) {
-      throw new Error('job cannot be ended when finished or is in queue')
+    if (jobAccount.state !== 0) {
+      throw new Error('job cannot be ended when finished')
+    }
+
+    let runAccount;
+
+    try {
+      const runs = (await this.getRuns(job));
+
+      if(runs.length == 0){
+        throw new Error('job cannot be ended when queued')
+      }
+
+      runAccount = runs[0]
+    } catch (error: any) {
+      if (
+        error &&
+        error.message &&
+        error.message.includes('RPC call or parameters have been disabled')
+      ) {
+        throw new Error('WARNING: Current RPC cannot check if job is RUNNING');
+      } else {
+        throw new Error(`WARNING: Could not check if job is RUNNING, ${error}`);
+      }
     }
 
     const market = await this.getMarket(jobAccount.market);
-    const runAccount = (await this.getRuns(job))[0];
 
     const depositAta =
       jobAccount.price > 0
