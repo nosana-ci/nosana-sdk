@@ -1,6 +1,6 @@
 {
   "name": "@nosana/sdk",
-  "version": "0.3.56",
+  "version": "0.3.57",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -47,6 +47,11 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.28.1-beta.1",
+    "@metaplex-foundation/mpl-core": "^1.1.1",
+    "@metaplex-foundation/mpl-token-metadata": "^3.2.1",
+    "@metaplex-foundation/umi": "^0.9.1",
+    "@metaplex-foundation/umi-bundle-defaults": "^0.9.1",
+    "@metaplex-foundation/umi-web3js-adapters": "^0.9.2",
     "@solana/spl-token": "^0.3.8",
     "@solana/web3.js": "^1.78.0",
     "axios": "^1.6.5",

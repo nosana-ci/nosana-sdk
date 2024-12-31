@@ -28,6 +28,30 @@ import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 import nacl from 'tweetnacl';
 import tweetnaclutil from 'tweetnacl-util';
 import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
+import {
+  keypairIdentity,
+  generateSigner,
+  transactionBuilder,
+  signerIdentity,
+  createSignerFromKeypair,
+  base58,
+} from '@metaplex-foundation/umi';
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
+import {
+  mplTokenMetadata,
+  verifyCollectionV1,
+  fetchMetadataFromSeeds,
+  createFungibleAsset,
+  createNft,
+  fetchDigitalAsset,
+} from '@metaplex-foundation/mpl-token-metadata';
+import {
+  mplToolbox,
+  setComputeUnitPrice,
+} from '@metaplex-foundation/mpl-toolbox';
+import { fromWeb3JsKeypair } from '@metaplex-foundation/umi-web3js-adapters';
+import { createCollection, ruleSet } from '@metaplex-foundation/mpl-core';
+import { percentAmount, publicKey, some } from '@metaplex-foundation/umi';
 
 import { solanaConfigPreset } from '../config.js';
 import type {
@@ -37,7 +61,7 @@ import type {
   NosanaStake,
   Wallet,
 } from '../types/index.js';
-import { KeyWallet, getWallet, pda } from '../utils.js';
+import { KeyWallet, getWallet, pda, sleep } from '../utils.js';
 
 const { decodeUTF8 } = tweetnaclutil;
 /**
@@ -682,5 +706,143 @@ export class SolanaManager {
     } catch (error: any) {
       throw new Error(error);
     }
+  }
+
+  /**
+   * Create a Collection with Nosana Node config
+   */
+  async createNodeCollection() {
+    const umi = createUmi(this.config.network, {
+      commitment: 'confirmed',
+      confirmTransactionInitialTimeout: 120000,
+    })
+      .use(mplTokenMetadata())
+      .use(mplToolbox());
+
+    const signer = createSignerFromKeypair(
+      umi,
+      fromWeb3JsKeypair((this.provider?.wallet as KeyWallet).payer),
+    );
+    umi.use(signerIdentity(signer));
+
+    console.log(`Creating collection...`);
+    const collectionMint = generateSigner(umi);
+    const transaction = await createNft(umi, {
+      mint: collectionMint,
+      name: 'Nosana Node Collection',
+      symbol: 'NOS-NODE',
+      uri: 'https://shdw-drive.genesysgo.net/3ndTeBWA1s9ETaivEMUcEULomQnmNkY1cE4Gb1N6r6Ec/nosana-node.json',
+      sellerFeeBasisPoints: percentAmount(100),
+      isCollection: true,
+      creators: [
+        {
+          address: publicKey('NosanarMxfrZbyCx5CotBVrzxiPcrnhj6ickpX9vRkB'),
+          verified: false,
+          share: 100,
+        },
+      ],
+    }).prepend(
+      setComputeUnitPrice(umi, {
+        microLamports: this.config.priority_fee ? this.config.priority_fee : 0,
+      }),
+    );
+
+    const tx = await transaction.sendAndConfirm(umi);
+
+    const createdCollectionNft = await fetchDigitalAsset(
+      umi,
+      collectionMint.publicKey,
+    );
+    console.log(
+      'Created collection',
+      createdCollectionNft.mint.publicKey.toString(),
+    );
+
+    return {
+      collection: createdCollectionNft.mint.publicKey.toString(),
+      tx: base58.deserialize(tx.signature)[0],
+    };
+  }
+
+  /**
+   * Create & verify SFT for collection
+   * @param collectionAddress - string
+   */
+  async createAndVerifySft(collectionAddress: string) {
+    const umi = createUmi(this.config.network, {
+      commitment: 'confirmed',
+      confirmTransactionInitialTimeout: 120000,
+    })
+      .use(mplTokenMetadata())
+      .use(mplToolbox());
+    const signer = createSignerFromKeypair(
+      umi,
+      fromWeb3JsKeypair((this.provider?.wallet as KeyWallet).payer),
+    );
+    umi.use(signerIdentity(signer));
+
+    const umiKeypair = keypairIdentity(
+      fromWeb3JsKeypair((this.provider?.wallet as KeyWallet).payer),
+    );
+    umi.use(umiKeypair);
+
+    const newMint = generateSigner(umi);
+    const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports: 100000,
+    });
+
+    const createSFTix = await createFungibleAsset(umi, {
+      mint: newMint,
+      authority: umi.identity,
+      updateAuthority: umi.identity,
+      name: 'Nosana Node SFT',
+      uri: 'https://shdw-drive.genesysgo.net/3ndTeBWA1s9ETaivEMUcEULomQnmNkY1cE4Gb1N6r6Ec/nosana-node.json',
+      sellerFeeBasisPoints: percentAmount(0),
+      decimals: some(0), // for 0 decimals use some(0)
+      isMutable: true,
+      isCollection: false,
+      collection: {
+        verified: false,
+        key: publicKey(collectionAddress),
+      },
+    });
+    await createSFTix
+      .prepend(
+        transactionBuilder([
+          // @ts-ignore
+          { instruction: addPriorityFee, bytesCreatedOnChain: 0, signers: [] },
+        ]),
+      )
+      .sendAndConfirm(umi);
+
+    console.log('Created SFT address', newMint.publicKey.toString());
+
+    await sleep(5);
+
+    const metadata = await fetchMetadataFromSeeds(umi, {
+      // @ts-ignore
+      mint: newMint,
+    });
+
+    const verifyCollection = await verifyCollectionV1(umi, {
+      collectionMint: publicKey(collectionAddress),
+      // @ts-ignore
+      metadata: metadata,
+      authority: umi.identity,
+    });
+    const tx = await verifyCollection
+      .prepend(
+        transactionBuilder([
+          // @ts-ignore
+          { instruction: addPriorityFee, bytesCreatedOnChain: 0, signers: [] },
+        ]),
+      )
+      .sendAndConfirm(umi);
+    console.log('Verified NFT collection', collectionAddress);
+
+    return {
+      tx,
+      sft: newMint.publicKey.toString(),
+    };
   }
 }
