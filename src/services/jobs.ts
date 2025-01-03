@@ -270,7 +270,7 @@ export class Jobs extends SolanaManager {
           job: job,
           market: market.address,
           vault: market.vault,
-          run: runAccount,
+          run: runAccount.publicKey,
           user: await getAssociatedTokenAddress(
             new PublicKey(this.config.nos_address),
             this.provider!.wallet.publicKey,
