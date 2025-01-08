@@ -273,7 +273,7 @@ export class Jobs extends SolanaManager {
           run: runAccount.publicKey,
           user: await getAssociatedTokenAddress(
             new PublicKey(this.config.nos_address),
-            this.provider!.wallet.publicKey,
+            runAccount.account.node,
           ),
           payer: jobAccount.payer,
           deposit: depositAta,
