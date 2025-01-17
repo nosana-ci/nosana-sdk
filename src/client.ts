@@ -1,5 +1,7 @@
 import { Keypair } from '@solana/web3.js';
 
+import { Swap } from './services/swap.js';
+
 import {
   IPFS,
   AuthorizationManager,
@@ -26,6 +28,7 @@ export class Client {
   jobs: Jobs;
   nodes: Nodes;
   stake: Stake;
+  swap: Swap;
 
   constructor(
     environment: string = 'devnet',
@@ -43,5 +46,6 @@ export class Client {
     this.jobs = new Jobs(environment, wallet, config?.solana);
     this.nodes = new Nodes(environment, wallet, config?.solana);
     this.stake = new Stake(environment, wallet, config?.solana);
+    this.swap = new Swap(environment, wallet, config?.solana);
   }
 }
