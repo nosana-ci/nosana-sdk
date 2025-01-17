@@ -5,3 +5,4 @@ export * from './secrets.js';
 export * from './jobs.js';
 export * from './nodes.js';
 export * from './stake.js';
+export * from './swap.js';
