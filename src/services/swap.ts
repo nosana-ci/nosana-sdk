@@ -37,7 +37,6 @@ export interface JupiterSwapOptions {
 export class Swap extends SolanaManager {
   constructor(environment: string = 'mainnet-beta', wallet?: Wallet, config?: Partial<SolanaConfig>) {
     super(environment, wallet || new KeyWallet(Keypair.generate()), config);
-    console.log('Swap service initialized!');
   }
 
   /**
