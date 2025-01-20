@@ -2,6 +2,8 @@ import fetch from 'cross-fetch';
 import { VersionedTransaction, PublicKey, Keypair } from '@solana/web3.js';
 import { SolanaManager } from './solana';
 import { Buffer } from 'buffer';
+import type { Wallet, SolanaConfig } from '../types/index.js';
+import { KeyWallet } from '../utils.js';
 
 // We recommend using your own API keys and endpoints in production code.
 // These examples and default URLs are for demonstration.
@@ -33,6 +35,11 @@ export interface JupiterSwapOptions {
 }
 
 export class Swap extends SolanaManager {
+  constructor(environment: string = 'mainnet-beta', wallet?: Wallet, config?: Partial<SolanaConfig>) {
+    super(environment, wallet || new KeyWallet(Keypair.generate()), config);
+    console.log('Swap service initialized!');
+  }
+
   /**
    * Get a quote from Jupiter's /quote endpoint.
    */
