@@ -1011,20 +1011,27 @@ export class Jobs extends SolanaManager {
 
     // Build a Jupiter quote request
     const quoteUrl = new URL('https://quote-api.jup.ag/v6/quote');
+    // "inputMint" is SOL
     quoteUrl.searchParams.append(
       'inputMint',
       'So11111111111111111111111111111111111111112',
-    ); // SOL
+    );
+    // "outputMint" is your NOS token
+    quoteUrl.searchParams.append('outputMint', this.config.nos_address);
+
+    // Because we want EXACT out tokens, specify "ExactOut" here
+    quoteUrl.searchParams.append('swapMode', 'ExactOut');
+
+    // This is how many NOS tokens we want out:
     quoteUrl.searchParams.append(
-      'outputMint',
-      this.config.nos_address,
-    ); // NOS
-    quoteUrl.searchParams.append(
-      'outputAmount',
+      'amount',
       Math.ceil(nosNeeded * 1.01).toString(),
-    ); // Slight buffer for slippage
+    );
+
+    // DON'T append "maxAccounts" when using ExactOut
+    // quoteUrl.searchParams.append('maxAccounts', '54'); // remove or comment out
+
     quoteUrl.searchParams.append('slippageBps', '50');
-    quoteUrl.searchParams.append('maxAccounts', '54');
 
     // 5) Fetch the quote
     const quoteRes = await fetch(quoteUrl.toString());
@@ -1038,14 +1045,6 @@ export class Jobs extends SolanaManager {
       userPublicKey: this.provider!.wallet.publicKey.toString(),
       quoteResponse,
       wrapAndUnwrapSol: true,
-      dynamicSlippage: { maxBps: 300 },
-      dynamicComputeUnitLimit: true,
-      prioritizationFeeLamports: {
-        priorityLevelWithMaxLamports: {
-          maxLamports: 10000000,
-          priorityLevel: 'high',
-        },
-      },
     };
 
     const swapInstructionsResponse = await fetch(
