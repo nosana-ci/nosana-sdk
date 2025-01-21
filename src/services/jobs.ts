@@ -1113,14 +1113,14 @@ export class Jobs extends SolanaManager {
     // 9) Build a VersionedTransaction using the chosen LUTs (if any)
     const lookupTableResults = await Promise.all(
       addressLookupTableAddresses.map((addr: string) =>
-        this.connection.getAddressLookupTable(new PublicKey(addr)),
+        this.connection!.getAddressLookupTable(new PublicKey(addr)),
       ),
     );
     const validLookupTables = lookupTableResults
       .map((res) => res.value)
       .filter(Boolean);
 
-    const blockhashObj = await this.connection.getLatestBlockhash();
+    const blockhashObj = await this.connection!.getLatestBlockhash();
     const messageV0 = new TransactionMessage({
       payerKey: this.provider!.wallet.publicKey,
       recentBlockhash: blockhashObj.blockhash,
@@ -1133,10 +1133,10 @@ export class Jobs extends SolanaManager {
     versionedTx.sign([...signers]);
 
     // 11) Send and confirm the transaction
-    const txid = await this.connection.sendTransaction(versionedTx, {
+    const txid = await this.connection!.sendTransaction(versionedTx, {
       maxRetries: 5,
     });
-    await this.connection.confirmTransaction(
+    await this.connection!.confirmTransaction(
       {
         blockhash: blockhashObj.blockhash,
         lastValidBlockHeight: blockhashObj.lastValidBlockHeight,
