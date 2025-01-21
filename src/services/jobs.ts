@@ -1,8 +1,5 @@
 // external imports
 import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
-
-// local imports
-import { jobStateMapping, mapJob, excludedJobs } from '../utils.js';
 import {
   ComputeBudgetProgram,
   Keypair,
@@ -10,6 +7,9 @@ import {
   SendTransactionError,
   TransactionInstruction,
   TransactionSignature,
+  Connection,
+  VersionedTransaction,
+  TransactionMessage,
 } from '@solana/web3.js';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 
@@ -17,8 +17,13 @@ import type { Job, Market, Run } from '../types/index.js';
 import { SolanaManager } from './solana.js';
 import { IPFS } from '../services/ipfs.js';
 import * as anchor from '@coral-xyz/anchor';
+import { KeyWallet } from '../utils.js';
 // @ts-ignore
 const { BN } = anchor.default ? anchor.default : anchor;
+import fetch from 'cross-fetch';
+
+// local imports
+import { jobStateMapping, mapJob, excludedJobs } from '../utils.js';
 
 const pda = (
   seeds: Array<Buffer | Uint8Array>,
@@ -911,5 +916,252 @@ export class Jobs extends SolanaManager {
       })
       .rpc();
     return tx;
+  }
+
+  /**
+   * A version of "list" that returns just the instructions + signers,
+   * allowing you to combine them with other instructions (e.g. swap) in one transaction.
+   */
+  async listInstruction(
+    ipfsHash: string,
+    jobTimeout: number,
+    market?: PublicKey,
+  ): Promise<{ instructions: TransactionInstruction[]; signers: Keypair[] }> {
+    await this.loadNosanaJobs();
+    await this.setAccounts();
+
+    // Generate ephemeral keys for the Job + Run
+    const jobKey = Keypair.generate();
+    const runKey = Keypair.generate();
+
+    // Pre-instructions, e.g. priority fee
+    const preInstructions: TransactionInstruction[] = [];
+    if (this.config.priority_fee) {
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: this.config.priority_fee,
+      });
+      preInstructions.push(addPriorityFee);
+    }
+
+    // (Optional) compute vault if a custom market is provided
+    // from your existing code snippet:
+    const vault = market
+      ? pda([market.toBuffer(), new PublicKey(this.config.nos_address).toBuffer()], this.jobs!.programId)
+      : this.accounts?.vault;
+
+    // Anchor "method builder" for listing the job
+    // Instead of .rpc(), call .instruction() to retrieve a TransactionInstruction
+    const methodBuilder = this.jobs!.methods
+      .list([...bs58.decode(ipfsHash).subarray(2)], new BN(jobTimeout))
+      .preInstructions(preInstructions)
+      .accounts({
+        ...this.accounts,
+        job: jobKey.publicKey,
+        run: runKey.publicKey,
+        market: market ? market : this.accounts?.market,
+        vault,
+      })
+      .signers([jobKey, runKey]);
+
+    // The "list" method returns exactly one main instruction;
+    // Combine it with the preInstructions to form your final array
+    const listIx = await methodBuilder.instruction();
+    const instructions = [...preInstructions, listIx];
+
+    // Return everything so the caller can add these into a single transaction
+    return {
+      instructions,
+      signers: [jobKey, runKey],
+    };
+  }
+}
+
+/**
+ * Helper function to parse Jupiter's instruction format into a TransactionInstruction
+ */
+function parseInstruction(raw: any): TransactionInstruction {
+  return new TransactionInstruction({
+    programId: new PublicKey(raw.programId),
+    keys: raw.accounts.map((acc: any) => ({
+      pubkey: new PublicKey(acc.pubkey),
+      isSigner: acc.isSigner,
+      isWritable: acc.isWritable,
+    })),
+    data: Buffer.from(raw.data, 'base64'),
+  });
+}
+
+/**
+ * This function checks if there's sufficient NOS balance for the job, and if insufficient,
+ * performs a Jupiter swap before listing the job. If NOS balance is sufficient, it just lists the job.
+ *
+ * @param connection - Solana connection
+ * @param walletKeypair - Keypair or anchor wallet
+ * @param jobTimeout - The jobTimeout for the "list" call
+ * @param ipfsHash - The IPFS hash for the job
+ * @param solAmount - Amount of SOL to swap for NOS (in SOL, e.g. 1.0 for 1 SOL)
+ * @param environment - The Solana environment (e.g. 'mainnet-beta', 'devnet'). Defaults to 'mainnet-beta'
+ * @param requiredNosBalance - The amount of NOS required for the job. If not provided, defaults to checking for any positive balance
+ * @returns The transaction signature
+ */
+export async function ensureNosAndListJob(
+  connection: Connection,
+  walletKeypair: Keypair,
+  jobTimeout: number,
+  ipfsHash: string,
+  solAmount: number,
+  environment: string = 'mainnet-beta',
+  requiredNosBalance?: number,
+): Promise<string> {
+  try {
+    // Create Jobs instance with proper initialization
+    const jobs = new Jobs(environment, new KeyWallet(walletKeypair));
+    await jobs.loadNosanaJobs();
+
+    // Check NOS balance
+    const nosBalance = await jobs.getNosBalance();
+    const currentBalance = nosBalance?.uiAmount ?? 0;
+    
+    // If we have sufficient NOS balance, just list the job
+    if (currentBalance > (requiredNosBalance || 0)) {
+      const { tx } = await jobs.list(ipfsHash, jobTimeout);
+      return tx;
+    }
+
+    // If we get here, we need to swap first
+    console.log("Getting Jupiter quote...");
+    const quoteUrl = new URL('https://quote-api.jup.ag/v6/quote');
+    quoteUrl.searchParams.append('inputMint', 'So11111111111111111111111111111111111111112');
+    quoteUrl.searchParams.append('outputMint', 'nosXBVoaCTtYdLvKY6Csb4AC8JCdQKKAaWYtx2ZMoo7');
+    quoteUrl.searchParams.append('amount', (solAmount * 1e9).toString());
+    quoteUrl.searchParams.append('slippageBps', '50');
+    quoteUrl.searchParams.append('maxAccounts', '54');
+
+    const quoteRes = await fetch(quoteUrl.toString());
+    if (!quoteRes.ok) {
+      throw new Error(`Jupiter quote failed: ${await quoteRes.text()}`);
+    }
+    
+    const quoteResponse = await quoteRes.json();
+    console.log("Got Jupiter quote:", quoteResponse);
+
+    // Prepare swap parameters
+    const swapParams = {
+      userPublicKey: walletKeypair.publicKey.toString(),
+      quoteResponse,
+      wrapAndUnwrapSol: true,
+      dynamicSlippage: { maxBps: 300 },
+      dynamicComputeUnitLimit: true,
+      prioritizationFeeLamports: {
+        priorityLevelWithMaxLamports: {
+          maxLamports: 10000000,
+          priorityLevel: "high"
+        }
+      }
+    };
+
+    const swapInstructionsResponse = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(swapParams),
+    });
+
+    if (!swapInstructionsResponse.ok) {
+      throw new Error(`Failed to fetch Jupiter swap-instructions: ${await swapInstructionsResponse.text()}`);
+    }
+
+    const swapInstructions = await swapInstructionsResponse.json();
+    
+    if (swapInstructions.error) {
+      throw new Error(`Jupiter swap instructions error: ${swapInstructions.error}`);
+    }
+
+    const {
+      tokenLedgerInstruction,
+      otherInstructions,
+      computeBudgetInstructions,
+      setupInstructions,
+      swapInstruction,
+      cleanupInstruction,
+      addressLookupTableAddresses = [],
+    } = swapInstructions;
+
+    const jupiterInstructions: TransactionInstruction[] = [];
+
+    // Convert raw instructions to TransactionInstructions
+    if (computeBudgetInstructions?.length) {
+      jupiterInstructions.push(...computeBudgetInstructions.map(parseInstruction));
+    }
+    if (setupInstructions?.length) {
+      jupiterInstructions.push(...setupInstructions.map(parseInstruction));
+    }
+    if (tokenLedgerInstruction) {
+      jupiterInstructions.push(parseInstruction(tokenLedgerInstruction));
+    }
+    if (otherInstructions?.length) {
+      jupiterInstructions.push(...otherInstructions.map(parseInstruction));
+    }
+    if (swapInstruction) {
+      jupiterInstructions.push(parseInstruction(swapInstruction));
+    }
+    if (cleanupInstruction) {
+      jupiterInstructions.push(parseInstruction(cleanupInstruction));
+    }
+
+    // Get instructions for listing a job
+    const { instructions: listInstructions, signers } = await jobs.listInstruction(ipfsHash, jobTimeout);
+
+    // Combine instructions
+    const combinedInstructions = [...jupiterInstructions, ...listInstructions];
+
+    // Build Versioned Transaction
+    const lookupTableResults = await Promise.all(
+      addressLookupTableAddresses.map((addr: string) => connection.getAddressLookupTable(new PublicKey(addr))),
+    );
+    const validLookupTables = lookupTableResults
+      .map((res) => res.value)
+      .filter((val) => !!val);
+
+    const blockhashObj = await connection.getLatestBlockhash();
+    const messageV0 = new TransactionMessage({
+      payerKey: walletKeypair.publicKey,
+      recentBlockhash: blockhashObj.blockhash,
+      instructions: combinedInstructions,
+    }).compileToV0Message(validLookupTables);
+
+    const versionedTx = new VersionedTransaction(messageV0);
+
+    // Sign and Send
+    versionedTx.sign([walletKeypair, ...signers]);
+
+    const txid = await connection.sendTransaction(versionedTx, { maxRetries: 5 });
+    await connection.confirmTransaction(
+      {
+        blockhash: blockhashObj.blockhash,
+        lastValidBlockHeight: blockhashObj.lastValidBlockHeight,
+        signature: txid,
+      },
+      'finalized',
+    );
+
+    return txid;
+  } catch (e: any) {
+    // Properly wrap any error type
+    if (e instanceof Error) {
+      throw e;  // Already an Error, just re-throw
+    } else if (typeof e === 'object') {
+      // Convert object-like errors to proper Error instances
+      const errorMessage = e.message || JSON.stringify(e);
+      const error = new Error(errorMessage);
+      // Preserve the original error's properties
+      Object.assign(error, e);
+      throw error;
+    } else {
+      // Convert primitive values to Error
+      throw new Error(String(e));
+    }
   }
 }
