@@ -1,6 +1,5 @@
 FROM node:20 as base
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
 COPY . .
+RUN npm ci
 CMD ["npm", "run", "build"]
