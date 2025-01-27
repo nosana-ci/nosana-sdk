@@ -11,6 +11,7 @@ import {
   VersionedTransaction,
   TransactionMessage,
   LAMPORTS_PER_SOL,
+  AddressLookupTableAccount,
 } from '@solana/web3.js';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 
@@ -969,48 +970,13 @@ export class Jobs extends SolanaManager {
   }
 
   /**
-   * Method to list a Nosana Job in a single transaction, ensuring you have enough NOS tokens.
-   * If your balance is insufficient, it will first swap SOL to NOS using Jupiter, then list the job.
-   * 
-   * This uses the wallet already provided to the "Jobs" class constructor (this.provider!.wallet).
-   * No need to pass environment or wallet as parameters.
+   * Helper method to get Jupiter swap instructions when NOS balance is insufficient
    */
-  public async ensureNosAndListJob(
-    ipfsHash: string,
-    jobTimeout: number,
-    market?: PublicKey,
-  ): Promise<string> {
-    // 1) Load program + set accounts
-    await this.loadNosanaJobs();
-    await this.setAccounts();
-
-    // 2) Determine how many NOS tokens are required
-    const marketInfo = await this.getMarket(market || this.accounts!.market);
-    const pricePerHour = marketInfo.jobPrice / 1_000_000; // Convert from lamports to NOS
-    console.log(`Price per hour: ${pricePerHour} NOS`);
-    const requiredNosAmount = Number(marketInfo.jobPrice) * jobTimeout; // Scale by jobTimeout in seconds
-
-    console.log(`\nMarket Info:`);
-    console.log(`Price per second: ${pricePerHour} NOS`);
-    console.log(`Required NOS amount: ${requiredNosAmount / 1_000_000} NOS`);
-
-    // 3) Get current NOS balance
-    const nosBalance = await this.getNosBalance();
-    const currentAmount = nosBalance?.uiAmount ?? 0;
-
-    // 4) If we already have enough NOS, just list
-    if (currentAmount >= requiredNosAmount) {
-      const { tx } = await this.list(ipfsHash, jobTimeout, market);
-      return tx;
-    }
-
-    // Otherwise, we need to swap some SOL for NOS
-    const nosNeeded = requiredNosAmount - currentAmount;
-    console.log(`\nNOS lamport needed: ${nosNeeded} NOS`);
-
-    //
-    // -- Part 1: Price check for SOL→NOS
-    //
+  private async getJupiterSwapInstructions(nosNeeded: number): Promise<{
+    instructions: TransactionInstruction[];
+    lookupTables: string[];
+  }> {
+    // Get Jupiter quote
     const priceCheckUrl = new URL('https://quote-api.jup.ag/v6/quote');
     priceCheckUrl.searchParams.append('inputMint', 'So11111111111111111111111111111111111111112');
     priceCheckUrl.searchParams.append('outputMint', this.config.nos_address);
@@ -1024,20 +990,13 @@ export class Jobs extends SolanaManager {
     }
     const priceQuote = await priceRes.json();
     const solNeeded = Number(priceQuote.inAmount) / LAMPORTS_PER_SOL;
-    console.log(
-      `Price check: ${Number(nosNeeded) / 1_000_000} NOS (${jobTimeout / 3600}h job) requires ~${solNeeded.toFixed(6)} SOL`
-    );
 
-    //
-    // -- Part 2: Use an extra ~10% SOL for slippage
-    //
+    // Get Jupiter swap instructions
+    const estimatedSolNeeded = Math.ceil(solNeeded * 1.3 * LAMPORTS_PER_SOL);
     const quoteUrl = new URL('https://quote-api.jup.ag/v6/quote');
     quoteUrl.searchParams.append('inputMint', 'So11111111111111111111111111111111111111112');
     quoteUrl.searchParams.append('outputMint', this.config.nos_address);
     quoteUrl.searchParams.append('swapMode', 'ExactIn');
-
-    const estimatedSolNeeded = Math.ceil(solNeeded * 1.1 * LAMPORTS_PER_SOL);
-    console.log(`Attempting swap with ${estimatedSolNeeded / LAMPORTS_PER_SOL} SOL`);
     quoteUrl.searchParams.append('amount', estimatedSolNeeded.toString());
     quoteUrl.searchParams.append('maxAccounts', '8');
     quoteUrl.searchParams.append('slippageBps', '1000');
@@ -1048,46 +1007,40 @@ export class Jobs extends SolanaManager {
     }
     const quoteResponse = await quoteRes.json();
 
-    //
-    // -- Part 3: Request Jupiter swap instructions
-    //    Here, we explicitly set "computeUnitPriceMicroLamports" to this.config.priority_fee
-    //    and do NOT pass "prioritizationFeeLamports" at all.
-    //
-    const swapParams: any = {
+    // Get swap instructions from Jupiter
+    const swapParams = {
       userPublicKey: this.provider!.wallet.publicKey.toString(),
       quoteResponse,
       wrapAndUnwrapSol: true,
-      dynamicComputeUnitLimit: false, // No dynamic instructions
+      dynamicComputeUnitLimit: false,
       asLegacyTransaction: false,
-      computeUnitPriceMicroLamports: 0, // Let Jupiter handle the priority fee
+      computeUnitPriceMicroLamports: 5000000,
     };
-    console.log(`Swap params: ${JSON.stringify(swapParams)}`);
-    
+
     const swapInstructionsResponse = await fetch(
       'https://quote-api.jup.ag/v6/swap-instructions',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(swapParams),
       },
     );
-    console.log(`Swap instructions response: ${JSON.stringify(swapInstructionsResponse)}`);
+
     if (!swapInstructionsResponse.ok) {
       throw new Error(
         `Failed to fetch Jupiter swap-instructions: ${await swapInstructionsResponse.text()}`,
       );
     }
+
     const swapInstructions = await swapInstructionsResponse.json();
     if (swapInstructions.error) {
       throw new Error(`Jupiter swap instructions error: ${swapInstructions.error}`);
     }
 
-    // Extract Jupiter instructions. We do NOT filter out "ComputeBudget" now,
-    // since we actually want Jupiter's priority fee instructions here.
+    // Parse Jupiter instructions
     const {
       tokenLedgerInstruction,
-      otherInstructions,
-      setupInstructions,
+      setupInstructions = [],
       swapInstruction,
       cleanupInstruction,
       addressLookupTableAddresses = [],
@@ -1100,9 +1053,6 @@ export class Jobs extends SolanaManager {
     if (tokenLedgerInstruction) {
       jupiterInstructions.push(parseInstruction(tokenLedgerInstruction));
     }
-    if (otherInstructions?.length) {
-      jupiterInstructions.push(...otherInstructions.map(parseInstruction));
-    }
     if (swapInstruction) {
       jupiterInstructions.push(parseInstruction(swapInstruction));
     }
@@ -1110,91 +1060,103 @@ export class Jobs extends SolanaManager {
       jupiterInstructions.push(parseInstruction(cleanupInstruction));
     }
 
-    //
-    // -- Part 4: Now get our "list" instructions but skip the local priority fee
-    //
-    const { instructions: listInstructions, signers } = await this.listInstruction(
-      ipfsHash,
-      jobTimeout,
-      market,
-      false, // <-- pass "true" to skip local priority fee
-    );
+    return {
+      instructions: jupiterInstructions,
+      lookupTables: addressLookupTableAddresses,
+    };
+  }
 
-    // Combine Jupiter's instructions + your list instructions
-    const combinedInstructions = [...jupiterInstructions, ...listInstructions];
-    console.log(`Combined instructions: ${JSON.stringify(combinedInstructions)}`);
+  /**
+   * Method to list a Nosana Job in a single transaction, ensuring you have enough NOS tokens.
+   * If your balance is insufficient, it will first swap SOL to NOS using Jupiter, then list the job.
+   */
+  public async ensureNosAndListJob(
+    ipfsHash: string,
+    jobTimeout: number,
+    market?: PublicKey,
+  ): Promise<string> {
+    // 1) Gather data first (load programs, get accounts, fetch Jupiter quotes, etc.)
+    await this.loadNosanaJobs();
+    await this.setAccounts();
 
-    //
-    // -- Part 5: Build/Sign/Send the final transaction
-    //
-    // Retrieve valid Address Lookup Tables for v0 transaction
+    // Check NOS balance and get required amount
+    const marketInfo = await this.getMarket(market || this.accounts!.market);
+    const requiredNosAmount = Number(marketInfo.jobPrice) * jobTimeout;
+    const nosBalance = await this.getNosBalance();
+    const currentAmount = nosBalance?.uiAmount ?? 0;
+
+    // If we have enough NOS, just list the job
+    if (currentAmount >= requiredNosAmount) {
+      const { tx } = await this.list(ipfsHash, jobTimeout, market);
+      return tx;
+    }
+
+    // Get Jupiter swap instructions if we need more NOS
+    const nosNeeded = requiredNosAmount - currentAmount;
+    const { instructions: jupiterInstructions, lookupTables } = 
+      await this.getJupiterSwapInstructions(nosNeeded);
+
+    // Get Nosana list instructions (skipPriorityFee = true since Jupiter handles it)
+    const { instructions: listIxs, signers: jobSigners } = 
+      await this.listInstruction(ipfsHash, jobTimeout, market, true);
+
+    // 2) Consolidate all instructions in-memory
+    const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 50000000,
+    });
+    console.log('computeBudgetIx', computeBudgetIx);
+    const allInstructions = [computeBudgetIx, ...jupiterInstructions, ...listIxs];
+
+    // 3) Get fresh blockhash right before building transaction
+    const latestBlockhash = await this.connection!.getLatestBlockhash({
+      commitment: 'processed',
+    });
+
+    // 4) Build transaction with fresh blockhash
     const lookupTableResults = await Promise.all(
-      addressLookupTableAddresses.map((addr: string) =>
-        this.connection!.getAddressLookupTable(new PublicKey(addr)),
+      lookupTables.map((addr) => 
+        this.connection!.getAddressLookupTable(new PublicKey(addr))
       ),
     );
     const validLookupTables = lookupTableResults
       .map((res) => res.value)
-      .filter(Boolean);
-
-    const blockhashObj = await this.connection!.getLatestBlockhash();
+      .filter(Boolean) as AddressLookupTableAccount[];
 
     const messageV0 = new TransactionMessage({
       payerKey: this.provider!.wallet.publicKey,
-      recentBlockhash: blockhashObj.blockhash,
-      instructions: combinedInstructions,
+      recentBlockhash: latestBlockhash.blockhash,
+      instructions: allInstructions,
     }).compileToV0Message(validLookupTables);
 
     const versionedTx = new VersionedTransaction(messageV0);
-    versionedTx.sign([...signers]); // ephemeral keys
-    const signedTx = await this.provider!.wallet.signTransaction(versionedTx); // wallet
 
-    // Send + confirm
-    const txid = await this.connection!.sendTransaction(signedTx, {
+    // 5) Sign with ephemeral keypairs first
+    versionedTx.sign(jobSigners);
+
+    // 6) Let wallet sign the transaction last
+    const fullySignedTx = await this.provider!.wallet.signTransaction(versionedTx);
+
+    // 7) Immediately send the transaction
+    const txid = await this.connection!.sendTransaction(fullySignedTx, {
+      skipPreflight: false,
       maxRetries: 5,
-      skipPreflight: true,
     });
 
+    // 8) Confirm transaction using blockhash + lastValidBlockHeight
     const confirmation = await this.connection!.confirmTransaction(
       {
-        blockhash: blockhashObj.blockhash,
-        lastValidBlockHeight: blockhashObj.lastValidBlockHeight,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
         signature: txid,
       },
-      'confirmed',
+      'processed'
     );
+
     if (confirmation.value.err) {
-      throw new Error(`Swap transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
     }
-
-    //
-    // -- Part 6: Verify your new NOS balance
-    //
-    const maxRetries = 5;
-    for (let i = 0; i < maxRetries; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const newBalance = await this.getNosBalance();
-      const newAmount = newBalance?.uiAmount ?? 0;
-      if (newAmount >= requiredNosAmount) {
-        return txid;
-      }
-      console.log(
-        `Attempt ${i + 1}/${maxRetries}: NOS balance (${newAmount}) is still less than required (${requiredNosAmount})`
-      );
-      if (i === maxRetries - 1) {
-        const txInfo = await this.connection!.getTransaction(txid, {
-          maxSupportedTransactionVersion: 0,
-        });
-        const logs = txInfo?.meta?.logMessages?.join('\n') || 'No logs.';
-        throw new Error(
-          `Swap transaction completed but NOS balance did not update. Transaction logs:\n${logs}`
-        );
-      }
-    }
-
-    throw new Error(
-      `Swap completed but NOS balance did not update after ${maxRetries} attempts`
-    );
+    console.log('Transaction sent successfully:', txid);
+    return txid;
   }
 }
 
