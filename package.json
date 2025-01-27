@@ -1,6 +1,6 @@
 {
   "name": "@nosana/sdk",
-  "version": "0.3.60",
+  "version": "0.3.61",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -43,7 +43,9 @@
     "rollup": "^3.26.3",
     "rollup-plugin-polyfill-node": "^0.12.0",
     "ts-jest": "^29.2.5",
-    "typescript": "*"
+    "ts-patch": "^3.3.0",
+    "typescript": "*",
+    "typia": "^7.6.0"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.28.1-beta.1",
@@ -59,10 +61,8 @@
     "bs58": "^5.0.0",
     "buffer": "^6.0.3",
     "form-data": "^4.0.0",
-    "ts-patch": "^3.2.1",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",
-    "typia": "^6.11.0",
     "util": "^0.12.5"
   }
 }
