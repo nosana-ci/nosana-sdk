@@ -1010,44 +1010,48 @@ export class Jobs extends SolanaManager {
   public async ensureNosAndListJob(
     ipfsHash: string,
     jobTimeout: number,
-    market?: PublicKey,
-    maxRetries: number = 3
+    market?: PublicKey
   ): Promise<{ tx: string; job: string; run: string }> {
     await this.loadNosanaJobs();
     await this.setAccounts();
 
     const marketInfo = await this.getMarket(market || this.accounts!.market);
+
+    // Calculate how many NOS we need
+    // (note you may want to tweak these multipliers if your fee or buffer estimates change frequently)
     const baseAmount = (Number(marketInfo.jobPrice) * jobTimeout) / 1_000_000;
     const withNetworkFee = baseAmount * 1.1;
-    const requiredNosAmount = withNetworkFee * 1.1;
+    const requiredNosAmount = withNetworkFee * 1.1; // Slight buffer to account for price fluctuations
 
+    // Check current NOS balance
     const nosBalance = await this.getNosBalance();
     const currentAmount = nosBalance?.uiAmount ?? 0;
 
+    // If not enough NOS, swap
     if (currentAmount < requiredNosAmount) {
       const nosShortage = requiredNosAmount - currentAmount;
-      let lastError: Error | null = null;
-      
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-          await this.swapSolToNos(nosShortage);
-          // If swap succeeds, verify the new balance
-          const newBalance = await this.getNosBalance();
-          if ((newBalance?.uiAmount ?? 0) >= requiredNosAmount) {
-            break;
-          }
-          throw new Error('Swap completed but balance is still insufficient');
-        } catch (error: any) {
-          lastError = error;
-          if (attempt === maxRetries - 1) {
-            throw new Error(`Failed to acquire sufficient NOS after ${maxRetries} attempts: ${error.message}`);
-          }
-          // Wait with exponential backoff before retrying
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-        }
+      console.log(
+        `Insufficient NOS (${currentAmount} < ${requiredNosAmount}). Swapping ~${nosShortage.toFixed(
+          2
+        )} NOS worth of SOL...`
+      );
+
+      // Perform the swap
+      await this.swapSolToNos(nosShortage);
+
+      // Wait a moment so that the new balance is registered on-chain (prevent race conditions)
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Check if the new balance is sufficient now
+      const newBalance = await this.getNosBalance();
+      if ((newBalance?.uiAmount ?? 0) < requiredNosAmount) {
+        throw new Error(
+          'Swap completed but balance is still insufficient. Try again or check token decimals.'
+        );
       }
     }
 
+    // Now we have enough NOS, list the job
     return await this.list(ipfsHash, jobTimeout, market);
   }
 }
