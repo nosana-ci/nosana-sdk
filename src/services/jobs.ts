@@ -48,12 +48,24 @@ export class Jobs extends SolanaManager {
     const runKey = Keypair.generate();
     try {
       const preInstructions: TransactionInstruction[] = [];
-      if (this.config.priority_fee) {
+      
+      // Get accounts that will be used in the transaction
+      const relevantAccounts = [
+        this.provider!.wallet.publicKey,  // The user's wallet
+        jobKey.publicKey,                 // The new job account
+        runKey.publicKey,                 // The new run account
+        market ? market : this.accounts?.market, // The market account
+      ].filter((account): account is PublicKey => !!account);
+
+      // Get dynamic or static priority fee with relevant accounts
+      const priorityFee = await this.getPriorityFee(relevantAccounts);
+      if (priorityFee > 0) {
         const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-          microLamports: this.config.priority_fee,
+          microLamports: priorityFee,
         });
         preInstructions.push(addPriorityFee);
       }
+
       const tx = await this.jobs!.methods.list(
         [...bs58.decode(ipfsHash).subarray(2)],
         new BN(jobTimeout),
