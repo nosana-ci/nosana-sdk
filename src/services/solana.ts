@@ -900,7 +900,6 @@ export class SolanaManager {
         MAXIMUM_PRIORITY_FEE
       );
 
-      // Calculate 95th percentile
       const percentile95Index = Math.floor(fees.length * 0.95);
       const highestFee = Math.min(
         Math.max(fees[percentile95Index].prioritizationFee, MINIMUM_PRIORITY_FEE),
