@@ -9,6 +9,10 @@ export type SolanaConfig = {
   pools_address: string;
   pool_address: string;
   priority_fee?: number;
+  maximumPriorityFee?: number;
+  dynamicPriorityFee?: boolean;
+  priorityFeeStrategy?: 'min' | 'low' | 'medium' | 'high' | 'veryHigh' | 'unsafeMax';
+  priorityFeeAccounts?: string[];
 };
 
 export type SecretsConfig = {

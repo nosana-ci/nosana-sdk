@@ -845,4 +845,110 @@ export class SolanaManager {
       sft: newMint.publicKey.toString(),
     };
   }
+
+  async getPriorityFee(accounts?: PublicKey[]): Promise<number> {
+    const MAXIMUM_PRIORITY_FEE = this.config.maximumPriorityFee || 50000000;
+    const MINIMUM_PRIORITY_FEE = this.config.priority_fee || 0;
+    const SOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
+    const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+
+    if (this.config.dynamicPriorityFee === false) {
+      const staticFee = Math.min(Math.max(MINIMUM_PRIORITY_FEE, 0), MAXIMUM_PRIORITY_FEE);
+      console.log(`Static priority fee - Raw: ${MINIMUM_PRIORITY_FEE}, After limits: ${staticFee} microLamports`);
+      return staticFee;
+    }
+
+    try {
+      const rpcEndpoint = this.config.network;
+      const allAccounts = [SOL_MINT, USDC_MINT];
+      const queryAccounts = allAccounts.map(pk => pk.toBase58());
+      
+      console.log('Checking priority fees for accounts:', queryAccounts);
+
+      const rawBody = {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getRecentPrioritizationFees',
+        params: [queryAccounts],
+      };
+
+      const resp = await fetch(rpcEndpoint, {
+        method: 'POST',
+        body: JSON.stringify(rawBody),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const json = await resp.json();
+
+      const fees = json?.result || [];
+
+      if (Array.isArray(fees) && fees.length > 0) {
+        // Sort in ascending order for percentile calculation
+        fees.sort((a: any, b: any) => a.prioritizationFee - b.prioritizationFee);
+
+        const getPercentileFee = (percentile: number): number => {
+          const index = Math.min(Math.floor(fees.length * (percentile / 100)), fees.length - 1);
+          return fees[index]?.prioritizationFee || 0;
+        };
+
+        const feeLevels = {
+          min: getPercentileFee(0),            // 0th percentile
+          low: getPercentileFee(25),           // 25th percentile
+          medium: getPercentileFee(50),        // 50th percentile
+          high: getPercentileFee(70),          // 70th percentile
+          veryHigh: getPercentileFee(85),      // 85th percentile
+          unsafeMax: getPercentileFee(100)     // 100th percentile
+        };
+
+        console.log('\nPriority Fees (microLamports):');
+        console.log(`  Min (0th): ${feeLevels.min}`);
+        console.log(`  Low (25th): ${feeLevels.low}`);
+        console.log(`  Medium (50th): ${feeLevels.medium}`);
+        console.log(`  High (70th): ${feeLevels.high}`);
+        console.log(`  Very High (85th): ${feeLevels.veryHigh}`);
+        console.log(`  Unsafe Max (100th): ${feeLevels.unsafeMax}`);
+
+        const strategy = this.config.priorityFeeStrategy || 'medium';
+        let selectedFee: number;
+        switch (strategy) {
+          case 'min':
+            selectedFee = feeLevels.min;
+            break;
+          case 'low':
+            selectedFee = feeLevels.low;
+            break;
+          case 'high':
+            selectedFee = feeLevels.high;
+            break;
+          case 'veryHigh':
+            selectedFee = feeLevels.veryHigh;
+            break;
+          case 'unsafeMax':
+            selectedFee = feeLevels.unsafeMax;
+            break;
+          case 'medium':
+          default:
+            selectedFee = feeLevels.medium;
+            break;
+        }
+
+        // Apply limits
+        const finalFee = Math.min(Math.max(selectedFee, MINIMUM_PRIORITY_FEE), MAXIMUM_PRIORITY_FEE);
+        if (finalFee !== selectedFee) {
+          console.log(`Fee adjusted from ${selectedFee} to ${finalFee} to meet limits (${MINIMUM_PRIORITY_FEE} - ${MAXIMUM_PRIORITY_FEE})`);
+        }
+        return finalFee;
+      }
+
+      // If no fees found, fall back to static fee
+      const fallbackFee = Math.min(Math.max(MINIMUM_PRIORITY_FEE, 0), MAXIMUM_PRIORITY_FEE);
+      console.log(`No recent fees found, using static fee - Raw: ${MINIMUM_PRIORITY_FEE}, After limits: ${fallbackFee} microLamports`);
+      return fallbackFee;
+
+    } catch (err) {
+      console.error('Priority fee error:', err);
+      const fallbackFee = Math.min(Math.max(MINIMUM_PRIORITY_FEE, 0), MAXIMUM_PRIORITY_FEE);
+      console.log(`Falling back to static priority fee - Raw: ${MINIMUM_PRIORITY_FEE}, After limits: ${fallbackFee} microLamports`);
+      return fallbackFee;
+    }
+  }
 }

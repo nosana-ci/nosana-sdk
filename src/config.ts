@@ -13,7 +13,10 @@ export const solanaConfigPreset: { [key: string]: SolanaConfig } = {
     pools_address: 'nosPdZrfDzND1LAR28FLMDEATUPK53K8xbRBXAirevD',
     pool_address: 'Djy1xNoPnuUdHUTCkzEDQkxo3EpPJxXU7GbXEHXJfcEB',
     priority_fee: 10000,
-  },
+    dynamicPriorityFee: true,
+    priorityFeeStrategy: 'medium',
+    maximumPriorityFee: 15000000
+  } as SolanaConfig,
   devnet: {
     network: 'devnet',
     jobs_address: 'nosJTmGQxvwXy23vng5UjkTbfv91Bzf9jEuro78dAGR',
@@ -24,7 +27,10 @@ export const solanaConfigPreset: { [key: string]: SolanaConfig } = {
     stake_address: 'nosScmHY2uR24Zh751PmGj9ww9QRNHewh9H59AfrTJE',
     pools_address: 'nosPdZrfDzND1LAR28FLMDEATUPK53K8xbRBXAirevD',
     pool_address: 'miF9saGY5WS747oia48WR3CMFZMAGG8xt6ajB7rdV3e',
-  },
+    dynamicPriorityFee: true,
+    priorityFeeStrategy: 'medium',
+    maximumPriorityFee: 50000000
+  } as SolanaConfig
 };
 
 export const secretsConfigPreset: { [key: string]: SecretsConfig } = {
