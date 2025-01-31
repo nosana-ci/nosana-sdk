@@ -49,16 +49,8 @@ export class Jobs extends SolanaManager {
     try {
       const preInstructions: TransactionInstruction[] = [];
       
-      // Get accounts that will be used in the transaction
-      const relevantAccounts = [
-        this.provider!.wallet.publicKey,  // The user's wallet
-        jobKey.publicKey,                 // The new job account
-        runKey.publicKey,                 // The new run account
-        market ? market : this.accounts?.market, // The market account
-      ].filter((account): account is PublicKey => !!account);
 
-      // Get dynamic or static priority fee with relevant accounts
-      const priorityFee = await this.getPriorityFee(relevantAccounts);
+      const priorityFee = await this.getPriorityFee();
       if (priorityFee > 0) {
         const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
           microLamports: priorityFee,
@@ -187,9 +179,10 @@ export class Jobs extends SolanaManager {
 
     try {
       const preInstructions: TransactionInstruction[] = [];
-      if (this.config.priority_fee) {
+      const priorityFee = await this.getPriorityFee();
+      if (priorityFee > 0) {
         const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-          microLamports: this.config.priority_fee,
+          microLamports: priorityFee,
         });
         preInstructions.push(addPriorityFee);
       }
@@ -275,9 +268,10 @@ export class Jobs extends SolanaManager {
 
     try {
       const preInstructions: TransactionInstruction[] = [];
-      if (this.config.priority_fee) {
+      const priorityFee = await this.getPriorityFee();
+      if (priorityFee > 0) {
         const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-          microLamports: this.config.priority_fee,
+          microLamports: priorityFee,
         });
         preInstructions.push(addPriorityFee);
       }
