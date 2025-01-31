@@ -408,10 +408,24 @@ export class Stake extends SolanaManager {
             .accounts(this.stakeAccounts)
             .rpc();
         } catch (error: any) {
-          if (error.message.includes('VaultEmpty')) {
-            console.log('vault already empty, skipping withdraw');
+          console.log('withdraw in close error', error.message);
+          if (
+            error.message.includes('VaultEmpty') ||
+            error.message.includes('This vault is empty')
+          ) {
+            console.log('vault already empty, skipping withdraw!');
           } else {
-            throw error;
+            const vaultNosBalance = await this.getNosBalance(
+              this.stakeAccounts.vault,
+            );
+            if (
+              !vaultNosBalance ||
+              (vaultNosBalance && Number(vaultNosBalance.amount) === 0)
+            ) {
+              console.log('vault balance empty, skipping withdraw');
+            } else {
+              throw error;
+            }
           }
         }
         console.log('withdraw tx', withdraw);
