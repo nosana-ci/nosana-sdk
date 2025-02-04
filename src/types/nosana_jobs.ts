@@ -256,14 +256,12 @@ export type NosanaJobs = {
         {
           name: 'timeout';
           type: 'i64';
-        }
+        },
       ];
     },
     {
       name: 'delist';
-      docs: [
-        'Remove a [JobAccount](#job-account) from market job queue.',
-      ];
+      docs: ['Remove a [JobAccount](#job-account) from market job queue.'];
       accounts: [
         {
           name: 'job';
@@ -305,9 +303,7 @@ export type NosanaJobs = {
     },
     {
       name: 'extend';
-      docs: [
-        'Extend a [JobAccount](#job-account) timeout.',
-      ];
+      docs: ['Extend a [JobAccount](#job-account) timeout.'];
       accounts: [
         {
           name: 'job';
@@ -359,7 +355,7 @@ export type NosanaJobs = {
         {
           name: 'timeout';
           type: 'i64';
-        }
+        },
       ];
     },
     {
@@ -516,6 +512,11 @@ export type NosanaJobs = {
         {
           name: 'market';
           isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'node';
+          isMut: false;
           isSigner: false;
         },
         {

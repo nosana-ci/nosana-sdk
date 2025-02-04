@@ -37,6 +37,22 @@ const pda = (
  * https://docs.nosana.io/secrets/start.html
  */
 export class Jobs extends SolanaManager {
+  private getPriorityFeePreInstruction = async (useFancyFees = false) => {
+    const preInstructions: TransactionInstruction[] = [];
+
+    const priorityFee = useFancyFees
+      ? this.config.priority_fee
+      : await this.getPriorityFee();
+
+    if (priorityFee && priorityFee < 0) {
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: priorityFee,
+      });
+      preInstructions.push(addPriorityFee);
+    }
+
+    return preInstructions;
+  };
   /**
    * Function to list a Nosana Job in a market
    * @param ipfsHash String of the IPFS hash locating the Nosana Job data.
@@ -47,16 +63,8 @@ export class Jobs extends SolanaManager {
     const jobKey = Keypair.generate();
     const runKey = Keypair.generate();
     try {
-      const preInstructions: TransactionInstruction[] = [];
-      
-
-      const priorityFee = await this.getPriorityFee();
-      if (priorityFee > 0) {
-        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-          microLamports: priorityFee,
-        });
-        preInstructions.push(addPriorityFee);
-      }
+      const preInstructions: TransactionInstruction[] =
+        await this.getPriorityFeePreInstruction(true);
 
       const tx = await this.jobs!.methods.list(
         [...bs58.decode(ipfsHash).subarray(2)],
@@ -124,13 +132,9 @@ export class Jobs extends SolanaManager {
         : market.vault;
 
     try {
-      const preInstructions: TransactionInstruction[] = [];
-      if (this.config.priority_fee) {
-        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-          microLamports: this.config.priority_fee,
-        });
-        preInstructions.push(addPriorityFee);
-      }
+      const preInstructions: TransactionInstruction[] =
+        await this.getPriorityFeePreInstruction();
+
       const tx = await this.jobs!.methods.delist()
         .preInstructions(preInstructions)
         .accounts({
@@ -178,14 +182,8 @@ export class Jobs extends SolanaManager {
     const market = await this.getMarket(jobAccount.market);
 
     try {
-      const preInstructions: TransactionInstruction[] = [];
-      const priorityFee = await this.getPriorityFee();
-      if (priorityFee > 0) {
-        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-          microLamports: priorityFee,
-        });
-        preInstructions.push(addPriorityFee);
-      }
+      const preInstructions: TransactionInstruction[] =
+        await this.getPriorityFeePreInstruction(true);
 
       const tx = await this.jobs!.methods.extend(new BN(jobTimeout))
         .preInstructions(preInstructions)
@@ -267,14 +265,8 @@ export class Jobs extends SolanaManager {
         : market.vault;
 
     try {
-      const preInstructions: TransactionInstruction[] = [];
-      const priorityFee = await this.getPriorityFee();
-      if (priorityFee > 0) {
-        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-          microLamports: priorityFee,
-        });
-        preInstructions.push(addPriorityFee);
-      }
+      const preInstructions: TransactionInstruction[] =
+        await this.getPriorityFeePreInstruction(true);
 
       const tx = await this.jobs!.methods.end()
         .preInstructions(preInstructions)
@@ -542,13 +534,10 @@ export class Jobs extends SolanaManager {
       payer: job.payer,
       job: jobAddress,
     };
-    const preInstructions: TransactionInstruction[] = [];
-    if (this.config.priority_fee && !instructionOnly) {
-      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: this.config.priority_fee,
-      });
-      preInstructions.push(addPriorityFee);
-    }
+    const preInstructions: TransactionInstruction[] = instructionOnly
+      ? []
+      : await this.getPriorityFeePreInstruction();
+
     const tx = this.jobs!.methods.cleanAdmin()
       .preInstructions(preInstructions)
       .accounts(accounts);
@@ -641,13 +630,8 @@ export class Jobs extends SolanaManager {
         : new BN(marketAccount.nodeXnosMinimum),
     };
 
-    const preInstructions: TransactionInstruction[] = [];
-    if (this.config.priority_fee && !instructionOnly) {
-      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: this.config.priority_fee,
-      });
-      preInstructions.push(addPriorityFee);
-    }
+    const preInstructions: TransactionInstruction[] =
+      await this.getPriorityFeePreInstruction();
 
     const tx = await this.jobs!.methods.update(
       // @ts-ignore
@@ -688,13 +672,8 @@ export class Jobs extends SolanaManager {
     await this.loadNosanaJobs();
     await this.setAccounts();
 
-    const preInstructions: TransactionInstruction[] = [];
-    if (this.config.priority_fee) {
-      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: this.config.priority_fee,
-      });
-      preInstructions.push(addPriorityFee);
-    }
+    const preInstructions: TransactionInstruction[] =
+      await this.getPriorityFeePreInstruction();
     const mintAccount = new PublicKey(this.config.nos_address);
     const marketKeypair = Keypair.generate();
     const tx = await this.jobs!.methods.open(
@@ -779,13 +758,8 @@ export class Jobs extends SolanaManager {
         feePayer: this.provider!.wallet.publicKey,
         market,
       };
-      const preInstructions: TransactionInstruction[] = [];
-      if (this.config.priority_fee) {
-        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-          microLamports: this.config.priority_fee,
-        });
-        preInstructions.push(addPriorityFee);
-      }
+      const preInstructions: TransactionInstruction[] =
+        await this.getPriorityFeePreInstruction();
       const tx = await this.jobs!.methods.work()
         .preInstructions(preInstructions)
         .accounts(accounts)
@@ -842,13 +816,8 @@ export class Jobs extends SolanaManager {
             job.project,
           )
         : market.vault;
-    const preInstructions: TransactionInstruction[] = [];
-    if (this.config.priority_fee) {
-      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: this.config.priority_fee,
-      });
-      preInstructions.push(addPriorityFee);
-    }
+    const preInstructions: TransactionInstruction[] =
+      await this.getPriorityFeePreInstruction();
     const tx = await this.jobs!.methods.finish(result)
       .preInstructions(preInstructions)
       .accounts({
@@ -870,6 +839,14 @@ export class Jobs extends SolanaManager {
     return tx;
   }
 
+  async submitCompletedResults(result: Array<any>, job: PublicKey | string) {
+    if (typeof job === 'string') job = new PublicKey(job);
+    const tx = await this.jobs!.methods.complete(result)
+      .accounts({ job })
+      .rpc();
+    return tx;
+  }
+
   /**
    * Function to quit a job
    * @param run Run account of the job
@@ -882,13 +859,8 @@ export class Jobs extends SolanaManager {
     if (run instanceof PublicKey) {
       run = (await this.getRun(run)) as Run;
     }
-    const preInstructions: TransactionInstruction[] = [];
-    if (this.config.priority_fee) {
-      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: this.config.priority_fee,
-      });
-      preInstructions.push(addPriorityFee);
-    }
+    const preInstructions: TransactionInstruction[] =
+      await this.getPriorityFeePreInstruction();
     const tx = await this.jobs!.methods.quit()
       .preInstructions(preInstructions)
       .accounts({
@@ -905,22 +877,19 @@ export class Jobs extends SolanaManager {
    * Exit the node queue
    * @returns
    */
-  async stop(market: string | PublicKey) {
+  async stop(market: string | PublicKey, node: string | PublicKey) {
     await this.loadNosanaJobs();
     await this.setAccounts();
     if (typeof market === 'string') market = new PublicKey(market);
-    const preInstructions: TransactionInstruction[] = [];
-    if (this.config.priority_fee) {
-      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: this.config.priority_fee,
-      });
-      preInstructions.push(addPriorityFee);
-    }
+    if (typeof node === 'string') node = new PublicKey(node);
+    const preInstructions: TransactionInstruction[] =
+      await this.getPriorityFeePreInstruction();
     const tx = await this.jobs!.methods.stop()
       .preInstructions(preInstructions)
       .accounts({
         ...this.accounts,
         market,
+        node,
       })
       .rpc();
     return tx;
@@ -940,7 +909,10 @@ export class Jobs extends SolanaManager {
     // We'll do an ExactOut approach so we pass the output amount
     // and ask Jupiter for how many SOL we need.
     const quoteUrl = new URL('https://quote-api.jup.ag/v6/quote');
-    quoteUrl.searchParams.append('inputMint', 'So11111111111111111111111111111111111111112'); // SOL
+    quoteUrl.searchParams.append(
+      'inputMint',
+      'So11111111111111111111111111111111111111112',
+    ); // SOL
     quoteUrl.searchParams.append('outputMint', this.config.nos_address); // NOS
     quoteUrl.searchParams.append('swapMode', 'ExactOut');
     quoteUrl.searchParams.append('amount', nosAmountRaw.toString());
@@ -948,7 +920,7 @@ export class Jobs extends SolanaManager {
     quoteUrl.searchParams.append('slippageBps', '50');
 
     const quoteResponse = await (await fetch(quoteUrl.toString())).json();
-    
+
     // Check if there's an error in the response
     if (quoteResponse.error) {
       throw new Error(`Jupiter quote error: ${quoteResponse.error}`);
@@ -956,11 +928,11 @@ export class Jobs extends SolanaManager {
 
     // 2) GET SERIALIZED SWAP TRANSACTION from Jupiter
     const swapBody = {
-      quoteResponse,  // Use the entire response as Jupiter expects
+      quoteResponse, // Use the entire response as Jupiter expects
       userPublicKey: this.provider!.wallet.publicKey.toString(),
       wrapAndUnwrapSol: true,
       dynamicComputeUnitLimit: true, // allow dynamic compute limit
-      computeUnitPriceMicroLamports: this.config.priority_fee
+      computeUnitPriceMicroLamports: this.config.priority_fee,
     };
 
     const swapTxResponse = await (
@@ -976,7 +948,11 @@ export class Jobs extends SolanaManager {
     }
     const { swapTransaction, lastValidBlockHeight, blockhash } = swapTxResponse;
     if (!swapTransaction) {
-      throw new Error(`No swapTransaction returned by Jupiter: ${JSON.stringify(swapTxResponse)}`);
+      throw new Error(
+        `No swapTransaction returned by Jupiter: ${JSON.stringify(
+          swapTxResponse,
+        )}`,
+      );
     }
 
     // 3) DESERIALIZE, SIGN & SEND
@@ -986,10 +962,13 @@ export class Jobs extends SolanaManager {
     const signedTx = await this.provider!.wallet.signTransaction(transaction);
 
     // 4) SEND THE TRANSACTION
-    const txid = await this.connection!.sendRawTransaction(signedTx.serialize(), {
-      skipPreflight: false,
-      maxRetries: 5,
-    });
+    const txid = await this.connection!.sendRawTransaction(
+      signedTx.serialize(),
+      {
+        skipPreflight: false,
+        maxRetries: 5,
+      },
+    );
 
     // 5) CONFIRM
     await this.connection!.confirmTransaction(
@@ -1016,7 +995,7 @@ export class Jobs extends SolanaManager {
   public async ensureNosAndListJob(
     ipfsHash: string,
     jobTimeout: number,
-    market?: PublicKey
+    market?: PublicKey,
   ): Promise<{ tx: string; job: string; run: string }> {
     await this.loadNosanaJobs();
     await this.setAccounts();
@@ -1038,8 +1017,8 @@ export class Jobs extends SolanaManager {
       const nosShortage = requiredNosAmount - currentAmount;
       console.log(
         `Insufficient NOS (${currentAmount} < ${requiredNosAmount}). Swapping ~${nosShortage.toFixed(
-          2
-        )} NOS worth of SOL...`
+          2,
+        )} NOS worth of SOL...`,
       );
 
       // Perform the swap
@@ -1052,7 +1031,7 @@ export class Jobs extends SolanaManager {
       const newBalance = await this.getNosBalance();
       if ((newBalance?.uiAmount ?? 0) < requiredNosAmount) {
         throw new Error(
-          'Swap completed but balance is still insufficient. Try again or check token decimals.'
+          'Swap completed but balance is still insufficient. Try again or check token decimals.',
         );
       }
     }
