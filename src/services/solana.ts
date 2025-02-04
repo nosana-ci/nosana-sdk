@@ -933,7 +933,7 @@ export class SolanaManager {
       console.log(`  Unsafe Max (100th): ${feeLevels.unsafeMax}`);
 
       const strategy = this.config.priorityFeeStrategy || 'medium';
-      let selectedFee: number = feeLevels[strategy] ?? feeLevels.medium;
+      const selectedFee: number = feeLevels[strategy] ?? feeLevels.medium;
 
       // Apply limits
       const finalFee = Math.min(
