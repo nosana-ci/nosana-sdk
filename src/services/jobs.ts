@@ -839,14 +839,6 @@ export class Jobs extends SolanaManager {
     return tx;
   }
 
-  async submitCompletedResults(result: Array<any>, job: PublicKey | string) {
-    if (typeof job === 'string') job = new PublicKey(job);
-    const tx = await this.jobs!.methods.complete(result)
-      .accounts({ job })
-      .rpc();
-    return tx;
-  }
-
   /**
    * Function to quit a job
    * @param run Run account of the job
