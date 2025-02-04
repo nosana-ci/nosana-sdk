@@ -890,6 +890,7 @@ export class SolanaManager {
   async getPriorityFee(accounts?: PublicKey[]): Promise<number> {
     const {
       priority_fee: MINIMUM_PRIORITY_FEE = 0,
+      priorityFeeStrategy: PRIORITY_FEE_STRATEGY = 'medium',
       maximumPriorityFee: MAXIMUM_PRIORITY_FEE = 50000000,
       dynamicPriorityFee: DYNAMIC_PRIORITY_FEE = false,
     } = this.config;
@@ -932,8 +933,8 @@ export class SolanaManager {
       console.log(`  Very High (85th): ${feeLevels.veryHigh}`);
       console.log(`  Unsafe Max (100th): ${feeLevels.unsafeMax}`);
 
-      const strategy = this.config.priorityFeeStrategy || 'medium';
-      const selectedFee: number = feeLevels[strategy] ?? feeLevels.medium;
+      const selectedFee: number =
+        feeLevels[PRIORITY_FEE_STRATEGY] ?? feeLevels.medium;
 
       // Apply limits
       const finalFee = Math.min(
