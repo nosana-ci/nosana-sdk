@@ -37,6 +37,13 @@ const pda = (
  * https://docs.nosana.io/secrets/start.html
  */
 export class Jobs extends SolanaManager {
+  // Map the user-friendly token option to the token's mint address
+  private SOURCE_MINTS = {
+    SOL: 'So11111111111111111111111111111111111111112',
+    USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    USDT: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+  };
+
   /**
    * Function to list a Nosana Job in a market
    * @param ipfsHash String of the IPFS hash locating the Nosana Job data.
@@ -927,40 +934,80 @@ export class Jobs extends SolanaManager {
   }
 
   /**
-   * Swap SOL for NOS using Jupiter's Swap API (in a separate transaction).
-   * @param nosNeeded The amount of NOS (in whole tokens) to acquire.
-   * @returns The transaction signature for the swap.
+   * Swap a chosen token (SOL, USDC, or USDT) to NOS
+   * (stand-alone method: does not list jobs)
+   *
+   * @param nosNeeded The amount of NOS (in whole tokens) to acquire
+   * @param sourceToken One of 'SOL', 'USDC', or 'USDT'
+   * @param simulateOnly Optional boolean to simulate the swap without executing it
+   * @returns Object containing the transaction signature and total fee (approx.) in the source token
    */
-  public async swapSolToNos(nosNeeded: number): Promise<string> {
-    // Use your own logic if you need decimals. For example, if NOS has 6 decimals:
-    // e.g. if user wants 10 NOS and NOS has 6 decimals => 10_000_000
-    const nosAmountRaw = Math.ceil(nosNeeded * 1_000_000); // adjust for your token decimals
+  public async swapToNos(
+    nosNeeded: number,
+    sourceToken: 'SOL' | 'USDC' | 'USDT',
+    simulateOnly: boolean = false
+  ): Promise<{ txid: string; totalFee: number } | { totalFee: number; bestRoute: any; blockhash: string; lastValidBlockHeight: number }> {
+    // Add debug logging
+    console.log('SwapToNos params:', { nosNeeded, sourceToken, simulateOnly });
 
-    // 1) GET QUOTE from Jupiter
-    // We'll do an ExactOut approach so we pass the output amount
-    // and ask Jupiter for how many SOL we need.
+    // 1) Validate input
+    const inputMint = this.SOURCE_MINTS[sourceToken];
+    if (!inputMint) {
+      throw new Error(`Unsupported source token: ${sourceToken}`);
+    }
+
+    // For example, if NOS has 6 decimals, multiply as needed.
+    const nosAmountRaw = Math.ceil(nosNeeded * 1_000_000);
+    console.log('Calculated amounts:', { nosAmountRaw });
+
+    // 2) Get a quote from Jupiter using an ExactOut approach
     const quoteUrl = new URL('https://quote-api.jup.ag/v6/quote');
-    quoteUrl.searchParams.append('inputMint', 'So11111111111111111111111111111111111111112'); // SOL
-    quoteUrl.searchParams.append('outputMint', this.config.nos_address); // NOS
+    quoteUrl.searchParams.append('inputMint', inputMint);
+    quoteUrl.searchParams.append('outputMint', this.config.nos_address);
     quoteUrl.searchParams.append('swapMode', 'ExactOut');
     quoteUrl.searchParams.append('amount', nosAmountRaw.toString());
-    // 50 bps = 0.5% slippage
     quoteUrl.searchParams.append('slippageBps', '50');
 
+    console.log('Jupiter quote URL:', quoteUrl.toString());
+
     const quoteResponse = await (await fetch(quoteUrl.toString())).json();
-    
-    // Check if there's an error in the response
+    console.log('Jupiter quote response:', quoteResponse);
+
     if (quoteResponse.error) {
       throw new Error(`Jupiter quote error: ${quoteResponse.error}`);
     }
 
-    // 2) GET SERIALIZED SWAP TRANSACTION from Jupiter
+    // For simplicity, pick the best route (usually at index 0)
+    const bestRoute = quoteResponse.data?.[0];
+    if (!bestRoute) {
+      throw new Error('No routes found in Jupiter quote response.');
+    }
+
+    // 3) Approximate the total fee by summing fees from the market infos
+    let feeInBaseUnits = 0;
+    if (bestRoute.marketInfos) {
+      bestRoute.marketInfos.forEach((info: any) => {
+        if (info.lpFee?.amount) {
+          feeInBaseUnits += Number(info.lpFee.amount);
+        }
+        if (info.platformFee?.amount) {
+          feeInBaseUnits += Number(info.platformFee.amount);
+        }
+      });
+    }
+
+    // Determine decimals used by the source token
+    // SOL = 9 decimals, USDC/USDT = 6 decimals
+    const sourceDecimals = sourceToken === 'SOL' ? 9 : 6;
+    const totalFee = feeInBaseUnits / Math.pow(10, sourceDecimals);
+
+    // 4) Request a serialized swap transaction from Jupiter
     const swapBody = {
-      quoteResponse,  // Use the entire response as Jupiter expects
+      quoteResponse,
       userPublicKey: this.provider!.wallet.publicKey.toString(),
-      wrapAndUnwrapSol: true,
-      dynamicComputeUnitLimit: true, // allow dynamic compute limit
-      computeUnitPriceMicroLamports: this.config.priority_fee
+      wrapAndUnwrapSol: sourceToken === 'SOL',
+      dynamicComputeUnitLimit: true,
+      computeUnitPriceMicroLamports: this.config.priority_fee,
     };
 
     const swapTxResponse = await (
@@ -974,34 +1021,48 @@ export class Jobs extends SolanaManager {
     if (swapTxResponse.error) {
       throw new Error(`Jupiter swap error: ${swapTxResponse.error}`);
     }
+
     const { swapTransaction, lastValidBlockHeight, blockhash } = swapTxResponse;
     if (!swapTransaction) {
-      throw new Error(`No swapTransaction returned by Jupiter: ${JSON.stringify(swapTxResponse)}`);
+      throw new Error(
+        `No swapTransaction returned by Jupiter: ${JSON.stringify(swapTxResponse)}`,
+      );
     }
 
-    // 3) DESERIALIZE, SIGN & SEND
+    // If simulateOnly is true, return the quote information without executing the swap
+    if (simulateOnly) {
+      return {
+        totalFee,
+        bestRoute,
+        blockhash,
+        lastValidBlockHeight,
+      };
+    }
+
+    // 5) Deserialize, sign, and send
     const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
     const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-    // Anchor's wallet signs the transaction:
     const signedTx = await this.provider!.wallet.signTransaction(transaction);
-
-    // 4) SEND THE TRANSACTION
     const txid = await this.connection!.sendRawTransaction(signedTx.serialize(), {
       skipPreflight: false,
       maxRetries: 5,
     });
 
-    // 5) CONFIRM
+    // 6) Confirm transaction
     await this.connection!.confirmTransaction(
       {
-        blockhash: blockhash,
-        lastValidBlockHeight: lastValidBlockHeight,
+        blockhash,
+        lastValidBlockHeight,
         signature: txid,
       },
       'processed',
     );
 
-    return txid;
+    // Return the signature and the approximate total fee
+    return {
+      txid,
+      totalFee,
+    };
   }
 
   /**
@@ -1043,7 +1104,7 @@ export class Jobs extends SolanaManager {
       );
 
       // Perform the swap
-      await this.swapSolToNos(nosShortage);
+      await this.swapToNos(nosShortage, 'SOL');
 
       // Wait a moment so that the new balance is registered on-chain (prevent race conditions)
       await new Promise((resolve) => setTimeout(resolve, 2000));
