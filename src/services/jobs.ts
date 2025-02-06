@@ -962,14 +962,21 @@ export class Jobs extends SolanaManager {
     console.log('  outputMint:', this.config.nos_address)
     console.log('  amount (raw):', nosAmountRaw.toString())
 
-    const quoteUrl = new URL('https://quote-api.jup.ag/v6/quote')
+    const quoteUrl = new URL('https://api.jup.ag/swap/v1/quote')
     quoteUrl.searchParams.append('inputMint', inputMint)
     quoteUrl.searchParams.append('outputMint', this.config.nos_address)
     quoteUrl.searchParams.append('swapMode', 'ExactOut')
     quoteUrl.searchParams.append('amount', nosAmountRaw.toString())
     quoteUrl.searchParams.append('slippageBps', '50')
 
-    const quoteResponse = await (await fetch(quoteUrl.toString())).json()
+    // Add some debugging
+    console.log('Requesting quote from:', quoteUrl.toString())
+    const response = await fetch(quoteUrl.toString())
+    const quoteResponse = await response.json()
+
+    // Log the full response for debugging
+    console.log('Response status:', response.status)
+    console.log('Full response:', quoteResponse)
 
     if (!quoteResponse.data?.length) {
       console.error('No routes found:', quoteResponse)
