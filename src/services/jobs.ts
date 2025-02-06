@@ -939,14 +939,12 @@ export class Jobs extends SolanaManager {
    *
    * @param nosNeeded The amount of NOS (in whole tokens) to acquire
    * @param sourceToken One of 'SOL', 'USDC', or 'USDT'
-   * @param simulateOnly Optional boolean to simulate the swap without executing it
-   * @returns Object containing the transaction signature and total fee (approx.) in the source token
+   * @returns Object containing the transaction signature
    */
   public async swapToNos(
     nosNeeded: number,
-    sourceToken: 'SOL' | 'USDC' | 'USDT',
-    simulateOnly: boolean = false
-  ): Promise<{ txid: string; totalFee: number } | { totalFee: number; bestRoute: any; blockhash: string; lastValidBlockHeight: number }> {
+    sourceToken: 'SOL' | 'USDC' | 'USDT'
+  ): Promise<{ txid: string }> {
     // 1) Validate input
     const inputMint = this.SOURCE_MINTS[sourceToken];
     if (!inputMint) {
@@ -957,11 +955,6 @@ export class Jobs extends SolanaManager {
     const nosAmountRaw = Math.ceil(nosNeeded * 1_000_000);
 
     // 2) Get a quote from Jupiter using an ExactOut approach
-    console.log('Attempting Jupiter quote with:')
-    console.log('  inputMint:', inputMint)
-    console.log('  outputMint:', this.config.nos_address)
-    console.log('  amount (raw):', nosAmountRaw.toString())
-
     const quoteUrl = new URL('https://api.jup.ag/swap/v1/quote')
     quoteUrl.searchParams.append('inputMint', inputMint)
     quoteUrl.searchParams.append('outputMint', this.config.nos_address)
@@ -969,8 +962,6 @@ export class Jobs extends SolanaManager {
     quoteUrl.searchParams.append('amount', nosAmountRaw.toString())
     quoteUrl.searchParams.append('slippageBps', '50')
 
-    // Add some debugging
-    console.log('Requesting quote from:', quoteUrl.toString())
     const response = await fetch(quoteUrl.toString())
     const quoteResponse = await response.json()
 
@@ -979,40 +970,20 @@ export class Jobs extends SolanaManager {
       throw new Error(`Jupiter quote error: ${quoteResponse.error}`);
     }
 
-    // Check for valid quote (looking for outAmount instead of data array)
+    // Check for valid quote
     if (!quoteResponse.outAmount) {
-      console.error('Invalid quote response:', quoteResponse)
       throw new Error(
         `No valid quote found. amount=${nosAmountRaw} inputMint=${inputMint} outputMint=${this.config.nos_address}`
       )
     }
 
-    // Use the quote response directly (it's not in a data array)
     const bestRoute = quoteResponse;
     
     if (!bestRoute) {
       throw new Error(`No routes found in Jupiter quote response. Amount: ${nosAmountRaw}, Input: ${inputMint}, Output: ${this.config.nos_address}`);
     }
 
-    // 3) Approximate the total fee by summing fees from the market infos
-    let feeInBaseUnits = 0;
-    if (bestRoute.marketInfos) {
-      bestRoute.marketInfos.forEach((info: any) => {
-        if (info.lpFee?.amount) {
-          feeInBaseUnits += Number(info.lpFee.amount);
-        }
-        if (info.platformFee?.amount) {
-          feeInBaseUnits += Number(info.platformFee.amount);
-        }
-      });
-    }
-
-    // Determine decimals used by the source token
-    // SOL = 9 decimals, USDC/USDT = 6 decimals
-    const sourceDecimals = sourceToken === 'SOL' ? 9 : 6;
-    const totalFee = feeInBaseUnits / Math.pow(10, sourceDecimals);
-
-    // 4) Request a serialized swap transaction from Jupiter
+    // Request a serialized swap transaction from Jupiter
     const swapBody = {
       quoteResponse,
       userPublicKey: this.provider!.wallet.publicKey.toString(),
@@ -1040,17 +1011,7 @@ export class Jobs extends SolanaManager {
       );
     }
 
-    // If simulateOnly is true, return the quote information without executing the swap
-    if (simulateOnly) {
-      return {
-        totalFee,
-        bestRoute,
-        blockhash,
-        lastValidBlockHeight,
-      };
-    }
-
-    // 5) Deserialize, sign, and send
+    // Deserialize, sign, and send
     const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
     const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
     const signedTx = await this.provider!.wallet.signTransaction(transaction);
@@ -1059,7 +1020,7 @@ export class Jobs extends SolanaManager {
       maxRetries: 5,
     });
 
-    // 6) Confirm transaction
+    // Confirm transaction
     await this.connection!.confirmTransaction(
       {
         blockhash,
@@ -1069,67 +1030,6 @@ export class Jobs extends SolanaManager {
       'processed',
     );
 
-    // Return the signature and the approximate total fee
-    return {
-      txid,
-      totalFee,
-    };
-  }
-
-  /**
-   * Method to list a Nosana Job, ensuring you have enough NOS tokens.
-   * If your balance is insufficient, it will first perform a swap (in a separate transaction),
-   * then list the job in a second transaction.
-   * @param ipfsHash String of the IPFS hash locating the Nosana Job data
-   * @param jobTimeout Number of seconds the job should run
-   * @param market Optional market PublicKey to list the job in
-   * @param maxRetries Optional number of retries for the swap (defaults to 3)
-   */
-  public async ensureNosAndListJob(
-    ipfsHash: string,
-    jobTimeout: number,
-    market?: PublicKey
-  ): Promise<{ tx: string; job: string; run: string }> {
-    await this.loadNosanaJobs();
-    await this.setAccounts();
-
-    const marketInfo = await this.getMarket(market || this.accounts!.market);
-
-    // Calculate how many NOS we need
-    // (note you may want to tweak these multipliers if your fee or buffer estimates change frequently)
-    const baseAmount = (Number(marketInfo.jobPrice) * jobTimeout) / 1_000_000;
-    const withNetworkFee = baseAmount * 1.1;
-    const requiredNosAmount = withNetworkFee * 1.1; // Slight buffer to account for price fluctuations
-
-    // Check current NOS balance
-    const nosBalance = await this.getNosBalance();
-    const currentAmount = nosBalance?.uiAmount ?? 0;
-
-    // If not enough NOS, swap
-    if (currentAmount < requiredNosAmount) {
-      const nosShortage = requiredNosAmount - currentAmount;
-      console.log(
-        `Insufficient NOS (${currentAmount} < ${requiredNosAmount}). Swapping ~${nosShortage.toFixed(
-          2
-        )} NOS worth of SOL...`
-      );
-
-      // Perform the swap
-      await this.swapToNos(nosShortage, 'SOL');
-
-      // Wait a moment so that the new balance is registered on-chain (prevent race conditions)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Check if the new balance is sufficient now
-      const newBalance = await this.getNosBalance();
-      if ((newBalance?.uiAmount ?? 0) < requiredNosAmount) {
-        throw new Error(
-          'Swap completed but balance is still insufficient. Try again or check token decimals.'
-        );
-      }
-    }
-
-    // Now we have enough NOS, list the job
-    return await this.list(ipfsHash, jobTimeout, market);
+    return { txid };
   }
 }
