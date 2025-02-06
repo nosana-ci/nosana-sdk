@@ -957,22 +957,30 @@ export class Jobs extends SolanaManager {
     const nosAmountRaw = Math.ceil(nosNeeded * 1_000_000);
 
     // 2) Get a quote from Jupiter using an ExactOut approach
-    const quoteUrl = new URL('https://quote-api.jup.ag/v6/quote');
-    quoteUrl.searchParams.append('inputMint', inputMint);
-    quoteUrl.searchParams.append('outputMint', this.config.nos_address);
-    quoteUrl.searchParams.append('swapMode', 'ExactOut');
-    quoteUrl.searchParams.append('amount', nosAmountRaw.toString());
-    quoteUrl.searchParams.append('slippageBps', '50');
-    quoteUrl.searchParams.append('onlyDirectRoutes', 'false');
-    quoteUrl.searchParams.append('asLegacyTransaction', 'false');
+    console.log('Attempting Jupiter quote with:')
+    console.log('  inputMint:', inputMint)
+    console.log('  outputMint:', this.config.nos_address)
+    console.log('  amount (raw):', nosAmountRaw.toString())
 
-    const quoteResponse = await (await fetch(quoteUrl.toString())).json();
-    if (quoteResponse.error) {
-      throw new Error(`Jupiter quote error: ${quoteResponse.error}`);
+    const quoteUrl = new URL('https://quote-api.jup.ag/v6/quote')
+    quoteUrl.searchParams.append('inputMint', inputMint)
+    quoteUrl.searchParams.append('outputMint', this.config.nos_address)
+    quoteUrl.searchParams.append('swapMode', 'ExactOut')
+    quoteUrl.searchParams.append('amount', nosAmountRaw.toString())
+    quoteUrl.searchParams.append('slippageBps', '50')
+
+    const quoteResponse = await (await fetch(quoteUrl.toString())).json()
+
+    if (!quoteResponse.data?.length) {
+      console.error('No routes found:', quoteResponse)
+      throw new Error(
+        `No routes found in Jupiter quote response. amount=${nosAmountRaw} inputMint=${inputMint} outputMint=${this.config.nos_address}`
+      )
     }
-
+    console.log('Response:', quoteResponse.data);
     // For simplicity, pick the best route (usually at index 0)
     const bestRoute = quoteResponse.data?.[0];
+    
     if (!bestRoute) {
       throw new Error(`No routes found in Jupiter quote response. Amount: ${nosAmountRaw}, Input: ${inputMint}, Output: ${this.config.nos_address}`);
     }
