@@ -947,9 +947,6 @@ export class Jobs extends SolanaManager {
     sourceToken: 'SOL' | 'USDC' | 'USDT',
     simulateOnly: boolean = false
   ): Promise<{ txid: string; totalFee: number } | { totalFee: number; bestRoute: any; blockhash: string; lastValidBlockHeight: number }> {
-    // Add debug logging
-    console.log('SwapToNos params:', { nosNeeded, sourceToken, simulateOnly });
-
     // 1) Validate input
     const inputMint = this.SOURCE_MINTS[sourceToken];
     if (!inputMint) {
@@ -958,7 +955,6 @@ export class Jobs extends SolanaManager {
 
     // For example, if NOS has 6 decimals, multiply as needed.
     const nosAmountRaw = Math.ceil(nosNeeded * 1_000_000);
-    console.log('Calculated amounts:', { nosAmountRaw });
 
     // 2) Get a quote from Jupiter using an ExactOut approach
     const quoteUrl = new URL('https://quote-api.jup.ag/v6/quote');
@@ -967,12 +963,10 @@ export class Jobs extends SolanaManager {
     quoteUrl.searchParams.append('swapMode', 'ExactOut');
     quoteUrl.searchParams.append('amount', nosAmountRaw.toString());
     quoteUrl.searchParams.append('slippageBps', '50');
-
-    console.log('Jupiter quote URL:', quoteUrl.toString());
+    quoteUrl.searchParams.append('onlyDirectRoutes', 'false');
+    quoteUrl.searchParams.append('asLegacyTransaction', 'false');
 
     const quoteResponse = await (await fetch(quoteUrl.toString())).json();
-    console.log('Jupiter quote response:', quoteResponse);
-
     if (quoteResponse.error) {
       throw new Error(`Jupiter quote error: ${quoteResponse.error}`);
     }
@@ -980,7 +974,7 @@ export class Jobs extends SolanaManager {
     // For simplicity, pick the best route (usually at index 0)
     const bestRoute = quoteResponse.data?.[0];
     if (!bestRoute) {
-      throw new Error('No routes found in Jupiter quote response.');
+      throw new Error(`No routes found in Jupiter quote response. Amount: ${nosAmountRaw}, Input: ${inputMint}, Output: ${this.config.nos_address}`);
     }
 
     // 3) Approximate the total fee by summing fees from the market infos
