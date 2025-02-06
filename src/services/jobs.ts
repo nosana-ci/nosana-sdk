@@ -974,19 +974,21 @@ export class Jobs extends SolanaManager {
     const response = await fetch(quoteUrl.toString())
     const quoteResponse = await response.json()
 
-    // Log the full response for debugging
-    console.log('Response status:', response.status)
-    console.log('Full response:', quoteResponse)
+    // Check for error response
+    if (quoteResponse.error) {
+      throw new Error(`Jupiter quote error: ${quoteResponse.error}`);
+    }
 
-    if (!quoteResponse.data?.length) {
-      console.error('No routes found:', quoteResponse)
+    // Check for valid quote (looking for outAmount instead of data array)
+    if (!quoteResponse.outAmount) {
+      console.error('Invalid quote response:', quoteResponse)
       throw new Error(
-        `No routes found in Jupiter quote response. amount=${nosAmountRaw} inputMint=${inputMint} outputMint=${this.config.nos_address}`
+        `No valid quote found. amount=${nosAmountRaw} inputMint=${inputMint} outputMint=${this.config.nos_address}`
       )
     }
-    console.log('Response:', quoteResponse.data);
-    // For simplicity, pick the best route (usually at index 0)
-    const bestRoute = quoteResponse.data?.[0];
+
+    // Use the quote response directly (it's not in a data array)
+    const bestRoute = quoteResponse;
     
     if (!bestRoute) {
       throw new Error(`No routes found in Jupiter quote response. Amount: ${nosAmountRaw}, Input: ${inputMint}, Output: ${this.config.nos_address}`);
