@@ -11,7 +11,13 @@ export type SolanaConfig = {
   priority_fee?: number;
   maximumPriorityFee?: number;
   dynamicPriorityFee?: boolean;
-  priorityFeeStrategy?: 'min' | 'low' | 'medium' | 'high' | 'veryHigh' | 'unsafeMax';
+  priorityFeeStrategy?:
+    | 'min'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'veryHigh'
+    | 'unsafeMax';
   priorityFeeAccounts?: string[];
 };
 

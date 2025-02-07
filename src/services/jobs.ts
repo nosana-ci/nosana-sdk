@@ -1,28 +1,22 @@
 // external imports
+import fetch from 'cross-fetch';
+import * as anchor from '@coral-xyz/anchor';
 import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 import {
-  ComputeBudgetProgram,
   Keypair,
   PublicKey,
   SendTransactionError,
   TransactionInstruction,
   TransactionSignature,
-  Connection,
   VersionedTransaction,
-  TransactionMessage,
-  LAMPORTS_PER_SOL,
-  AddressLookupTableAccount,
 } from '@solana/web3.js';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 
 import type { Job, Market, Run } from '../types/index.js';
 import { SolanaManager } from './solana.js';
 import { IPFS } from '../services/ipfs.js';
-import * as anchor from '@coral-xyz/anchor';
-import { KeyWallet } from '../utils.js';
 // @ts-ignore
 const { BN } = anchor.default ? anchor.default : anchor;
-import fetch from 'cross-fetch';
 
 // local imports
 import { jobStateMapping, mapJob, excludedJobs } from '../utils.js';
@@ -37,22 +31,6 @@ const pda = (
  * https://docs.nosana.io/secrets/start.html
  */
 export class Jobs extends SolanaManager {
-  private getPriorityFeePreInstruction = async (useFancyFees = false) => {
-    const preInstructions: TransactionInstruction[] = [];
-
-    const priorityFee = useFancyFees
-      ? this.config.priority_fee
-      : await this.getPriorityFee();
-
-    if (priorityFee && priorityFee < 0) {
-      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: priorityFee,
-      });
-      preInstructions.push(addPriorityFee);
-    }
-
-    return preInstructions;
-  };
   /**
    * Function to list a Nosana Job in a market
    * @param ipfsHash String of the IPFS hash locating the Nosana Job data.
@@ -63,14 +41,10 @@ export class Jobs extends SolanaManager {
     const jobKey = Keypair.generate();
     const runKey = Keypair.generate();
     try {
-      const preInstructions: TransactionInstruction[] =
-        await this.getPriorityFeePreInstruction(true);
-
       const tx = await this.jobs!.methods.list(
         [...bs58.decode(ipfsHash).subarray(2)],
         new BN(jobTimeout),
       )
-        .preInstructions(preInstructions)
         .accounts({
           ...this.accounts,
           job: jobKey.publicKey,
@@ -132,11 +106,7 @@ export class Jobs extends SolanaManager {
         : market.vault;
 
     try {
-      const preInstructions: TransactionInstruction[] =
-        await this.getPriorityFeePreInstruction();
-
       const tx = await this.jobs!.methods.delist()
-        .preInstructions(preInstructions)
         .accounts({
           ...this.accounts,
           job: jobAddress,
@@ -182,11 +152,7 @@ export class Jobs extends SolanaManager {
     const market = await this.getMarket(jobAccount.market);
 
     try {
-      const preInstructions: TransactionInstruction[] =
-        await this.getPriorityFeePreInstruction(true);
-
       const tx = await this.jobs!.methods.extend(new BN(jobTimeout))
-        .preInstructions(preInstructions)
         .accounts({
           ...this.accounts,
           job: job,
@@ -265,11 +231,7 @@ export class Jobs extends SolanaManager {
         : market.vault;
 
     try {
-      const preInstructions: TransactionInstruction[] =
-        await this.getPriorityFeePreInstruction(true);
-
       const tx = await this.jobs!.methods.end()
-        .preInstructions(preInstructions)
         .accounts({
           ...this.accounts,
           job: job,
@@ -534,13 +496,7 @@ export class Jobs extends SolanaManager {
       payer: job.payer,
       job: jobAddress,
     };
-    const preInstructions: TransactionInstruction[] = instructionOnly
-      ? []
-      : await this.getPriorityFeePreInstruction();
-
-    const tx = this.jobs!.methods.cleanAdmin()
-      .preInstructions(preInstructions)
-      .accounts(accounts);
+    const tx = this.jobs!.methods.cleanAdmin().accounts(accounts);
     if (instructionOnly) {
       return await tx.instruction();
     } else {
@@ -630,9 +586,6 @@ export class Jobs extends SolanaManager {
         : new BN(marketAccount.nodeXnosMinimum),
     };
 
-    const preInstructions: TransactionInstruction[] =
-      await this.getPriorityFeePreInstruction();
-
     const tx = await this.jobs!.methods.update(
       // @ts-ignore
       data.jobExpiration,
@@ -640,16 +593,14 @@ export class Jobs extends SolanaManager {
       data.jobType,
       data.nodeStakeMinimum,
       new BN(7200), // TODO: make timeout a parameter
-    )
-      .preInstructions(preInstructions)
-      .accounts({
-        market: market,
-        accessKey:
-          updatedData && updatedData.nodeAccessKey
-            ? updatedData.nodeAccessKey
-            : marketAccount.nodeAccessKey,
-        authority: this.provider!.wallet.publicKey,
-      });
+    ).accounts({
+      market: market,
+      accessKey:
+        updatedData && updatedData.nodeAccessKey
+          ? updatedData.nodeAccessKey
+          : marketAccount.nodeAccessKey,
+      authority: this.provider!.wallet.publicKey,
+    });
 
     if (instructionOnly) {
       return await tx.instruction();
@@ -671,9 +622,6 @@ export class Jobs extends SolanaManager {
   }> {
     await this.loadNosanaJobs();
     await this.setAccounts();
-
-    const preInstructions: TransactionInstruction[] =
-      await this.getPriorityFeePreInstruction();
     const mintAccount = new PublicKey(this.config.nos_address);
     const marketKeypair = Keypair.generate();
     const tx = await this.jobs!.methods.open(
@@ -684,7 +632,6 @@ export class Jobs extends SolanaManager {
       data.jobType,
       data.nodeStakeMinimum,
     )
-      .preInstructions(preInstructions)
       .accounts({
         ...this.accounts,
         mint: mintAccount,
@@ -758,10 +705,7 @@ export class Jobs extends SolanaManager {
         feePayer: this.provider!.wallet.publicKey,
         market,
       };
-      const preInstructions: TransactionInstruction[] =
-        await this.getPriorityFeePreInstruction();
       const tx = await this.jobs!.methods.work()
-        .preInstructions(preInstructions)
         .accounts(accounts)
         .signers([runKey])
         .rpc();
@@ -816,10 +760,7 @@ export class Jobs extends SolanaManager {
             job.project,
           )
         : market.vault;
-    const preInstructions: TransactionInstruction[] =
-      await this.getPriorityFeePreInstruction();
     const tx = await this.jobs!.methods.finish(result)
-      .preInstructions(preInstructions)
       .accounts({
         ...this.accounts,
         job: run.account.job,
@@ -851,10 +792,7 @@ export class Jobs extends SolanaManager {
     if (run instanceof PublicKey) {
       run = (await this.getRun(run)) as Run;
     }
-    const preInstructions: TransactionInstruction[] =
-      await this.getPriorityFeePreInstruction();
     const tx = await this.jobs!.methods.quit()
-      .preInstructions(preInstructions)
       .accounts({
         ...this.accounts,
         job: run.account.job,
@@ -874,10 +812,7 @@ export class Jobs extends SolanaManager {
     await this.setAccounts();
     if (typeof market === 'string') market = new PublicKey(market);
     if (typeof node === 'string') node = new PublicKey(node);
-    const preInstructions: TransactionInstruction[] =
-      await this.getPriorityFeePreInstruction();
     const tx = await this.jobs!.methods.stop()
-      .preInstructions(preInstructions)
       .accounts({
         ...this.accounts,
         market,

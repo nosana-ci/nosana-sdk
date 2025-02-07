@@ -9,6 +9,7 @@ import {
   Nodes,
   Stake,
 } from './services/index.js';
+import { Config } from './config.js';
 import { KeyWallet, polyfill } from './utils.js';
 
 import type { ClientConfig, Wallet } from './types/index.js';
@@ -17,6 +18,25 @@ export * from './types/index.js';
 export * from './utils.js';
 
 polyfill();
+
+export const configSelector = (initConfig?: Config): Config => {
+  let config;
+
+  if (initConfig) {
+    if (config !== undefined) {
+      throw new Error('Config has already been initialised.');
+    }
+
+    config = initConfig;
+    return config;
+  }
+
+  if (!config) {
+    throw new Error('Config has not yet been initialised.');
+  }
+
+  return config;
+};
 
 export class Client {
   authorization: AuthorizationManager;
@@ -28,7 +48,7 @@ export class Client {
   stake: Stake;
 
   constructor(
-    environment: string = 'devnet',
+    environment: 'devnet' | 'mainnet' = 'devnet',
     wallet?: Wallet,
     config?: Partial<ClientConfig>,
   ) {
@@ -36,12 +56,14 @@ export class Client {
       wallet = process?.env?.SOLANA_WALLET || new KeyWallet(Keypair.generate());
     }
 
+    configSelector(new Config(environment, config));
+
     this.authorization = new AuthorizationManager(wallet);
-    this.solana = new SolanaManager(environment, wallet, config?.solana);
-    this.ipfs = new IPFS(environment, config?.ipfs);
-    this.secrets = new SecretManager(environment, wallet, config?.secrets);
-    this.jobs = new Jobs(environment, wallet, config?.solana);
-    this.nodes = new Nodes(environment, wallet, config?.solana);
-    this.stake = new Stake(environment, wallet, config?.solana);
+    this.solana = new SolanaManager(wallet);
+    this.ipfs = new IPFS();
+    this.secrets = new SecretManager(wallet);
+    this.jobs = new Jobs(wallet);
+    this.nodes = new Nodes(wallet);
+    this.stake = new Stake(wallet);
   }
 }

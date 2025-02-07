@@ -1,4 +1,10 @@
-import { AnchorProvider, Idl, Program, setProvider } from '@coral-xyz/anchor';
+import {
+  AnchorProvider,
+  Idl,
+  Program,
+  setProvider,
+  Wallet as AnchorWallet,
+} from '@coral-xyz/anchor';
 import {
   getAssociatedTokenAddress,
   getAccount,
@@ -27,7 +33,6 @@ import { associatedAddress } from '@coral-xyz/anchor/dist/cjs/utils/token.js';
 import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 import nacl from 'tweetnacl';
 import tweetnaclutil from 'tweetnacl-util';
-import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
 import {
   keypairIdentity,
   generateSigner,
@@ -52,34 +57,25 @@ import {
 import { fromWeb3JsKeypair } from '@metaplex-foundation/umi-web3js-adapters';
 import { percentAmount, publicKey, some } from '@metaplex-foundation/umi';
 
-import { solanaConfigPreset } from '../config.js';
+import { Config } from '../config.js';
 import type {
   NosanaJobs,
-  SolanaConfig,
   NosanaNodes,
   NosanaStake,
   Wallet,
 } from '../types/index.js';
 import { KeyWallet, getWallet, pda, sleep } from '../utils.js';
+import { NosanaProgram } from '../classes/nosanaProgram/index.js';
+import { configSelector } from '../client.js';
 
 const { decodeUTF8 } = tweetnaclutil;
-
-const getPercentileFee = (
-  fees: Array<{ prioritizationFee: number }>,
-  percentile: number,
-): number => {
-  const index = Math.min(
-    Math.floor(fees.length * (percentile / 100)),
-    fees.length - 1,
-  );
-  return fees[index]?.prioritizationFee || 0;
-};
 
 /**
  * Class to interact with Nosana Programs on the Solana Blockchain,
  * with the use of Anchor.
  */
 export class SolanaManager {
+  config: Config['solanaConfig'];
   provider: AnchorProvider | undefined;
   jobs: Program<NosanaJobs> | undefined;
   nodes: Program<NosanaNodes> | undefined;
@@ -97,17 +93,10 @@ export class SolanaManager {
   accounts: { [key: string]: PublicKey } | undefined;
   stakeAccounts: { [key: string]: any } | undefined;
   poolAccounts: { [key: string]: any } | undefined;
-  config: SolanaConfig;
   wallet: AnchorWallet;
   connection: Connection | undefined;
-  constructor(
-    environment: string = 'devnet',
-    wallet: Wallet,
-    config?: Partial<SolanaConfig>,
-  ) {
-    this.config = solanaConfigPreset[environment];
-    Object.assign(this.config, config);
-
+  constructor(wallet: Wallet) {
+    this.config = configSelector().solanaConfig;
     this.wallet = getWallet(wallet);
 
     if (typeof process !== 'undefined' && process.env?.ANCHOR_PROVIDER_URL) {
@@ -420,8 +409,13 @@ export class SolanaManager {
   async loadNosanaJobs() {
     if (!this.jobs) {
       const programId = new PublicKey(this.config.jobs_address);
-      const idl = (await Program.fetchIdl(programId.toString())) as Idl;
-      this.jobs = new Program(idl, programId) as unknown as Program<NosanaJobs>;
+      const idl = await Program.fetchIdl<NosanaJobs>(programId.toString());
+
+      if (!idl) {
+        throw new Error("Couldn't fetch IDL for Jobs program");
+      }
+
+      this.jobs = new NosanaProgram<NosanaJobs>(idl, programId);
     }
   }
 
@@ -855,104 +849,5 @@ export class SolanaManager {
       tx,
       sft: newMint.publicKey.toString(),
     };
-  }
-
-  private async getRecentPrioritizationFees(): Promise<
-    {
-      prioritizationFee: number;
-    }[]
-  > {
-    const SOL_MINT = new PublicKey(
-      'So11111111111111111111111111111111111111112',
-    );
-    const USDC_MINT = new PublicKey(
-      'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-    );
-    const queryAccounts = [SOL_MINT.toBase58(), USDC_MINT.toBase58()];
-
-    const rawBody = {
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'getRecentPrioritizationFees',
-      params: [queryAccounts],
-    };
-
-    const resp = await fetch(this.config.network, {
-      method: 'POST',
-      body: JSON.stringify(rawBody),
-      headers: { 'Content-Type': 'application/json' },
-    });
-    const json = await resp.json();
-
-    return json?.result || [];
-  }
-
-  async getPriorityFee(accounts?: PublicKey[]): Promise<number> {
-    const {
-      priority_fee: MINIMUM_PRIORITY_FEE = 0,
-      priorityFeeStrategy: PRIORITY_FEE_STRATEGY = 'medium',
-      maximumPriorityFee: MAXIMUM_PRIORITY_FEE = 50000000,
-      dynamicPriorityFee: DYNAMIC_PRIORITY_FEE = false,
-    } = this.config;
-
-    if (MAXIMUM_PRIORITY_FEE < MINIMUM_PRIORITY_FEE) {
-      throw new Error('Maximum priority fee cannot be less than priority fee');
-    }
-
-    if (!DYNAMIC_PRIORITY_FEE) {
-      return MINIMUM_PRIORITY_FEE;
-    }
-
-    try {
-      const fees = await this.getRecentPrioritizationFees();
-
-      if (fees.length === 0) {
-        console.log(
-          `No recent fees found, using static fee - Raw: ${MINIMUM_PRIORITY_FEE}, After limits: ${MINIMUM_PRIORITY_FEE} microLamports`,
-        );
-        return MINIMUM_PRIORITY_FEE;
-      }
-
-      // Sort in ascending order for percentile calculation
-      fees.sort((a: any, b: any) => a.prioritizationFee - b.prioritizationFee);
-
-      const feeLevels = {
-        min: getPercentileFee(fees, 0), // 0th percentile
-        low: getPercentileFee(fees, 25), // 25th percentile
-        medium: getPercentileFee(fees, 50), // 50th percentile
-        high: getPercentileFee(fees, 70), // 70th percentile
-        veryHigh: getPercentileFee(fees, 85), // 85th percentile
-        unsafeMax: getPercentileFee(fees, 100), // 100th percentile
-      };
-
-      console.log('\nPriority Fees (microLamports):');
-      console.log(`  Min (0th): ${feeLevels.min}`);
-      console.log(`  Low (25th): ${feeLevels.low}`);
-      console.log(`  Medium (50th): ${feeLevels.medium}`);
-      console.log(`  High (70th): ${feeLevels.high}`);
-      console.log(`  Very High (85th): ${feeLevels.veryHigh}`);
-      console.log(`  Unsafe Max (100th): ${feeLevels.unsafeMax}`);
-
-      const selectedFee: number =
-        feeLevels[PRIORITY_FEE_STRATEGY] ?? feeLevels.medium;
-
-      // Apply limits
-      const finalFee = Math.min(
-        Math.max(selectedFee, MINIMUM_PRIORITY_FEE),
-        MAXIMUM_PRIORITY_FEE,
-      );
-      if (finalFee !== selectedFee) {
-        console.log(
-          `Fee adjusted from ${selectedFee} to ${finalFee} to meet limits (${MINIMUM_PRIORITY_FEE} - ${MAXIMUM_PRIORITY_FEE})`,
-        );
-      }
-      return finalFee;
-    } catch (err) {
-      console.error('Priority fee error:', err);
-      console.log(
-        `Falling back to static priority fee - Raw: ${MINIMUM_PRIORITY_FEE}, After limits: ${MINIMUM_PRIORITY_FEE} microLamports`,
-      );
-      return MINIMUM_PRIORITY_FEE;
-    }
   }
 }
