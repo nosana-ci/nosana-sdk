@@ -934,8 +934,7 @@ export class Jobs extends SolanaManager {
   }
 
   /**
-   * Swap a chosen token (SOL, USDC, or USDT) to NOS
-   * (stand-alone method: does not list jobs)
+   * Swap a chosen token (SOL, USDC, or USDT) to NOS (stand-alone method: does not list jobs)
    *
    * @param nosNeeded The amount of NOS (in whole tokens) to acquire
    * @param sourceToken One of 'SOL', 'USDC', or 'USDT'
@@ -951,67 +950,65 @@ export class Jobs extends SolanaManager {
       throw new Error(`Unsupported source token: ${sourceToken}`);
     }
 
-    // For example, if NOS has 6 decimals, multiply as needed.
+    // Convert NOS needed to its atomic amount (e.g., 6 decimals)
     const nosAmountRaw = Math.ceil(nosNeeded * 1_000_000);
 
     // 2) Get a quote from Jupiter using an ExactOut approach
-    const quoteUrl = new URL('https://api.jup.ag/swap/v1/quote')
-    quoteUrl.searchParams.append('inputMint', inputMint)
-    quoteUrl.searchParams.append('outputMint', this.config.nos_address)
-    quoteUrl.searchParams.append('swapMode', 'ExactOut')
-    quoteUrl.searchParams.append('amount', nosAmountRaw.toString())
-    quoteUrl.searchParams.append('slippageBps', '50')
+    const quoteQueryParams = new URLSearchParams({
+      inputMint,
+      outputMint: this.config.nos_address, // NOS mint
+      swapMode: 'ExactOut',                // we want exactly `nosNeeded`
+      amount: nosAmountRaw.toString(),
+      slippageBps: '50',                   // example slippage
+    });
+    const quoteUrl = `https://api.jup.ag/swap/v1/quote?${quoteQueryParams.toString()}`;
+    const quoteResp = await fetch(quoteUrl);
+    const quoteJson = await quoteResp.json();
 
-    const response = await fetch(quoteUrl.toString())
-    const quoteResponse = await response.json()
-
-    // Check for error response
-    if (quoteResponse.error) {
-      throw new Error(`Jupiter quote error: ${quoteResponse.error}`);
+    // Check quote response
+    if (quoteJson.error) {
+      throw new Error(`Jupiter quote error: ${quoteJson.error}`);
     }
-
-    // Check for valid quote
-    if (!quoteResponse.outAmount) {
+    if (!quoteJson.outAmount) {
       throw new Error(
         `No valid quote found. amount=${nosAmountRaw} inputMint=${inputMint} outputMint=${this.config.nos_address}`
-      )
-    }
-
-    const bestRoute = quoteResponse;
-    
-    if (!bestRoute) {
-      throw new Error(`No routes found in Jupiter quote response. Amount: ${nosAmountRaw}, Input: ${inputMint}, Output: ${this.config.nos_address}`);
-    }
-
-    // Request a serialized swap transaction from Jupiter
-    const swapBody = {
-      quoteResponse,
-      userPublicKey: this.provider!.wallet.publicKey.toString(),
-      wrapAndUnwrapSol: sourceToken === 'SOL',
-      dynamicComputeUnitLimit: true,
-      computeUnitPriceMicroLamports: this.config.priority_fee,
-    };
-
-    const swapTxResponse = await (
-      await fetch('https://quote-api.jup.ag/v6/swap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(swapBody),
-      })
-    ).json();
-
-    if (swapTxResponse.error) {
-      throw new Error(`Jupiter swap error: ${swapTxResponse.error}`);
-    }
-
-    const { swapTransaction, lastValidBlockHeight, blockhash } = swapTxResponse;
-    if (!swapTransaction) {
-      throw new Error(
-        `No swapTransaction returned by Jupiter: ${JSON.stringify(swapTxResponse)}`,
       );
     }
 
-    // Deserialize, sign, and send
+    // 3) Request a serialized swap transaction from Jupiter
+    const swapRequestBody = {
+      userPublicKey: this.provider!.wallet.publicKey.toString(),
+      wrapAndUnwrapSol: sourceToken === 'SOL',
+      useSharedAccounts: true,
+      dynamicComputeUnitLimit: true,
+      skipUserAccountsRpcCalls: false,
+      computeUnitPriceMicroLamports: this.config.priority_fee,
+      // The quote we just fetched:
+      quoteResponse: quoteJson
+    };
+
+    // POST to /swap/v1/swap with the quote
+    const swapResponse = await fetch('https://api.jup.ag/swap/v1/swap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(swapRequestBody),
+    });
+    const swapResponseJson = await swapResponse.json();
+
+    if (swapResponseJson.error) {
+      throw new Error(`Jupiter swap error: ${swapResponseJson.error}`);
+    }
+    const { swapTransaction, lastValidBlockHeight } = swapResponseJson;
+    if (!swapTransaction) {
+      throw new Error(
+        `No swapTransaction returned by Jupiter: ${JSON.stringify(swapResponseJson)}`
+      );
+    }
+
+    // 4) Get recent blockhash
+    const { blockhash } = await this.connection!.getLatestBlockhash();
+
+    // 5) Deserialize, sign, and send
     const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
     const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
     const signedTx = await this.provider!.wallet.signTransaction(transaction);
@@ -1020,14 +1017,14 @@ export class Jobs extends SolanaManager {
       maxRetries: 5,
     });
 
-    // Confirm transaction
+    // 6) Confirm transaction
     await this.connection!.confirmTransaction(
       {
         blockhash,
         lastValidBlockHeight,
         signature: txid,
       },
-      'processed',
+      'processed'
     );
 
     return { txid };
