@@ -89,6 +89,11 @@ export class SolanaManager {
   config: SolanaConfig;
   wallet: AnchorWallet;
   connection: Connection | undefined;
+  private readonly SOURCE_MINTS = {
+    SOL: 'So11111111111111111111111111111111111111112',
+    USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    USDT: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+  };
   constructor(
     environment: string = 'devnet',
     wallet: Wallet,
@@ -154,15 +159,52 @@ export class SolanaManager {
   async getNosBalance(
     address?: string | PublicKey,
   ): Promise<TokenAmount | undefined> {
+    return this.getTokenBalance(this.config.nos_address, address);
+  }
+
+  /**
+   * Get USDC balance of an address
+   * @param address Optional address to check balance for, defaults to wallet's address
+   * @returns Token balance information
+   */
+  async getUsdcBalance(
+    address?: string | PublicKey,
+  ): Promise<TokenAmount | undefined> {
+    return this.getTokenBalance(this.SOURCE_MINTS.USDC, address);
+  }
+
+  /**
+   * Get USDT balance of an address
+   * @param address Optional address to check balance for, defaults to wallet's address
+   * @returns Token balance information
+   */
+  async getUsdtBalance(
+    address?: string | PublicKey,
+  ): Promise<TokenAmount | undefined> {
+    return this.getTokenBalance(this.SOURCE_MINTS.USDT, address);
+  }
+
+  /**
+   * Generic method to get any token's balance
+   * @param tokenMint The mint address of the token
+   * @param address Optional address to check balance for, defaults to wallet's address
+   * @returns Token balance information
+   */
+  async getTokenBalance(
+    tokenMint: string | PublicKey,
+    address?: string | PublicKey,
+  ): Promise<TokenAmount | undefined> {
     if (!address) {
       address = this.provider?.wallet.publicKey;
     }
     if (typeof address === 'string') address = new PublicKey(address);
-    const mintAccount = new PublicKey(this.config.nos_address);
+    if (typeof tokenMint === 'string') tokenMint = new PublicKey(tokenMint);
+    
     const account = await this.connection!.getTokenAccountsByOwner(address!, {
-      mint: mintAccount,
+      mint: tokenMint,
     });
     if (!account.value[0]) return;
+    
     const tokenAddress = new PublicKey(account.value[0].pubkey.toString());
     const tokenBalance = await this.connection!.getTokenAccountBalance(
       tokenAddress,
@@ -171,9 +213,9 @@ export class SolanaManager {
   }
 
   /**
-   * Get SOL balance of an address
-   * @param address
-   * @returns
+   * Get native SOL balance of an address
+   * @param address Optional address to check balance for, defaults to wallet's address
+   * @returns Balance in lamports (1 SOL = 1e9 lamports)
    */
   async getSolBalance(address?: string | PublicKey): Promise<number> {
     if (!address) {
