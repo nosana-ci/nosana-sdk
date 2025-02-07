@@ -89,6 +89,11 @@ export class SolanaManager {
   config: SolanaConfig;
   wallet: AnchorWallet;
   connection: Connection | undefined;
+  private readonly SOURCE_MINTS = {
+    SOL: 'So11111111111111111111111111111111111111112',
+    USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    USDT: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+  };
   constructor(
     environment: string = 'devnet',
     wallet: Wallet,
@@ -165,7 +170,7 @@ export class SolanaManager {
   async getUsdcBalance(
     address?: string | PublicKey,
   ): Promise<TokenAmount | undefined> {
-    return this.getTokenBalance('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', address);
+    return this.getTokenBalance(this.SOURCE_MINTS.USDC, address);
   }
 
   /**
@@ -176,7 +181,7 @@ export class SolanaManager {
   async getUsdtBalance(
     address?: string | PublicKey,
   ): Promise<TokenAmount | undefined> {
-    return this.getTokenBalance('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', address);
+    return this.getTokenBalance(this.SOURCE_MINTS.USDT, address);
   }
 
   /**
