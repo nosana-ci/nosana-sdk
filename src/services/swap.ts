@@ -35,6 +35,7 @@ export class Swap extends SolanaManager {
     amount: number,
     inputMint: string,
   ): Promise<QuoteResponse> {
+    const { nodes_address: outputMint } = this.config;
     // Convert NOS needed to its atomic amount (e.g., 6 decimals)
     const nosAmountRaw = Math.ceil(amount * 1_000_000).toString();
 
@@ -42,7 +43,7 @@ export class Swap extends SolanaManager {
       await fetch(
         `https://api.jup.ag/swap/v1/quote?${new URLSearchParams({
           inputMint,
-          outputMint: this.config.nos_address, // NOS mint
+          outputMint, // NOS mint
           swapMode: 'ExactOut', // we want exactly `nosNeeded`
           amount: nosAmountRaw.toString(),
           slippageBps: '50', // example slippage
@@ -67,6 +68,13 @@ export class Swap extends SolanaManager {
     quote: QuoteResponse,
     isSol: boolean,
   ): Promise<SwapResponse> {
+    const {
+      dynamicPriorityFee,
+      maximumPriorityFee,
+      priorityFeeStrategy,
+      priority_fee,
+    } = this.config;
+
     const swapResponse = await (
       await fetch('https://api.jup.ag/swap/v1/swap', {
         method: 'POST',
@@ -75,9 +83,18 @@ export class Swap extends SolanaManager {
           userPublicKey: this.provider!.wallet.publicKey.toString(),
           wrapAndUnwrapSol: isSol,
           useSharedAccounts: true,
-          dynamicComputeUnitLimit: true,
+          dynamicComputeUnitLimit: !!dynamicPriorityFee,
           skipUserAccountsRpcCalls: false,
-          computeUnitPriceMicroLamports: this.config.priority_fee,
+          ...(dynamicPriorityFee
+            ? {
+                prioritizationFeeLamports: {
+                  priorityLevelWithMaxLamports: {
+                    maxLamports: maximumPriorityFee ?? 50000000,
+                    priorityLevel: priorityFeeStrategy ?? 'medium',
+                  },
+                },
+              }
+            : { computeUnitPriceMicroLamports: priority_fee }),
           quoteResponse: quote,
         }),
       })
@@ -104,7 +121,6 @@ export class Swap extends SolanaManager {
   ): Promise<string> {
     const { blockhash } = await this.connection!.getLatestBlockhash();
 
-    // 5) Deserialize, sign, and send
     const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
     const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
     const signedTx = await this.provider!.wallet.signTransaction(transaction);
@@ -116,7 +132,6 @@ export class Swap extends SolanaManager {
       },
     );
 
-    // 6) Confirm transaction
     await this.connection!.confirmTransaction(
       {
         blockhash,
