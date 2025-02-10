@@ -23,6 +23,7 @@ export type JobDefinition = {
     env?: {
       [key: string]: string;
     };
+    required_vram?: number;
     work_dir?: string;
   };
   ops: Ops;
@@ -54,6 +55,7 @@ export interface OperationArgsMap {
     env?: {
       [key: string]: string;
     };
+    required_vram?: number;
     resources?: Resource[];
   };
   'container/create-volume': {

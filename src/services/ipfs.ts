@@ -1,9 +1,10 @@
-import axios, { AxiosHeaders, AxiosInstance, AxiosRequestConfig } from 'axios';
-import bs58 from 'bs58';
-import type { IPFSConfig } from '../types/config.js';
-import { IPFSConfigPreset } from '../config.js';
 import fs from 'fs';
+import bs58 from 'bs58';
 import FormData from 'form-data';
+import axios, { AxiosHeaders, AxiosInstance, AxiosRequestConfig } from 'axios';
+
+import { Config } from '../config.js';
+import type { IPFSConfig } from '../types/config.js';
 
 /**
  * Class to interact with Pinata Cloud
@@ -13,9 +14,8 @@ export class IPFS {
   private api: AxiosInstance;
   config: IPFSConfig;
 
-  constructor(environment: string = 'devnet', config?: Partial<IPFSConfig>) {
-    this.config = IPFSConfigPreset[environment];
-    Object.assign(this.config, config);
+  constructor() {
+    this.config = new Config().ifpsConfig;
     const headers: AxiosHeaders = new AxiosHeaders();
     if (this.config.jwt) {
       headers.set('Authorization', `Bearer ${this.config.jwt}`);

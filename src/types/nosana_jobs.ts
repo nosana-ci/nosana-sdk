@@ -109,6 +109,10 @@ export type NosanaJobs = {
           name: 'nodeStakeMinimum';
           type: 'u128';
         },
+        {
+          name: 'jobTimeout';
+          type: 'i64';
+        },
       ];
     },
     {
@@ -256,14 +260,12 @@ export type NosanaJobs = {
         {
           name: 'timeout';
           type: 'i64';
-        }
+        },
       ];
     },
     {
       name: 'delist';
-      docs: [
-        'Remove a [JobAccount](#job-account) from market job queue.',
-      ];
+      docs: ['Remove a [JobAccount](#job-account) from market job queue.'];
       accounts: [
         {
           name: 'job';
@@ -281,7 +283,51 @@ export type NosanaJobs = {
           isSigner: false;
         },
         {
+          name: 'payer';
+          isMut: true;
+          isSigner: false;
+        },
+        {
           name: 'vault';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'tokenProgram';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'authority';
+          isMut: true;
+          isSigner: true;
+        },
+      ];
+      args: [];
+    },
+    {
+      name: 'recover';
+      docs: [
+        'Recover funds from a [JobAccount](#job-account) that has been [quit](#quit).',
+      ];
+      accounts: [
+        {
+          name: 'job';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'market';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'vault';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'user';
           isMut: true;
           isSigner: false;
         },
@@ -292,7 +338,7 @@ export type NosanaJobs = {
         },
         {
           name: 'authority';
-          isMut: true;
+          isMut: false;
           isSigner: true;
         },
         {
@@ -305,9 +351,7 @@ export type NosanaJobs = {
     },
     {
       name: 'extend';
-      docs: [
-        'Extend a [JobAccount](#job-account) timeout.',
-      ];
+      docs: ['Extend a job timeout'];
       accounts: [
         {
           name: 'job';
@@ -359,7 +403,7 @@ export type NosanaJobs = {
         {
           name: 'timeout';
           type: 'i64';
-        }
+        },
       ];
     },
     {
@@ -406,50 +450,6 @@ export type NosanaJobs = {
         {
           name: 'authority';
           isMut: true;
-          isSigner: true;
-        },
-        {
-          name: 'tokenProgram';
-          isMut: false;
-          isSigner: false;
-        },
-      ];
-      args: [];
-    },
-    {
-      name: 'recover';
-      docs: [
-        'Recover funds from a [JobAccount](#job-account) that has been [quit](#quit).',
-      ];
-      accounts: [
-        {
-          name: 'job';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'market';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'vault';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'user';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'payer';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'authority';
-          isMut: false;
           isSigner: true;
         },
         {
@@ -519,6 +519,11 @@ export type NosanaJobs = {
           isSigner: false;
         },
         {
+          name: 'node';
+          isMut: false;
+          isSigner: false;
+        },
+        {
           name: 'authority';
           isMut: false;
           isSigner: true;
@@ -579,6 +584,30 @@ export type NosanaJobs = {
       args: [];
     },
     {
+      name: 'complete';
+      docs: ['Complete a job that has been [stopped](#stop).'];
+      accounts: [
+        {
+          name: 'job';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'authority';
+          isMut: false;
+          isSigner: true;
+        },
+      ];
+      args: [
+        {
+          name: 'ipfsResult';
+          type: {
+            array: ['u8', 32];
+          };
+        },
+      ];
+    },
+    {
       name: 'finish';
       docs: [
         'Post the result for a  [JobAccount](#job-account) to finish it and get paid.',
@@ -605,12 +634,12 @@ export type NosanaJobs = {
           isSigner: false;
         },
         {
-          name: 'user';
+          name: 'deposit';
           isMut: true;
           isSigner: false;
         },
         {
-          name: 'deposit';
+          name: 'user';
           isMut: true;
           isSigner: false;
         },
@@ -848,6 +877,10 @@ export type NosanaJobs = {
             name: 'timeStart';
             type: 'i64';
           },
+          {
+            name: 'timeout';
+            type: 'i64';
+          },
         ];
       };
     },
@@ -956,71 +989,93 @@ export type NosanaJobs = {
     },
     {
       code: 6001;
+      name: 'MarketInWrongState';
+      msg: 'This market does not have the right status.';
+    },
+    {
+      code: 6002;
+      name: 'NotInMarketQueue';
+      msg: 'Account cannot be find account in market queue.';
+    },
+    {
+      code: 6003;
       name: 'InvalidJobAccount';
       msg: 'This job account is not valid.';
     },
     {
-      code: 6002;
+      code: 6004;
       name: 'JobInWrongState';
       msg: 'This job does not have the right status.';
     },
     {
-      code: 6003;
+      code: 6005;
       name: 'JobNotExpired';
       msg: 'The job has not yet expired.';
     },
     {
-      code: 6004;
+      code: 6006;
       name: 'JobResultNull';
       msg: 'The job result can not be null.';
     },
     {
-      code: 6005;
+      code: 6007;
       name: 'JobInvalidProject';
       msg: 'The job has a different project owner.';
     },
     {
-      code: 6006;
+      code: 6008;
+      name: 'JobTimeoutNotGreater';
+      msg: 'The new job timeout should be larger than the current one.';
+    },
+    {
+      code: 6009;
+      name: 'JobInvalidRunAccount';
+      msg: 'The run account does not match the job.';
+    },
+    {
+      code: 6010;
+      name: 'JobResultsAlreadySet';
+      msg: 'The job results are already set.';
+    },
+    {
+      code: 6011;
       name: 'NodeQueueDoesNotMatch';
       msg: 'This node queue does not match.';
     },
     {
-      code: 6007;
+      code: 6012;
       name: 'NodeStakeUnauthorized';
       msg: 'This node is not authorizing this stake.';
     },
     {
-      code: 6008;
+      code: 6013;
       name: 'NodeNotEnoughStake';
       msg: 'This node has not staked enough tokens.';
     },
     {
-      code: 6009;
+      code: 6014;
       name: 'NodeAlreadyQueued';
       msg: 'This node is already present in the queue.';
     },
     {
-      code: 6010;
+      code: 6015;
       name: 'NodeNftWrongMetadata';
       msg: 'This metadata does not have the correct address.';
     },
     {
-      code: 6011;
+      code: 6016;
       name: 'NodeNftWrongOwner';
       msg: 'This NFT is not owned by this node.';
     },
     {
-      code: 6012;
+      code: 6017;
       name: 'NodeNftInvalidAmount';
       msg: 'Access NFT amount cannot be 0.';
     },
     {
-      code: 6013;
+      code: 6018;
       name: 'NodeKeyInvalidCollection';
       msg: 'This access key does not belong to a verified collection.';
     },
   ];
-  metadata: {
-    address: 'nosJhNRqr2bc9g1nfGDcXXTXvYUmxD4cVwy2pMWhrYM';
-  };
 };
