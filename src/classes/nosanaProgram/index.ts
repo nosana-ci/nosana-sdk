@@ -2,8 +2,6 @@ import { ConfirmOptions } from '@solana/web3.js';
 import { Idl, MethodsNamespace, Program } from '@coral-xyz/anchor';
 
 import { getPriorityFeePreInstruction } from './priorityFees/getPriorityFeePreInstruction.js';
-import { config } from 'process';
-import { option } from '@metaplex-foundation/umi/serializers.js';
 
 export class NosanaProgram<IDL extends Idl = Idl> extends Program<IDL> {
   // TODO: Some how correct the type to add the new optional args to methods RPC Fnc
