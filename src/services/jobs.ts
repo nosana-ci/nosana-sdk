@@ -20,6 +20,7 @@ const { BN } = anchor.default ? anchor.default : anchor;
 
 // local imports
 import { jobStateMapping, mapJob, excludedJobs } from '../utils.js';
+import { SOURCE_MINTS } from '../config.js';
 
 const pda = (
   seeds: Array<Buffer | Uint8Array>,
@@ -823,72 +824,86 @@ export class Jobs extends SolanaManager {
   }
 
   /**
-   * Swap SOL for NOS using Jupiter's Swap API (in a separate transaction).
-   * @param nosNeeded The amount of NOS (in whole tokens) to acquire.
-   * @returns The transaction signature for the swap.
+   * Swap a chosen token (SOL, USDC, or USDT) to NOS (stand-alone method: does not list jobs)
+   *
+   * @param nosNeeded The amount of NOS (in whole tokens) to acquire
+   * @param sourceToken One of 'SOL', 'USDC', or 'USDT'
+   * @returns Object containing the transaction signature
    */
-  public async swapSolToNos(nosNeeded: number): Promise<string> {
-    // Use your own logic if you need decimals. For example, if NOS has 6 decimals:
-    // e.g. if user wants 10 NOS and NOS has 6 decimals => 10_000_000
-    const nosAmountRaw = Math.ceil(nosNeeded * 1_000_000); // adjust for your token decimals
-
-    // 1) GET QUOTE from Jupiter
-    // We'll do an ExactOut approach so we pass the output amount
-    // and ask Jupiter for how many SOL we need.
-    const quoteUrl = new URL('https://quote-api.jup.ag/v6/quote');
-    quoteUrl.searchParams.append(
-      'inputMint',
-      'So11111111111111111111111111111111111111112',
-    ); // SOL
-    quoteUrl.searchParams.append('outputMint', this.config.nos_address); // NOS
-    quoteUrl.searchParams.append('swapMode', 'ExactOut');
-    quoteUrl.searchParams.append('amount', nosAmountRaw.toString());
-    // 50 bps = 0.5% slippage
-    quoteUrl.searchParams.append('slippageBps', '50');
-
-    const quoteResponse = await (await fetch(quoteUrl.toString())).json();
-
-    // Check if there's an error in the response
-    if (quoteResponse.error) {
-      throw new Error(`Jupiter quote error: ${quoteResponse.error}`);
+  public async swapToNos(
+    nosNeeded: number,
+    sourceToken: 'SOL' | 'USDC' | 'USDT',
+  ): Promise<{ txid: string }> {
+    // 1) Validate input
+    const inputMint = SOURCE_MINTS[sourceToken];
+    if (!inputMint) {
+      throw new Error(`Unsupported source token: ${sourceToken}`);
     }
 
-    // 2) GET SERIALIZED SWAP TRANSACTION from Jupiter
-    const swapBody = {
-      quoteResponse, // Use the entire response as Jupiter expects
+    // Convert NOS needed to its atomic amount (e.g., 6 decimals)
+    const nosAmountRaw = Math.ceil(nosNeeded * 1_000_000);
+
+    // 2) Get a quote from Jupiter using an ExactOut approach
+    const quoteQueryParams = new URLSearchParams({
+      inputMint,
+      outputMint: this.config.nos_address, // NOS mint
+      swapMode: 'ExactOut', // we want exactly `nosNeeded`
+      amount: nosAmountRaw.toString(),
+      slippageBps: '50', // example slippage
+    });
+    const quoteUrl = `https://api.jup.ag/swap/v1/quote?${quoteQueryParams.toString()}`;
+    const quoteResp = await fetch(quoteUrl);
+    const quoteJson = await quoteResp.json();
+
+    // Check quote response
+    if (quoteJson.error) {
+      throw new Error(`Jupiter quote error: ${quoteJson.error}`);
+    }
+    if (!quoteJson.outAmount) {
+      throw new Error(
+        `No valid quote found. amount=${nosAmountRaw} inputMint=${inputMint} outputMint=${this.config.nos_address}`,
+      );
+    }
+
+    // 3) Request a serialized swap transaction from Jupiter
+    const swapRequestBody = {
       userPublicKey: this.provider!.wallet.publicKey.toString(),
-      wrapAndUnwrapSol: true,
-      dynamicComputeUnitLimit: true, // allow dynamic compute limit
+      wrapAndUnwrapSol: sourceToken === 'SOL',
+      useSharedAccounts: true,
+      dynamicComputeUnitLimit: true,
+      skipUserAccountsRpcCalls: false,
       computeUnitPriceMicroLamports: this.config.priority_fee,
+      // The quote we just fetched:
+      quoteResponse: quoteJson,
     };
 
-    const swapTxResponse = await (
-      await fetch('https://quote-api.jup.ag/v6/swap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(swapBody),
-      })
-    ).json();
+    // POST to /swap/v1/swap with the quote
+    const swapResponse = await fetch('https://api.jup.ag/swap/v1/swap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(swapRequestBody),
+    });
+    const swapResponseJson = await swapResponse.json();
 
-    if (swapTxResponse.error) {
-      throw new Error(`Jupiter swap error: ${swapTxResponse.error}`);
+    if (swapResponseJson.error) {
+      throw new Error(`Jupiter swap error: ${swapResponseJson.error}`);
     }
-    const { swapTransaction, lastValidBlockHeight, blockhash } = swapTxResponse;
+    const { swapTransaction, lastValidBlockHeight } = swapResponseJson;
     if (!swapTransaction) {
       throw new Error(
         `No swapTransaction returned by Jupiter: ${JSON.stringify(
-          swapTxResponse,
+          swapResponseJson,
         )}`,
       );
     }
 
-    // 3) DESERIALIZE, SIGN & SEND
+    // 4) Get recent blockhash
+    const { blockhash } = await this.connection!.getLatestBlockhash();
+
+    // 5) Deserialize, sign, and send
     const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
     const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-    // Anchor's wallet signs the transaction:
     const signedTx = await this.provider!.wallet.signTransaction(transaction);
-
-    // 4) SEND THE TRANSACTION
     const txid = await this.connection!.sendRawTransaction(
       signedTx.serialize(),
       {
@@ -897,73 +912,16 @@ export class Jobs extends SolanaManager {
       },
     );
 
-    // 5) CONFIRM
+    // 6) Confirm transaction
     await this.connection!.confirmTransaction(
       {
-        blockhash: blockhash,
-        lastValidBlockHeight: lastValidBlockHeight,
+        blockhash,
+        lastValidBlockHeight,
         signature: txid,
       },
       'processed',
     );
 
-    return txid;
-  }
-
-  /**
-   * Method to list a Nosana Job, ensuring you have enough NOS tokens.
-   * If your balance is insufficient, it will first perform a swap (in a separate transaction),
-   * then list the job in a second transaction.
-   * @param ipfsHash String of the IPFS hash locating the Nosana Job data
-   * @param jobTimeout Number of seconds the job should run
-   * @param market Optional market PublicKey to list the job in
-   * @param maxRetries Optional number of retries for the swap (defaults to 3)
-   */
-  public async ensureNosAndListJob(
-    ipfsHash: string,
-    jobTimeout: number,
-    market?: PublicKey,
-  ): Promise<{ tx: string; job: string; run: string }> {
-    await this.loadNosanaJobs();
-    await this.setAccounts();
-
-    const marketInfo = await this.getMarket(market || this.accounts!.market);
-
-    // Calculate how many NOS we need
-    // (note you may want to tweak these multipliers if your fee or buffer estimates change frequently)
-    const baseAmount = (Number(marketInfo.jobPrice) * jobTimeout) / 1_000_000;
-    const withNetworkFee = baseAmount * 1.1;
-    const requiredNosAmount = withNetworkFee * 1.1; // Slight buffer to account for price fluctuations
-
-    // Check current NOS balance
-    const nosBalance = await this.getNosBalance();
-    const currentAmount = nosBalance?.uiAmount ?? 0;
-
-    // If not enough NOS, swap
-    if (currentAmount < requiredNosAmount) {
-      const nosShortage = requiredNosAmount - currentAmount;
-      console.log(
-        `Insufficient NOS (${currentAmount} < ${requiredNosAmount}). Swapping ~${nosShortage.toFixed(
-          2,
-        )} NOS worth of SOL...`,
-      );
-
-      // Perform the swap
-      await this.swapSolToNos(nosShortage);
-
-      // Wait a moment so that the new balance is registered on-chain (prevent race conditions)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Check if the new balance is sufficient now
-      const newBalance = await this.getNosBalance();
-      if ((newBalance?.uiAmount ?? 0) < requiredNosAmount) {
-        throw new Error(
-          'Swap completed but balance is still insufficient. Try again or check token decimals.',
-        );
-      }
-    }
-
-    // Now we have enough NOS, list the job
-    return await this.list(ipfsHash, jobTimeout, market);
+    return { txid };
   }
 }
