@@ -1,6 +1,6 @@
 {
   "name": "@nosana/sdk",
-  "version": "0.3.65",
+  "version": "0.3.66",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

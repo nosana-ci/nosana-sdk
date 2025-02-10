@@ -564,6 +564,9 @@ export class Stake extends SolanaManager {
    * @returns tx hash
    */
   async claimAndRestakeRewards(amount: number) {
+    await this.loadNosanaStake();
+    await this.setStakeAccounts();
+
     if (this.stakeAccounts && this.poolAccounts) {
       try {
         const decimals = 1e6;
