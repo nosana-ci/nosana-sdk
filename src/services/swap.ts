@@ -35,7 +35,7 @@ export class Swap extends SolanaManager {
     amount: number,
     inputMint: string,
   ): Promise<QuoteResponse> {
-    const { nodes_address: outputMint } = this.config;
+    const { nos_address: outputMint } = this.config;
     // Convert NOS needed to its atomic amount (e.g., 6 decimals)
     const nosAmountRaw = Math.ceil(amount * 1_000_000).toString();
 
