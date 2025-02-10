@@ -19,7 +19,7 @@ export const getRecentPrioritizationFees = async (
       jsonrpc: '2.0',
       id: 1,
       method: 'getRecentPrioritizationFees',
-      params: [SOL_MINT.toBase58(), USDC_MINT.toBase58()],
+      params: [[SOL_MINT.toBase58(), USDC_MINT.toBase58()]],
     }),
   });
   const json = await resp.json();
