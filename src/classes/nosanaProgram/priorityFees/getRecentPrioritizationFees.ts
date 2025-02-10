@@ -1,7 +1,9 @@
 import { PublicKey } from '@solana/web3.js';
 
-const SOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
-const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+import { SOURCE_MINTS } from '../../../config';
+
+const SOL_MINT = new PublicKey(SOURCE_MINTS.SOL);
+const USDC_MINT = new PublicKey(SOURCE_MINTS.USDC);
 
 export const getRecentPrioritizationFees = async (
   network: string,
