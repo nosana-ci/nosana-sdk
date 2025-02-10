@@ -16,8 +16,7 @@ export class NosanaProgram<IDL extends Idl = Idl> extends Program<IDL> {
     this.methods = new Proxy(this.methods, {
       get(target, prop) {
         return function (...args: unknown[]) {
-          // @ts-ignore
-          const method = target[prop](...args);
+          const method = target[prop as keyof typeof target](...args);
           const methodProxy = new Proxy(method, {
             get(target, prop) {
               if (prop === 'rpc') {
@@ -27,8 +26,7 @@ export class NosanaProgram<IDL extends Idl = Idl> extends Program<IDL> {
                   return await target[prop](options);
                 };
               }
-              // @ts-ignore
-              return target[prop];
+              return target[prop as keyof typeof target];
             },
           });
           return methodProxy;
