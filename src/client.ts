@@ -19,25 +19,6 @@ export * from './utils.js';
 
 polyfill();
 
-export const configSelector = (initConfig?: Config): Config => {
-  let config;
-
-  if (initConfig) {
-    if (config !== undefined) {
-      throw new Error('Config has already been initialised.');
-    }
-
-    config = initConfig;
-    return config;
-  }
-
-  if (!config) {
-    throw new Error('Config has not yet been initialised.');
-  }
-
-  return config;
-};
-
 export class Client {
   authorization: AuthorizationManager;
   solana: SolanaManager;
@@ -56,7 +37,7 @@ export class Client {
       wallet = process?.env?.SOLANA_WALLET || new KeyWallet(Keypair.generate());
     }
 
-    configSelector(new Config(environment, config));
+    new Config(environment, config);
 
     this.authorization = new AuthorizationManager(wallet);
     this.solana = new SolanaManager(wallet);

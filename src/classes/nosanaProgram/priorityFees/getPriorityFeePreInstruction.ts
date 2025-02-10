@@ -1,12 +1,12 @@
 import { ComputeBudgetProgram, TransactionInstruction } from '@solana/web3.js';
-import { getPriorityFee } from './getPriorityFee';
-import { configSelector } from '../../../client';
+
+import { Config } from '../../../config.js';
+import { getPriorityFee } from './getPriorityFee.js';
 
 export async function getPriorityFeePreInstruction(
   useFancyFees = false,
 ): Promise<TransactionInstruction[]> {
-  const { priority_fee: MINIMUM_PRIORITY_FEE = 0 } =
-    configSelector().solanaConfig;
+  const { priority_fee: MINIMUM_PRIORITY_FEE = 0 } = new Config().solanaConfig;
 
   const preInstructions: TransactionInstruction[] = [];
 
@@ -14,7 +14,7 @@ export async function getPriorityFeePreInstruction(
     ? MINIMUM_PRIORITY_FEE
     : await getPriorityFee();
 
-  if (priorityFee && priorityFee < 0) {
+  if (priorityFee && priorityFee > 0) {
     const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
       microLamports: priorityFee,
     });

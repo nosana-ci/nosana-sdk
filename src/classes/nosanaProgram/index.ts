@@ -13,29 +13,29 @@ export class NosanaProgram<IDL extends Idl = Idl> extends Program<IDL> {
   }
 
   private prioFeeProxyMethods() {
-    const proxy = new Proxy(this.methods, {
-      get: (target, prop) => {
-        return (...args: unknown[]) => {
+    this.methods = new Proxy(this.methods, {
+      get(target, prop) {
+        return function (...args: unknown[]) {
           // @ts-ignore
           const method = target[prop](...args);
-          const rpc = method.rpc;
 
-          method.rpc = async (
-            options?: ConfirmOptions & { disablePriorityFees?: boolean },
-          ) => {
-            if (options?.disablePriorityFees !== true) {
-              const preInstruction = await getPriorityFeePreInstruction();
-              method.preInstructions(preInstruction);
-            }
+          const methodProxy = new Proxy(method, {
+            get(target, prop) {
+              if (prop === 'rpc') {
+                return async function (options?: ConfirmOptions) {
+                  const preInstruction = await getPriorityFeePreInstruction();
+                  method.preInstructions(preInstruction);
 
-            return await rpc(options);
-          };
-
-          return method;
+                  return await target[prop](options);
+                };
+              }
+              // @ts-ignore
+              return target[prop];
+            },
+          });
+          return methodProxy;
         };
       },
     });
-
-    this.methods = proxy;
   }
 }

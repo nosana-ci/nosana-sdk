@@ -3,7 +3,7 @@ import bs58 from 'bs58';
 import FormData from 'form-data';
 import axios, { AxiosHeaders, AxiosInstance, AxiosRequestConfig } from 'axios';
 
-import { configSelector } from '../client.js';
+import { Config } from '../config.js';
 import type { IPFSConfig } from '../types/config.js';
 
 /**
@@ -15,7 +15,7 @@ export class IPFS {
   config: IPFSConfig;
 
   constructor() {
-    this.config = configSelector().ifpsConfig;
+    this.config = new Config().ifpsConfig;
     const headers: AxiosHeaders = new AxiosHeaders();
     if (this.config.jwt) {
       headers.set('Authorization', `Bearer ${this.config.jwt}`);

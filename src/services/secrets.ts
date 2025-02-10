@@ -7,7 +7,7 @@ import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 import nacl from 'tweetnacl';
 
 // local imports
-import { configSelector } from '../client.js';
+import { Config } from '../config.js';
 import { now, KeyWallet, getWallet } from '../utils.js';
 import type { SecretsConfig, Wallet } from '../types/index.js';
 
@@ -20,7 +20,7 @@ export class SecretManager {
   config: SecretsConfig;
   wallet: AnchorWallet;
   constructor(wallet: Wallet) {
-    this.config = configSelector().secertConfig;
+    this.config = new Config().secertConfig;
     this.wallet = getWallet(wallet);
     this.api = axios.create({ baseURL: this.config.manager });
     // if (existsSync(process.env.SECRET_TOKEN))

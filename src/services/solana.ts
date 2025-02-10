@@ -66,7 +66,6 @@ import type {
 } from '../types/index.js';
 import { KeyWallet, getWallet, pda, sleep } from '../utils.js';
 import { NosanaProgram } from '../classes/nosanaProgram/index.js';
-import { configSelector } from '../client.js';
 
 const { decodeUTF8 } = tweetnaclutil;
 
@@ -96,7 +95,7 @@ export class SolanaManager {
   wallet: AnchorWallet;
   connection: Connection | undefined;
   constructor(wallet: Wallet) {
-    this.config = configSelector().solanaConfig;
+    this.config = new Config().solanaConfig;
     this.wallet = getWallet(wallet);
 
     if (typeof process !== 'undefined' && process.env?.ANCHOR_PROVIDER_URL) {

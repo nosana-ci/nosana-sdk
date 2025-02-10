@@ -6,14 +6,21 @@ import type {
 } from './types/index.js';
 
 export class Config {
-  public readonly secertConfig: SecretsConfig;
-  public readonly solanaConfig: SolanaConfig;
-  public readonly ifpsConfig: IPFSConfig;
+  static _instance: Config;
+  public readonly secertConfig!: SecretsConfig;
+  public readonly solanaConfig!: SolanaConfig;
+  public readonly ifpsConfig!: IPFSConfig;
 
   constructor(
-    readonly environment: 'devnet' | 'mainnet' = 'mainnet',
+    readonly environment: 'devnet' | 'mainnet' = 'devnet',
     config?: Partial<ClientConfig>,
   ) {
+    if (Config._instance) {
+      return Config._instance;
+    }
+
+    Config._instance = this;
+
     this.secertConfig = Object.assign(
       secretsConfigPreset[this.environment],
       config?.secrets,
