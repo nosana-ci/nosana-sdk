@@ -23,7 +23,7 @@ export class NosanaProgram<IDL extends Idl = Idl> extends Program<IDL> {
               if (prop === 'rpc') {
                 return async function (options?: ConfirmOptions) {
                   const preInstruction = await getPriorityFeePreInstruction();
-                  method.preInstructions(preInstruction);
+                  target['preInstructions'](preInstruction);
                   return await target[prop](options);
                 };
               }
