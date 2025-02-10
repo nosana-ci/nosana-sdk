@@ -18,14 +18,12 @@ export class NosanaProgram<IDL extends Idl = Idl> extends Program<IDL> {
         return function (...args: unknown[]) {
           // @ts-ignore
           const method = target[prop](...args);
-
           const methodProxy = new Proxy(method, {
             get(target, prop) {
               if (prop === 'rpc') {
                 return async function (options?: ConfirmOptions) {
                   const preInstruction = await getPriorityFeePreInstruction();
                   method.preInstructions(preInstruction);
-
                   return await target[prop](options);
                 };
               }
