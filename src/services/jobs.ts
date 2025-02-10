@@ -1,5 +1,4 @@
 // external imports
-import fetch from 'cross-fetch';
 import * as anchor from '@coral-xyz/anchor';
 import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
 import {
@@ -8,7 +7,6 @@ import {
   SendTransactionError,
   TransactionInstruction,
   TransactionSignature,
-  VersionedTransaction,
 } from '@solana/web3.js';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 
@@ -20,7 +18,6 @@ const { BN } = anchor.default ? anchor.default : anchor;
 
 // local imports
 import { jobStateMapping, mapJob, excludedJobs } from '../utils.js';
-import { SOURCE_MINTS } from '../config.js';
 
 const pda = (
   seeds: Array<Buffer | Uint8Array>,
@@ -821,107 +818,5 @@ export class Jobs extends SolanaManager {
       })
       .rpc();
     return tx;
-  }
-
-  /**
-   * Swap a chosen token (SOL, USDC, or USDT) to NOS (stand-alone method: does not list jobs)
-   *
-   * @param nosNeeded The amount of NOS (in whole tokens) to acquire
-   * @param sourceToken One of 'SOL', 'USDC', or 'USDT'
-   * @returns Object containing the transaction signature
-   */
-  public async swapToNos(
-    nosNeeded: number,
-    sourceToken: 'SOL' | 'USDC' | 'USDT',
-  ): Promise<{ txid: string }> {
-    // 1) Validate input
-    const inputMint = SOURCE_MINTS[sourceToken];
-    if (!inputMint) {
-      throw new Error(`Unsupported source token: ${sourceToken}`);
-    }
-
-    // Convert NOS needed to its atomic amount (e.g., 6 decimals)
-    const nosAmountRaw = Math.ceil(nosNeeded * 1_000_000);
-
-    // 2) Get a quote from Jupiter using an ExactOut approach
-    const quoteQueryParams = new URLSearchParams({
-      inputMint,
-      outputMint: this.config.nos_address, // NOS mint
-      swapMode: 'ExactOut', // we want exactly `nosNeeded`
-      amount: nosAmountRaw.toString(),
-      slippageBps: '50', // example slippage
-    });
-    const quoteUrl = `https://api.jup.ag/swap/v1/quote?${quoteQueryParams.toString()}`;
-    const quoteResp = await fetch(quoteUrl);
-    const quoteJson = await quoteResp.json();
-
-    // Check quote response
-    if (quoteJson.error) {
-      throw new Error(`Jupiter quote error: ${quoteJson.error}`);
-    }
-    if (!quoteJson.outAmount) {
-      throw new Error(
-        `No valid quote found. amount=${nosAmountRaw} inputMint=${inputMint} outputMint=${this.config.nos_address}`,
-      );
-    }
-
-    // 3) Request a serialized swap transaction from Jupiter
-    const swapRequestBody = {
-      userPublicKey: this.provider!.wallet.publicKey.toString(),
-      wrapAndUnwrapSol: sourceToken === 'SOL',
-      useSharedAccounts: true,
-      dynamicComputeUnitLimit: true,
-      skipUserAccountsRpcCalls: false,
-      computeUnitPriceMicroLamports: this.config.priority_fee,
-      // The quote we just fetched:
-      quoteResponse: quoteJson,
-    };
-
-    // POST to /swap/v1/swap with the quote
-    const swapResponse = await fetch('https://api.jup.ag/swap/v1/swap', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(swapRequestBody),
-    });
-    const swapResponseJson = await swapResponse.json();
-
-    if (swapResponseJson.error) {
-      throw new Error(`Jupiter swap error: ${swapResponseJson.error}`);
-    }
-    const { swapTransaction, lastValidBlockHeight } = swapResponseJson;
-    if (!swapTransaction) {
-      throw new Error(
-        `No swapTransaction returned by Jupiter: ${JSON.stringify(
-          swapResponseJson,
-        )}`,
-      );
-    }
-
-    // 4) Get recent blockhash
-    const { blockhash } = await this.connection!.getLatestBlockhash();
-
-    // 5) Deserialize, sign, and send
-    const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
-    const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-    const signedTx = await this.provider!.wallet.signTransaction(transaction);
-    const txid = await this.connection!.sendRawTransaction(
-      signedTx.serialize(),
-      {
-        skipPreflight: false,
-        maxRetries: 5,
-      },
-    );
-
-    // 6) Confirm transaction
-    await this.connection!.confirmTransaction(
-      {
-        blockhash,
-        lastValidBlockHeight,
-        signature: txid,
-      },
-      'processed',
-    );
-
-    return { txid };
   }
 }

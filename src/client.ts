@@ -8,6 +8,7 @@ import {
   Jobs,
   Nodes,
   Stake,
+  Swap,
 } from './services/index.js';
 import { Config } from './config.js';
 import { KeyWallet, polyfill } from './utils.js';
@@ -27,6 +28,7 @@ export class Client {
   jobs: Jobs;
   nodes: Nodes;
   stake: Stake;
+  swap: Swap;
 
   constructor(
     environment: 'devnet' | 'mainnet' = 'devnet',
@@ -46,5 +48,6 @@ export class Client {
     this.jobs = new Jobs(wallet);
     this.nodes = new Nodes(wallet);
     this.stake = new Stake(wallet);
+    this.swap = new Swap(wallet);
   }
 }
