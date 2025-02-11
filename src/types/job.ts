@@ -15,6 +15,7 @@ export type JobDefinition = {
   type: JobType;
   meta?: {
     trigger?: string;
+    required_vram?: number;
   };
   global?: {
     image?: string;
@@ -23,7 +24,6 @@ export type JobDefinition = {
     env?: {
       [key: string]: string;
     };
-    required_vram?: number;
     work_dir?: string;
   };
   ops: Ops;
