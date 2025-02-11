@@ -778,6 +778,46 @@ export class Jobs extends SolanaManager {
     return tx;
   }
 
+  async complete(results: Array<any>, job: PublicKey | string) {
+    if (typeof job === 'string') job = new PublicKey(job);
+
+    await this.loadNosanaJobs();
+    await this.setAccounts();
+
+    const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
+
+    if (jobAccount.state !== 2) {
+      throw new Error('Cannot complete a job that has not been stopped.');
+    }
+
+    if (jobAccount.ipfsResult) {
+      throw new Error('Job has already been completed.');
+    }
+
+    try {
+      const tx = await this.jobs!.methods.complete(results)
+        .accounts({ job, authority: this.provider!.wallet.publicKey })
+        .rpc();
+
+      return {
+        tx,
+        job,
+      };
+    } catch (e) {
+      if (e instanceof SendTransactionError) {
+        if (
+          e.message.includes(
+            'Attempt to debit an account but found no record of a prior credit',
+          )
+        ) {
+          e.message = 'Not enough SOL to make transaction';
+          throw e;
+        }
+      }
+      throw e;
+    }
+  }
+
   /**
    * Function to quit a job
    * @param run Run account of the job
