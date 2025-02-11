@@ -15,7 +15,7 @@ export type JobDefinition = {
   type: JobType;
   meta?: {
     trigger?: string;
-    system_requirments?: {
+    system_requirements?: {
        [key: string]: number | string
     }
   };
