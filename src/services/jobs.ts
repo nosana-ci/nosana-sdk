@@ -33,31 +33,52 @@ export class Jobs extends SolanaManager {
    * Function to list a Nosana Job in a market
    * @param ipfsHash String of the IPFS hash locating the Nosana Job data.
    */
-  async list(ipfsHash: string, jobTimeout: number, market?: PublicKey) {
+  async list(
+    ipfsHash: string,
+    jobTimeout: number,
+    market: PublicKey,
+    node?: string | PublicKey,
+  ) {
     await this.loadNosanaJobs();
     await this.setAccounts();
     const jobKey = Keypair.generate();
     const runKey = Keypair.generate();
     try {
+      const accounts = {
+        ...this.accounts,
+        job: jobKey.publicKey,
+        run: runKey.publicKey,
+        market: market,
+        vault: pda(
+          [
+            market.toBuffer(),
+            new PublicKey(this.config.nos_address).toBuffer(),
+          ],
+          this.jobs!.programId,
+        ),
+      };
+
+      if (node) {
+        if (typeof node === 'string') node = new PublicKey(node);
+        const tx = await this.jobs!.methods.assign(
+          [...bs58.decode(ipfsHash).subarray(2)],
+          new BN(jobTimeout),
+        )
+          .accounts({ ...accounts, node })
+          .signers([jobKey, runKey])
+          .rpc();
+
+        return {
+          tx,
+          job: jobKey.publicKey.toBase58(),
+          run: runKey.publicKey.toBase58(),
+        };
+      }
       const tx = await this.jobs!.methods.list(
         [...bs58.decode(ipfsHash).subarray(2)],
         new BN(jobTimeout),
       )
-        .accounts({
-          ...this.accounts,
-          job: jobKey.publicKey,
-          run: runKey.publicKey,
-          market: market ? market : this.accounts?.market,
-          vault: market
-            ? pda(
-                [
-                  market.toBuffer(),
-                  new PublicKey(this.config.nos_address).toBuffer(),
-                ],
-                this.jobs!.programId,
-              )
-            : this.accounts?.vault,
-        })
+        .accounts(accounts)
         .signers([jobKey, runKey])
         .rpc();
       return {
