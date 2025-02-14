@@ -44,8 +44,7 @@
     "rollup-plugin-polyfill-node": "^0.12.0",
     "ts-jest": "^29.2.5",
     "ts-patch": "^3.3.0",
-    "typescript": "*",
-    "typia": "^7.6.0"
+    "typescript": "*"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.28.1-beta.1",
@@ -63,6 +62,7 @@
     "form-data": "^4.0.0",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",
+    "typia": "^7.6.4",
     "util": "^0.12.5"
   }
 }
