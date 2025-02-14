@@ -1,6 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
 
-import { SOURCE_MINTS } from '../../../config';
+import { SOURCE_MINTS } from '../../../config.js';
 
 const SOL_MINT = new PublicKey(SOURCE_MINTS.SOL);
 const USDC_MINT = new PublicKey(SOURCE_MINTS.USDC);
