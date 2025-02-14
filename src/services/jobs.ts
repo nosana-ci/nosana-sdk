@@ -805,7 +805,7 @@ export class Jobs extends SolanaManager {
    * Exit the node queue
    * @returns
    */
-  async stop(market: string | PublicKey, node: string | PublicKey) {
+  async stop(market: string | PublicKey, node?: string | PublicKey) {
     await this.loadNosanaJobs();
     await this.setAccounts();
     if (typeof market === 'string') market = new PublicKey(market);
@@ -814,7 +814,7 @@ export class Jobs extends SolanaManager {
       .accounts({
         ...this.accounts,
         market,
-        node,
+        node: node || this.wallet.publicKey,
       })
       .rpc();
     return tx;
