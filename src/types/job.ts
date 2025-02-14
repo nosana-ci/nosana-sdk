@@ -15,9 +15,10 @@ export type JobDefinition = {
   type: JobType;
   meta?: {
     trigger?: string;
-    system_requirements?: {
-       [key: string]: number | string
-    }
+    system_resources?: { 
+      [key: string]: string | number
+    };
+    [key: string]: unknown;
   };
   global?: {
     image?: string;
