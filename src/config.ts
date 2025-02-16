@@ -63,7 +63,7 @@ const solanaConfigPreset: { [key: string]: SolanaConfig } = {
     stake_address: 'nosScmHY2uR24Zh751PmGj9ww9QRNHewh9H59AfrTJE',
     pools_address: 'nosPdZrfDzND1LAR28FLMDEATUPK53K8xbRBXAirevD',
     pool_address: 'miF9saGY5WS747oia48WR3CMFZMAGG8xt6ajB7rdV3e',
-    dynamicPriorityFee: true,
+    dynamicPriorityFee: false,
     priorityFeeStrategy: 'medium',
     maximumPriorityFee: 50000000,
   } as SolanaConfig,
