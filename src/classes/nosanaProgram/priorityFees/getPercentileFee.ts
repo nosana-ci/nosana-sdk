@@ -33,13 +33,15 @@ export function getFeePrecentiles(
     unsafeMax: getPercentileFee(fees, 100), // 100th percentile
   };
 
-  console.log('\nPriority Fees (microLamports):');
-  console.log(`  Min (0th): ${feeLevels.min}`);
-  console.log(`  Low (25th): ${feeLevels.low}`);
-  console.log(`  Medium (50th): ${feeLevels.medium}`);
-  console.log(`  High (70th): ${feeLevels.high}`);
-  console.log(`  Very High (85th): ${feeLevels.veryHigh}`);
-  console.log(`  Unsafe Max (100th): ${feeLevels.unsafeMax}`);
+  if (typeof window !== 'undefined') {
+    console.log('\nPriority Fees (microLamports):');
+    console.log(`  Min (0th): ${feeLevels.min}`);
+    console.log(`  Low (25th): ${feeLevels.low}`);
+    console.log(`  Medium (50th): ${feeLevels.medium}`);
+    console.log(`  High (70th): ${feeLevels.high}`);
+    console.log(`  Very High (85th): ${feeLevels.veryHigh}`);
+    console.log(`  Unsafe Max (100th): ${feeLevels.unsafeMax}`);
+  }
 
   return feeLevels[strategy] ?? feeLevels.medium;
 }
