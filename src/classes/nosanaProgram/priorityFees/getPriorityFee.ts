@@ -36,7 +36,7 @@ export const getPriorityFee = async (): Promise<number> => {
       Math.max(selectedFee, MINIMUM_PRIORITY_FEE),
       MAXIMUM_PRIORITY_FEE,
     );
-    if (finalFee !== selectedFee) {
+    if (finalFee !== selectedFee && typeof window !== 'undefined') {
       console.log(
         `Fee adjusted from ${selectedFee} to ${finalFee} to meet limits (${MINIMUM_PRIORITY_FEE} - ${MAXIMUM_PRIORITY_FEE})`,
       );
