@@ -36,9 +36,11 @@ export class Jobs extends SolanaManager {
   async list(
     ipfsHash: string,
     jobTimeout: number,
-    market: PublicKey,
+    market: string | PublicKey,
     node?: string | PublicKey,
   ) {
+    if (typeof market === 'string') market = new PublicKey(market);
+
     await this.loadNosanaJobs();
     await this.setAccounts();
     const jobKey = Keypair.generate();
