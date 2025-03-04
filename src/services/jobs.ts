@@ -33,31 +33,54 @@ export class Jobs extends SolanaManager {
    * Function to list a Nosana Job in a market
    * @param ipfsHash String of the IPFS hash locating the Nosana Job data.
    */
-  async list(ipfsHash: string, jobTimeout: number, market?: PublicKey) {
+  async list(
+    ipfsHash: string,
+    jobTimeout: number,
+    market: string | PublicKey,
+    node?: string | PublicKey,
+  ) {
+    if (typeof market === 'string') market = new PublicKey(market);
+
     await this.loadNosanaJobs();
     await this.setAccounts();
     const jobKey = Keypair.generate();
     const runKey = Keypair.generate();
     try {
+      const accounts = {
+        ...this.accounts,
+        job: jobKey.publicKey,
+        run: runKey.publicKey,
+        market: market,
+        vault: pda(
+          [
+            market.toBuffer(),
+            new PublicKey(this.config.nos_address).toBuffer(),
+          ],
+          this.jobs!.programId,
+        ),
+      };
+
+      if (node) {
+        if (typeof node === 'string') node = new PublicKey(node);
+        const tx = await this.jobs!.methods.assign(
+          [...bs58.decode(ipfsHash).subarray(2)],
+          new BN(jobTimeout),
+        )
+          .accounts({ ...accounts, node })
+          .signers([jobKey, runKey])
+          .rpc();
+
+        return {
+          tx,
+          job: jobKey.publicKey.toBase58(),
+          run: runKey.publicKey.toBase58(),
+        };
+      }
       const tx = await this.jobs!.methods.list(
         [...bs58.decode(ipfsHash).subarray(2)],
         new BN(jobTimeout),
       )
-        .accounts({
-          ...this.accounts,
-          job: jobKey.publicKey,
-          run: runKey.publicKey,
-          market: market ? market : this.accounts?.market,
-          vault: market
-            ? pda(
-                [
-                  market.toBuffer(),
-                  new PublicKey(this.config.nos_address).toBuffer(),
-                ],
-                this.jobs!.programId,
-              )
-            : this.accounts?.vault,
-        })
+        .accounts(accounts)
         .signers([jobKey, runKey])
         .rpc();
       return {
@@ -776,6 +799,46 @@ export class Jobs extends SolanaManager {
       })
       .rpc();
     return tx;
+  }
+
+  async complete(results: Array<any>, job: PublicKey | string) {
+    if (typeof job === 'string') job = new PublicKey(job);
+
+    await this.loadNosanaJobs();
+    await this.setAccounts();
+
+    const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
+
+    if (jobAccount.state !== 2) {
+      throw new Error('Cannot complete a job that has not been stopped.');
+    }
+
+    if (jobAccount.ipfsResult) {
+      throw new Error('Job has already been completed.');
+    }
+
+    try {
+      const tx = await this.jobs!.methods.complete(results)
+        .accounts({ job, authority: this.provider!.wallet.publicKey })
+        .rpc();
+
+      return {
+        tx,
+        job,
+      };
+    } catch (e) {
+      if (e instanceof SendTransactionError) {
+        if (
+          e.message.includes(
+            'Attempt to debit an account but found no record of a prior credit',
+          )
+        ) {
+          e.message = 'Not enough SOL to make transaction';
+          throw e;
+        }
+      }
+      throw e;
+    }
   }
 
   /**
