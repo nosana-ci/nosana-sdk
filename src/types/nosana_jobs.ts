@@ -184,6 +184,88 @@ export type NosanaJobs = {
       args: [];
     },
     {
+      name: 'assign';
+      accounts: [
+        {
+          name: 'job';
+          isMut: true;
+          isSigner: true;
+        },
+        {
+          name: 'market';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'run';
+          isMut: true;
+          isSigner: true;
+        },
+        {
+          name: 'node';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'user';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'vault';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payer';
+          isMut: true;
+          isSigner: true;
+        },
+        {
+          name: 'rewardsReflection';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'rewardsVault';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'authority';
+          isMut: false;
+          isSigner: true;
+        },
+        {
+          name: 'rewardsProgram';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'tokenProgram';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'systemProgram';
+          isMut: false;
+          isSigner: false;
+        },
+      ];
+      args: [
+        {
+          name: 'ipfsJob';
+          type: {
+            array: ['u8', 32];
+          };
+        },
+        {
+          name: 'timeout';
+          type: 'i64';
+        },
+      ];
+    },
+    {
       name: 'list';
       docs: [
         'Create a [JobAccount](#job-account) and optional [RunAccount](#run-account).',
