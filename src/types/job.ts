@@ -10,6 +10,46 @@ export { IValidation };
  ************************/
 export type Ops = Array<Operation<OperationType>>;
 
+// Define service types as individual types
+export type WebService = "web";
+export type ApiService = "api";
+export type WebApiService = "webapi";
+export type WebSocketService = "websocket";
+export type NoneService = "none";
+
+// Union type for all service types 
+export type ServiceType = WebService | ApiService | WebSocketService | WebApiService | NoneService;
+
+// Define health check types as individual types
+export type HttpHealthCheckType = "http";
+export type WebSocketHealthCheckType = "websocket";
+
+// Union type for all health check types
+export type HealthCheckType = HttpHealthCheckType | WebSocketHealthCheckType;
+
+// Define HealthCheck structure based on HealthCheckType
+export type HttpHealthCheck = {
+  type: HttpHealthCheckType;
+  path: string;
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  expected_status: number;
+};
+
+export type WebSocketHealthCheck = {
+  type: WebSocketHealthCheckType;
+  expected_response: string;
+};
+
+// Union type for health checks
+export type HealthCheck = HttpHealthCheck | WebSocketHealthCheck;
+
+// Define the structure for exposed ports
+export type ExposedPort = {
+  port: number;
+  type?: ServiceType;
+  health_checks?: HealthCheck[];
+};
+
 export type JobDefinition = {
   version: string;
   type: JobType;
@@ -49,7 +89,7 @@ export interface OperationArgsMap {
         dest: string;
       },
     ];
-    expose?: number;
+    expose?: number | (number | ExposedPort)[];
     private?: boolean;
     gpu?: boolean;
     work_dir?: string;
