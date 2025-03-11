@@ -93,7 +93,7 @@ const getJobExposeIdHash = (
                 const exposeId = getExposeIdHash(
                     flowId,
                     op.id,
-                    port.toString(),
+                    port.port.toString(),
                 );
                 hashes.push(`${exposeId}`);
             });
