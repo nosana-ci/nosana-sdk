@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
 import { ExposedPort, JobDefinition, Operation, OperationArgsMap, OperationType } from "../types";
 
 const isPrivate = (job: JobDefinition): boolean => {
