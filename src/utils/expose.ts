@@ -1,9 +1,9 @@
 import bs58 from "bs58";
-import { hash } from "tweetnacl";
+import nacl from "tweetnacl";
 import { ExposedPort, JobDefinition, Operation, OperationArgsMap, OperationType } from "../types";
 
 const createHash = (inputString: string, idLength: number = 44): string => {
-    const base58Encoded = bs58.encode(hash(new TextEncoder().encode(inputString)));
+    const base58Encoded = bs58.encode(nacl.hash(new TextEncoder().encode(inputString)));
     return  base58Encoded.slice(0, idLength);
 }
 
