@@ -1,30 +1,10 @@
+import bs58 from "bs58";
+import { hash } from "tweetnacl";
 import { ExposedPort, JobDefinition, Operation, OperationArgsMap, OperationType } from "../types";
 
-const createHash = (inputString: string, idLength: number = 45): string => {
-    let hash1 = 0x811c9dc5; // FNV-1a 32-bit prime
-    let hash2 = 0xC5F375A7; // Another large prime
-
-    for (let i = 0; i < inputString.length; i++) {
-        const char = inputString.charCodeAt(i);
-        
-        // Hash1: FNV-1a style hash
-        hash1 ^= char;
-        hash1 += (hash1 << 1) + (hash1 << 4) + (hash1 << 7) + (hash1 << 8) + (hash1 << 24);
-
-        // Hash2: XOR-shift mixing
-        hash2 ^= char;
-        hash2 = (hash2 << 5) ^ (hash2 >> 3);
-    }
-
-    // Combine both hashes and convert to hex
-    let hexHash = ((hash1 >>> 0).toString(16) + (hash2 >>> 0).toString(16)).toLowerCase();
-
-    // Extend or truncate the hash to the desired length
-    while (hexHash.length < idLength) {
-        hexHash += hexHash;
-    }
-
-    return hexHash.substring(0, idLength);
+const createHash = (inputString: string, idLength: number = 44): string => {
+    const base58Encoded = bs58.encode(hash(new TextEncoder().encode(inputString)));
+    return  base58Encoded.slice(0, idLength);
 }
 
 const isPrivate = (job: JobDefinition): boolean => {
@@ -65,11 +45,11 @@ const isOpExposed = (op: Operation<'container/run'>): boolean => {
 
 const getExposeIdHash = (
     flowId: string,
-    opId: string,
-    port: string,
+    opIndex: number,
+    port: number,
 ): string => {
-    const idLength = 45;
-    const inputString = `${flowId}:${opId}:${port}`;
+    const idLength = 44;
+    const inputString = `${opIndex}:${port}:${flowId}`;
     return createHash(inputString, idLength);
 };
 
@@ -85,15 +65,15 @@ const getJobExposeIdHash = (
         return ['private'];
     }
 
-    Object.entries(job.ops).forEach(([, op]) => {
+    Object.entries(job.ops).forEach(([, op], index) => {
         if (isOpExposed(op as Operation<'container/run'>)) {
             const exposePorts = getExposePorts(op as Operation<'container/run'>);
 
             exposePorts.forEach((port) => {
                 const exposeId = getExposeIdHash(
                     flowId,
-                    op.id,
-                    port.port.toString(),
+                    index,
+                    port.port,
                 );
                 hashes.push(`${exposeId}`);
             });
