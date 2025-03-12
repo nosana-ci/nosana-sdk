@@ -1,9 +1,9 @@
 import bs58 from "bs58";
+import { hash } from "tweetnacl";
 import { ExposedPort, JobDefinition, Operation, OperationArgsMap, OperationType } from "../types";
 
 const createHash = (inputString: string, idLength: number = 44): string => {
-    const data = new TextEncoder().encode(inputString);
-    const base58Encoded = bs58.encode(data);
+    const base58Encoded = bs58.encode(hash(new TextEncoder().encode(inputString)));
     return  base58Encoded.slice(0, idLength);
 }
 
@@ -49,7 +49,7 @@ const getExposeIdHash = (
     port: number,
 ): string => {
     const idLength = 44;
-    const inputString = `${flowId}:${opIndex}:${port}`;
+    const inputString = `${opIndex}:${port}:${flowId}`;
     return createHash(inputString, idLength);
 };
 
