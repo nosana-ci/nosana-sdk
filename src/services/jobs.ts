@@ -19,6 +19,9 @@ const { BN } = anchor.default ? anchor.default : anchor;
 // local imports
 import { jobStateMapping, mapJob, excludedJobs } from '../utils.js';
 
+const emptyResults =
+  '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0';
+
 const pda = (
   seeds: Array<Buffer | Uint8Array>,
   programId: PublicKey,
@@ -813,7 +816,7 @@ export class Jobs extends SolanaManager {
       throw new Error('Cannot complete a job that has not been stopped.');
     }
 
-    if (jobAccount.ipfsResult) {
+    if (jobAccount.ipfsResult.toString() !== emptyResults) {
       throw new Error('Job has already been completed.');
     }
 
