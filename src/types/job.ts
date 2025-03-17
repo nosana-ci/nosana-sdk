@@ -50,9 +50,41 @@ export type ExposedPort = {
   health_checks?: HealthCheck[];
 };
 
+export interface JobLogistics {
+  send?: SendJobDefinationLogicstics;
+  receive?: ReceiveJobResultLogicstics;
+}
+
+/**
+ * api-listen - we have an api listenening for the job poster to send the job description
+ * api        - we recieve an api endpoint to query and it will return the job description
+ */
+export type SendJobDefinationLogicsticsTypes = 'api' | 'api-listen';
+
+export interface SendJobDefinationLogicstics {
+  type: SendJobDefinationLogicsticsTypes;
+  args: {
+    endpoint?: string;
+  };
+}
+
+/**
+ * api-listen - we have an api that listen for request from the job poster, so we can return the result to them
+ * api        - we get an api to post the result to
+ */
+export type ReceiveJobResultLogicsticsTypes = 'api' | 'api-listen';
+
+export interface ReceiveJobResultLogicstics {
+  type: ReceiveJobResultLogicsticsTypes;
+  args: {
+    endpoint?: string;
+  };
+}
+
 export type JobDefinition = {
   version: string;
   type: JobType;
+  logistics?: JobLogistics;
   meta?: {
     trigger?: string;
     system_resources?: { 
