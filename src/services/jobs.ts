@@ -124,9 +124,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       jobAccount.price > 0
         ? await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            jobAccount.project,
-          )
+          new PublicKey(this.config.nos_address),
+          jobAccount.project,
+        )
         : market.vault;
 
     try {
@@ -162,6 +162,7 @@ export class Jobs extends SolanaManager {
   /**
    * Function to extend a running job from chain
    * @param job Publickey address of the job to extend
+   * @param jobTimeout Time in minutes to extend the job
    */
   async extend(job: PublicKey | string, jobTimeout: number) {
     if (typeof job === 'string') job = new PublicKey(job);
@@ -175,8 +176,12 @@ export class Jobs extends SolanaManager {
 
     const market = await this.getMarket(jobAccount.market);
 
+    // Add the current timeout to the extend time to make it feel like we're adding time
+    const currentTimeout = jobAccount.timeout ? new BN(jobAccount.timeout) : new BN(0);
+    const extendTimeOut = new BN(jobTimeout).add(currentTimeout); // 60 seconds in a minute
+
     try {
-      const tx = await this.jobs!.methods.extend(new BN(jobTimeout))
+      const tx = await this.jobs!.methods.extend(extendTimeOut)
         .accounts({
           ...this.accounts,
           job: job,
@@ -249,9 +254,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       jobAccount.price > 0
         ? await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            jobAccount.project,
-          )
+          new PublicKey(this.config.nos_address),
+          jobAccount.project,
+        )
         : market.vault;
 
     try {
@@ -780,9 +785,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       job.price > 0
         ? await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            job.project,
-          )
+          new PublicKey(this.config.nos_address),
+          job.project,
+        )
         : market.vault;
     const tx = await this.jobs!.methods.finish(result)
       .accounts({
