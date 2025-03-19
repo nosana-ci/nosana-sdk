@@ -190,12 +190,11 @@ export class Jobs extends SolanaManager {
 
     // Add the current timeout to the extend time to make it feel like we're adding time
     // The unit of account for the timeout is in seconds
-    const currentTimeout = jobAccount.timeout ? new BN(jobAccount.timeout) : new BN(0);
-    const newTimeOut = currentTimeout.add(new BN(jobTimeout)); // Add the new time to the current time
+    const newTimeout = new BN(jobAccount.timeout || 0).add(new BN(jobTimeout))
 
     try {
       // The timeout passed to the extend function always expects the time to be in seconds and to be larger than the current timeOut.
-      const tx = await this.jobs!.methods.extend(newTimeOut)
+      const tx = await this.jobs!.methods.extend(newTimeout)
         .accounts({
           ...this.accounts,
           job: job,
