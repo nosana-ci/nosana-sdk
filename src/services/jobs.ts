@@ -212,7 +212,7 @@ export class Jobs extends SolanaManager {
    * Function to end a running job from chain
    * @param job Publickey address of the job to end
    */
-  async end(job: PublicKey | string) {
+  async end(job: PublicKey | string, instructionOnly?: boolean) {
     if (typeof job === 'string') job = new PublicKey(job);
     await this.loadNosanaJobs();
     await this.setAccounts();
@@ -269,13 +269,16 @@ export class Jobs extends SolanaManager {
           payer: jobAccount.payer,
           deposit: depositAta,
         })
-        .signers([])
-        .rpc();
+        .signers([]);
 
-      return {
-        tx,
-        job: job.toBase58(),
-      };
+      if (instructionOnly) {
+        return await tx.instruction();
+      } else {
+        return {
+          tx: await tx.rpc(),
+          job: job.toBase58(),
+        };
+      }
     } catch (e: any) {
       if (e instanceof SendTransactionError) {
         if (
@@ -871,18 +874,25 @@ export class Jobs extends SolanaManager {
    * Exit the node queue
    * @returns
    */
-  async stop(market: string | PublicKey, node?: string | PublicKey) {
+  async stop(
+    market: string | PublicKey,
+    node?: string | PublicKey,
+    instructionOnly?: boolean,
+  ) {
     await this.loadNosanaJobs();
     await this.setAccounts();
     if (typeof market === 'string') market = new PublicKey(market);
     if (typeof node === 'string') node = new PublicKey(node);
-    const tx = await this.jobs!.methods.stop()
-      .accounts({
-        ...this.accounts,
-        market,
-        node: node || this.wallet.publicKey,
-      })
-      .rpc();
-    return tx;
+    const tx = await this.jobs!.methods.stop().accounts({
+      ...this.accounts,
+      market,
+      node: node || this.wallet.publicKey,
+    });
+
+    if (instructionOnly) {
+      return await tx.instruction();
+    } else {
+      return await tx.rpc();
+    }
   }
 }
