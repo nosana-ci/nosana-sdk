@@ -41,6 +41,7 @@ export class Jobs extends SolanaManager {
     jobTimeout: number,
     market: string | PublicKey,
     node?: string | PublicKey,
+    instructionOnly?: boolean,
   ) {
     if (typeof market === 'string') market = new PublicKey(market);
 
@@ -84,13 +85,17 @@ export class Jobs extends SolanaManager {
         new BN(jobTimeout),
       )
         .accounts(accounts)
-        .signers([jobKey, runKey])
-        .rpc();
-      return {
-        tx,
-        job: jobKey.publicKey.toBase58(),
-        run: runKey.publicKey.toBase58(),
-      };
+        .signers([jobKey, runKey]);
+
+      if (instructionOnly) {
+        return await tx.instruction();
+      } else {
+        return {
+          tx: await tx.rpc(),
+          job: jobKey.publicKey.toBase58(),
+          run: runKey.publicKey.toBase58(),
+        };
+      }
     } catch (e: any) {
       if (e instanceof SendTransactionError) {
         if (
@@ -109,7 +114,7 @@ export class Jobs extends SolanaManager {
    * Function to delist a Nosana Job in a market
    * @param jobAddress Publickey address of the job to delist.
    */
-  async delist(jobAddress: PublicKey | string) {
+  async delist(jobAddress: PublicKey | string, instructionOnly?: boolean) {
     if (typeof jobAddress === 'string') jobAddress = new PublicKey(jobAddress);
     await this.loadNosanaJobs();
     await this.setAccounts();
@@ -139,12 +144,15 @@ export class Jobs extends SolanaManager {
           payer: jobAccount.payer,
           deposit: depositAta,
         })
-        .signers([])
-        .rpc();
-      return {
-        tx,
-        job: jobAddress.toBase58(),
-      };
+        .signers([]);
+      if (instructionOnly) {
+        return await tx.instruction();
+      } else {
+        return {
+          tx: await tx.rpc(),
+          job: jobAddress.toBase58(),
+        };
+      }
     } catch (e: any) {
       if (e instanceof SendTransactionError) {
         if (
@@ -164,7 +172,11 @@ export class Jobs extends SolanaManager {
    * @param job Publickey address of the job to extend
    * @param jobTimeout Time in seconds to extend the job
    */
-  async extend(job: PublicKey | string, jobTimeout: number) {
+  async extend(
+    job: PublicKey | string,
+    jobTimeout: number,
+    instructionOnly?: boolean,
+  ) {
     if (typeof job === 'string') job = new PublicKey(job);
     await this.loadNosanaJobs();
     await this.setAccounts();
@@ -194,13 +206,16 @@ export class Jobs extends SolanaManager {
             this.provider!.wallet.publicKey,
           ),
         })
-        .signers([])
-        .rpc();
+        .signers([]);
 
-      return {
-        tx,
-        job: job.toBase58(),
-      };
+      if (instructionOnly) {
+        return await tx.instruction();
+      } else {
+        return {
+          tx: await tx.rpc(),
+          job: job.toBase58(),
+        };
+      }
     } catch (e: any) {
       if (e instanceof SendTransactionError) {
         if (
@@ -219,7 +234,7 @@ export class Jobs extends SolanaManager {
    * Function to end a running job from chain
    * @param job Publickey address of the job to end
    */
-  async end(job: PublicKey | string) {
+  async end(job: PublicKey | string, instructionOnly?: boolean) {
     if (typeof job === 'string') job = new PublicKey(job);
     await this.loadNosanaJobs();
     await this.setAccounts();
@@ -276,13 +291,16 @@ export class Jobs extends SolanaManager {
           payer: jobAccount.payer,
           deposit: depositAta,
         })
-        .signers([])
-        .rpc();
+        .signers([]);
 
-      return {
-        tx,
-        job: job.toBase58(),
-      };
+      if (instructionOnly) {
+        return await tx.instruction();
+      } else {
+        return {
+          tx: await tx.rpc(),
+          job: job.toBase58(),
+        };
+      }
     } catch (e: any) {
       if (e instanceof SendTransactionError) {
         if (
