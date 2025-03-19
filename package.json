@@ -10,6 +10,7 @@
   "type": "module",
   "scripts": {
     "build": "npm run prepare && tsc",
+    "watch": "tsc --watch",
     "build:browser": "npm run prepare && rollup -c",
     "prepare": "ts-patch install && typia patch",
     "test": "jest --watch",
