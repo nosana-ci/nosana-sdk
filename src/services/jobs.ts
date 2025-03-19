@@ -162,7 +162,7 @@ export class Jobs extends SolanaManager {
   /**
    * Function to extend a running job from chain
    * @param job Publickey address of the job to extend
-   * @param jobTimeout Time in minutes to extend the job
+   * @param jobTimeout Time in seconds to extend the job
    */
   async extend(job: PublicKey | string, jobTimeout: number) {
     if (typeof job === 'string') job = new PublicKey(job);
@@ -177,11 +177,13 @@ export class Jobs extends SolanaManager {
     const market = await this.getMarket(jobAccount.market);
 
     // Add the current timeout to the extend time to make it feel like we're adding time
+    // The unit of account for the timeout is in seconds
     const currentTimeout = jobAccount.timeout ? new BN(jobAccount.timeout) : new BN(0);
-    const extendTimeOut = new BN(jobTimeout).add(currentTimeout); // 60 seconds in a minute
+    const newTimeOut = currentTimeout.add(new BN(jobTimeout)); // Add the new time to the current time
 
     try {
-      const tx = await this.jobs!.methods.extend(extendTimeOut)
+      // The timeout passed to the extend function always expects the time to be in seconds and to be larger than the current timeOut.
+      const tx = await this.jobs!.methods.extend(newTimeOut)
         .accounts({
           ...this.accounts,
           job: job,
