@@ -11,18 +11,23 @@ export { IValidation };
 export type Ops = Array<Operation<OperationType>>;
 
 // Define service types as individual types
-export type WebService = "web";
-export type ApiService = "api";
-export type WebApiService = "webapi";
-export type WebSocketService = "websocket";
-export type NoneService = "none";
+export type WebService = 'web';
+export type ApiService = 'api';
+export type WebApiService = 'webapi';
+export type WebSocketService = 'websocket';
+export type NoneService = 'none';
 
-// Union type for all service types 
-export type ServiceType = WebService | ApiService | WebSocketService | WebApiService | NoneService;
+// Union type for all service types
+export type ServiceType =
+  | WebService
+  | ApiService
+  | WebSocketService
+  | WebApiService
+  | NoneService;
 
 // Define health check types as individual types
-export type HttpHealthCheckType = "http";
-export type WebSocketHealthCheckType = "websocket";
+export type HttpHealthCheckType = 'http';
+export type WebSocketHealthCheckType = 'websocket';
 
 // Union type for all health check types
 export type HealthCheckType = HttpHealthCheckType | WebSocketHealthCheckType;
@@ -31,7 +36,7 @@ export type HealthCheckType = HttpHealthCheckType | WebSocketHealthCheckType;
 export type HttpHealthCheck = {
   type: HttpHealthCheckType;
   path: string;
-  method: "GET" | "POST" | "PUT" | "DELETE";
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   expected_status: number;
 };
 
@@ -81,14 +86,21 @@ export interface ReceiveJobResultLogicstics {
   };
 }
 
+export type DockerAuth = {
+  username?: string;
+  password?: string;
+  email?: string;
+  server?: string;
+};
+
 export type JobDefinition = {
   version: string;
   type: JobType;
   logistics?: JobLogistics;
   meta?: {
     trigger?: string;
-    system_resources?: { 
-      [key: string]: string | number
+    system_resources?: {
+      [key: string]: string | number;
     };
     [key: string]: unknown;
   };
@@ -132,6 +144,9 @@ export interface OperationArgsMap {
     };
     required_vram?: number;
     resources?: Resource[];
+    authentication?: {
+      docker?: DockerAuth;
+    };
   };
   'container/create-volume': {
     name: string;
