@@ -366,7 +366,7 @@ export class Stake extends SolanaManager {
    * Close stake
    * @returns
    */
-  async close() {
+  async close(withdraw = true) {
     await this.loadNosanaStake();
     await this.setStakeAccounts();
 
@@ -400,42 +400,44 @@ export class Stake extends SolanaManager {
           }
         }
 
-        let withdraw;
-        try {
-          withdraw = await this.stake!.program?.methods.withdraw()
-            // add priority fee + (optional) create NOS ATA
-            .preInstructions(preInstructions)
-            .accounts(this.stakeAccounts)
-            .rpc();
-        } catch (error: any) {
-          console.log('withdraw in close error', error.message);
-          if (
-            error.message.includes('VaultEmpty') ||
-            error.message.includes('This vault is empty')
-          ) {
-            console.log('vault already empty, skipping withdraw!');
-          } else {
-            const vaultNosBalance = await this.getNosBalance(
-              this.stakeAccounts.vault,
-            );
+        let withdrawTx;
+        if (withdraw) {
+          try {
+            withdrawTx = await this.stake!.program?.methods.withdraw()
+              // add priority fee + (optional) create NOS ATA
+              .preInstructions(preInstructions)
+              .accounts(this.stakeAccounts)
+              .rpc();
+          } catch (error: any) {
+            console.log('withdraw in close error', error.message);
             if (
-              !vaultNosBalance ||
-              (vaultNosBalance && Number(vaultNosBalance.amount) === 0)
+              error.message.includes('VaultEmpty') ||
+              error.message.includes('This vault is empty')
             ) {
-              console.log('vault balance empty, skipping withdraw');
+              console.log('vault already empty, skipping withdraw!');
             } else {
-              throw error;
+              const vaultNosBalance = await this.getNosBalance(
+                this.stakeAccounts.vault,
+              );
+              if (
+                !vaultNosBalance ||
+                (vaultNosBalance && Number(vaultNosBalance.amount) === 0)
+              ) {
+                console.log('vault balance empty, skipping withdraw');
+              } else {
+                throw error;
+              }
             }
           }
+          console.log('withdraw tx', withdrawTx);
         }
-        console.log('withdraw tx', withdraw);
         const response = await this.stake!.program?.methods.close()
           // only priority fee as pre instruction for close
           .preInstructions([preInstructions[0]])
           .accounts(this.stakeAccounts)
           .rpc();
         console.log('close tx', response);
-        return [withdraw, response];
+        return [withdrawTx, response];
       } catch (error) {
         console.error(error);
         throw new Error('Something went wrong while closing');
