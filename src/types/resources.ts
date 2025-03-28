@@ -17,6 +17,12 @@ export type S3Secure = S3Unsecure & {
   IAM: S3Auth;
 };
 
-export type Resource = S3Unsecure | S3Secure;
+export type HFResource = {
+  repo: string;
+  revision?: string;
+  accessToken?: string;
+};
+
+export type Resource = S3Unsecure | S3Secure | HFResource;
 
 export type RequiredResource = Omit<Resource, 'target'>;
