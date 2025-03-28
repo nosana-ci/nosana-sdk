@@ -1,92 +1,144 @@
-import bs58 from "bs58";
-import nacl from "tweetnacl";
-import { ExposedPort, JobDefinition, Operation, OperationArgsMap, OperationType } from "../types";
+import bs58 from 'bs58';
+import nacl from 'tweetnacl';
+import {
+  ExposedPort,
+  JobDefinition,
+  Operation,
+  OperationArgsMap,
+  OperationType,
+} from '../types';
 
 const createHash = (inputString: string, idLength: number = 44): string => {
-    const base58Encoded = bs58.encode(nacl.hash(new TextEncoder().encode(inputString)));
-    return  base58Encoded.slice(0, idLength);
-}
+  const base58Encoded = bs58.encode(
+    nacl.hash(new TextEncoder().encode(inputString)),
+  );
+  return base58Encoded.slice(0, idLength);
+};
 
 const isPrivate = (job: JobDefinition): boolean => {
-    return job.ops.some((op: Operation<OperationType>) => {
-        if (op.type !== 'container/run') return false;
+  return job.ops.some((op: Operation<OperationType>) => {
+    if (op.type !== 'container/run') return false;
 
-        const args = op.args as OperationArgsMap['container/run'];
-        const expose = args.expose;
+    const args = op.args as OperationArgsMap['container/run'];
+    const expose = args.expose;
 
-        const isExposed =
-            (Array.isArray(expose) && expose.length > 0) ||
-            typeof expose === 'number';
+    const isExposed =
+      (Array.isArray(expose) && expose.length > 0) ||
+      typeof expose === 'number';
 
-        return isExposed && args.private === true;
-    });
+    return isExposed && args.private === true;
+  });
 };
 
 const getExposePorts = (op: Operation<'container/run'>): ExposedPort[] => {
-    const expose = (op.args as OperationArgsMap['container/run']).expose;
+  const expose = (op.args as OperationArgsMap['container/run']).expose;
 
-    if (!expose) return [];
+  if (!expose) return [];
 
-    if (typeof expose === 'number') {
-        return [{ port: expose, type: 'none' }];
-    }
+  if (typeof expose === 'number') {
+    return [{ port: expose, type: 'none' }];
+  }
 
-    if (Array.isArray(expose)) {
-        return expose.map(e => (typeof e === 'number' ? { port: e, type: 'none' } : e));
-    }
+  if (Array.isArray(expose)) {
+    return expose.map((e) =>
+      typeof e === 'number' ? { port: e, type: 'none' } : e,
+    );
+  }
 
-    return [];
+  return [];
 };
 
 const isOpExposed = (op: Operation<'container/run'>): boolean => {
-    const exposePorts = getExposePorts(op);
-    return exposePorts.length > 0;
+  const exposePorts = getExposePorts(op);
+  return exposePorts.length > 0;
 };
 
 const getExposeIdHash = (
-    flowId: string,
-    opIndex: number,
-    port: number,
+  flowId: string,
+  opIndex: number,
+  port: number,
 ): string => {
-    const idLength = 44;
-    const inputString = `${opIndex}:${port}:${flowId}`;
-    return createHash(inputString, idLength);
+  const idLength = 44;
+  const inputString = `${opIndex}:${port}:${flowId}`;
+  return createHash(inputString, idLength);
 };
 
-const getJobExposeIdHash = (
-    job: JobDefinition,
-    flowId: string,
-): string[] => {
-    const hashes: string[] = [];
+export type ExposedService = {
+  url: string;
+  opIndex: number;
+  opId: string;
+  port: number;
+  hasHealthCheck: boolean;
+};
 
-    const privateMode = isPrivate(job);
+const getJobExposeIdHash = (job: JobDefinition, flowId: string): string[] => {
+  const hashes: string[] = [];
 
-    if (privateMode) {
-        return ['private'];
+  const privateMode = isPrivate(job);
+
+  if (privateMode) {
+    return ['private'];
+  }
+
+  Object.entries(job.ops).forEach(([, op], index) => {
+    if (isOpExposed(op as Operation<'container/run'>)) {
+      const exposePorts = getExposePorts(op as Operation<'container/run'>);
+
+      exposePorts.forEach((port) => {
+        const exposeId = getExposeIdHash(flowId, index, port.port);
+        hashes.push(exposeId);
+      });
     }
+  });
 
-    Object.entries(job.ops).forEach(([, op], index) => {
-        if (isOpExposed(op as Operation<'container/run'>)) {
-            const exposePorts = getExposePorts(op as Operation<'container/run'>);
+  return hashes;
+};
 
-            exposePorts.forEach((port) => {
-                const exposeId = getExposeIdHash(
-                    flowId,
-                    index,
-                    port.port,
-                );
-                hashes.push(`${exposeId}`);
-            });
-        }
-    });
+const getJobExposedServices = (
+  job: JobDefinition,
+  flowId: string,
+): ExposedService[] => {
+  const hashes: ExposedService[] = [];
 
-    return hashes;
-}
+  const privateMode = isPrivate(job);
+
+  if (privateMode) {
+    return [
+      {
+        url: 'private',
+        opIndex: -1,
+        opId: '',
+        port: -1,
+        hasHealthCheck: false,
+      },
+    ];
+  }
+
+  Object.entries(job.ops).forEach(([, op], index) => {
+    if (isOpExposed(op as Operation<'container/run'>)) {
+      const exposePorts = getExposePorts(op as Operation<'container/run'>);
+
+      exposePorts.forEach((port) => {
+        const exposeId = getExposeIdHash(flowId, index, port.port);
+        hashes.push({
+          url: exposeId,
+          opIndex: index,
+          opId: op.id,
+          port: port.port,
+          hasHealthCheck: !!port.health_checks,
+        });
+      });
+    }
+  });
+
+  return hashes;
+};
 
 export {
-    getJobExposeIdHash,
-    getExposeIdHash,
-    getExposePorts,
-    isOpExposed,
-    createHash,
+  getJobExposedServices,
+  getJobExposeIdHash,
+  getExposeIdHash,
+  getExposePorts,
+  isOpExposed,
+  createHash,
 };
