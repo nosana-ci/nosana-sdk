@@ -64,7 +64,7 @@ const getExposeIdHash = (
 };
 
 export type ExposedService = {
-  url: string;
+  hash: string;
   opIndex: number;
   opId: string;
   port: number;
@@ -105,7 +105,7 @@ const getJobExposedServices = (
   if (privateMode) {
     return [
       {
-        url: 'private',
+        hash: 'private',
         opIndex: -1,
         opId: '',
         port: -1,
@@ -121,7 +121,7 @@ const getJobExposedServices = (
       exposePorts.forEach((port) => {
         const exposeId = getExposeIdHash(flowId, index, port.port);
         hashes.push({
-          url: exposeId,
+          hash: exposeId,
           opIndex: index,
           opId: op.id,
           port: port.port,
