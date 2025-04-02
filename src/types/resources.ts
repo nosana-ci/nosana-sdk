@@ -1,11 +1,18 @@
-export type S3Unsecure = {
+type S3Base = {
   type: 'S3';
   url?: string;
   target: string;
   files?: string[];
   allowWrite?: boolean;
-  buckets?: { url: string; files?: string[] }[];
 };
+
+type S3WithBucket = S3Base & { bucket?: string; buckets?: never };
+type S3WithBuckets = S3Base & {
+  buckets?: { url: string; files?: string[] }[];
+  bucket?: never;
+};
+
+export type S3Unsecure = S3WithBucket | S3WithBuckets;
 
 export type S3Auth = {
   REGION: string;
