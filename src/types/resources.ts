@@ -25,6 +25,7 @@ export type S3Secure = S3Unsecure & {
 };
 
 export type HFResource = {
+  type: 'HF';
   repo: string;
   revision?: string;
   accessToken?: string;
