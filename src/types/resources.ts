@@ -24,13 +24,22 @@ export type S3Secure = S3Unsecure & {
   IAM: S3Auth;
 };
 
-export type HFResource = {
+export type ResourceBase = {
+  type: 'S3' | 'HF';
+  target: string;
+};
+
+export type HFResource = ResourceBase & {
   type: 'HF';
   repo: string;
   revision?: string;
   accessToken?: string;
 };
 
-export type Resource = S3Unsecure | S3Secure | HFResource;
+export type S3Resource =
+  | (ResourceBase & S3Unsecure)
+  | (ResourceBase & S3Secure);
+
+export type Resource = S3Resource | HFResource;
 
 export type RequiredResource = Omit<Resource, 'target'>;
