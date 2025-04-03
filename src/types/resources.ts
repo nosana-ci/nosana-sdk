@@ -4,6 +4,7 @@ type S3Base = {
   target: string;
   files?: string[];
   allowWrite?: boolean;
+  IAM?: S3Auth;
 };
 
 type S3WithBucket = S3Base & { bucket?: string; buckets?: never };
@@ -20,10 +21,6 @@ export type S3Auth = {
   SECRET_ACCESS_KEY: string;
 };
 
-export type S3Secure = S3Unsecure & {
-  IAM: S3Auth;
-};
-
 export type ResourceBase = {
   type: 'S3' | 'HF';
   target: string;
@@ -36,9 +33,7 @@ export type HFResource = ResourceBase & {
   accessToken?: string;
 };
 
-export type S3Resource =
-  | (ResourceBase & S3Unsecure)
-  | (ResourceBase & S3Secure);
+export type S3Resource = ResourceBase & S3Unsecure;
 
 export type Resource = S3Resource | HFResource;
 
