@@ -287,7 +287,7 @@ export class Jobs extends SolanaManager {
             new PublicKey(this.config.nos_address),
             runAccount.account.node,
           ),
-          payer: jobAccount.payer,
+          payer: runAccount.account.payer,
           deposit: depositAta,
         })
         .signers([]);
