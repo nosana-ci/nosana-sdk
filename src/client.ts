@@ -3,6 +3,7 @@ import { Keypair } from '@solana/web3.js';
 import {
   IPFS,
   AuthorizationManager,
+  Deployments,
   SolanaManager,
   SecretManager,
   Jobs,
@@ -22,6 +23,7 @@ polyfill();
 
 export class Client {
   authorization: AuthorizationManager;
+  deployments: typeof Deployments;
   solana: SolanaManager;
   ipfs: IPFS;
   secrets: SecretManager;
@@ -42,6 +44,7 @@ export class Client {
     new Config(environment, config);
 
     this.authorization = new AuthorizationManager(wallet);
+    this.deployments = deployments;
     this.solana = new SolanaManager(wallet);
     this.ipfs = new IPFS();
     this.secrets = new SecretManager(wallet);

@@ -1,0 +1,9 @@
+services:
+  deployments_db:
+    image: mongodb/mongodb-community-server:latest
+    ports:
+      - '27017:27017'
+    volumes:
+      - deploymentsdbdata:/data/db
+volumes:
+  deploymentsdbdata:
