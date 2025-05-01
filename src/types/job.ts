@@ -38,6 +38,8 @@ export type HttpHealthCheck = {
   path: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   expected_status: number;
+  headers?: Record<string, string>;
+  body?: any;
 };
 
 export type WebSocketHealthCheck = {
