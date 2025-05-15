@@ -3,6 +3,7 @@ import type {
   IPFSConfig,
   SecretsConfig,
   ClientConfig,
+  DeplpoymentsConfig,
 } from './types/index.js';
 
 export class Config {
@@ -10,6 +11,7 @@ export class Config {
   public readonly secertConfig!: SecretsConfig;
   public readonly solanaConfig!: SolanaConfig;
   public readonly ifpsConfig!: IPFSConfig;
+  public readonly deploymentsConfig!: DeplpoymentsConfig;
 
   constructor(
     readonly environment: 'devnet' | 'mainnet' = 'devnet',
@@ -33,8 +35,21 @@ export class Config {
       IPFSConfigPreset[this.environment],
       config?.ipfs,
     );
+    this.deploymentsConfig = Object.assign(
+      deploymentsConfigPreset[this.environment],
+      config?.deplyoments,
+    );
   }
 }
+
+const deploymentsConfigPreset: { [key: string]: DeplpoymentsConfig } = {
+  mainnet: {
+    backend_url: 'http://localhost:3000',
+  },
+  devnet: {
+    backend_url: 'http://localhost:3000',
+  },
+};
 
 const solanaConfigPreset: { [key: string]: SolanaConfig } = {
   mainnet: {

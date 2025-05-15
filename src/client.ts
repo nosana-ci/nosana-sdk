@@ -23,7 +23,7 @@ polyfill();
 
 export class Client {
   authorization: AuthorizationManager;
-  deployments: typeof Deployments;
+  deployments: Deployments;
   solana: SolanaManager;
   ipfs: IPFS;
   secrets: SecretManager;
@@ -44,11 +44,11 @@ export class Client {
     new Config(environment, config);
 
     this.authorization = new AuthorizationManager(wallet);
-    this.deployments = deployments;
+    this.deployments = new Deployments(wallet);
     this.solana = new SolanaManager(wallet);
     this.ipfs = new IPFS();
     this.secrets = new SecretManager(wallet);
-    this.jobs = new Jobs(wallet);
+    this.jobs = new Jobs(wallet, this.ipfs);
     this.nodes = new Nodes(wallet);
     this.stake = new Stake(wallet);
     this.swap = new Swap(wallet);

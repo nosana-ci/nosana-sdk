@@ -1,28 +1,68 @@
-import { Collection, MongoClient } from 'mongodb';
+import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
 
-type Deployment = {
-  id: string;
-  name: string;
-  status: string;
-};
+import { clientSelector, QueryClient } from './client/index.js';
+import { Deployment } from './deployment/index.js';
+import { DeploymentsManager } from './manager/index.js';
+import { getWallet } from '../../utils.js';
 
-export async function Deployments() {
-  let client: MongoClient | undefined = undefined;
-  let deployments: Collection<Deployment> | undefined = undefined;
+import type { Wallet } from '../../types/index.js';
+import type {
+  DeploymentCreateRequest,
+  DeploymentCreateSuccessResponse,
+} from './manager/routes/post/deployment/create/deploymentCreate.types.js';
 
-  if (!client || !deployments) {
-    const mongo = new MongoClient(
-      process.env.MONGODB_URI || 'mongodb://localhost:27017',
-    );
-    client = await mongo.connect();
-    deployments = client.db('deployments_db').collection('deployments');
+export class Deployments {
+  public manager: DeploymentsManager;
+  private client: QueryClient;
+  private wallet: AnchorWallet;
+
+  constructor(wallet: Wallet) {
+    this.wallet = getWallet(wallet);
+    this.manager = new DeploymentsManager();
+    this.client = clientSelector(wallet);
   }
 
-  const deploymentsStream = deployments.watch();
+  private errorFormatter(customMessage: string, { error }: any) {
+    throw new Error(`${customMessage}: ${error}`);
+  }
 
-  for await (const change of deploymentsStream) {
-    console.log('Change detected in deployments collection:', change);
-    // Handle the change event here
-    // For example, you can send a notification or update a cache
+  async create(deployment: DeploymentCreateRequest): Promise<Deployment> {
+    const { data, error } = await this.client.POST('/deployment/create', {
+      body: {
+        ...deployment,
+      },
+    });
+
+    if (error) {
+      this.errorFormatter('Error creating deployment', error);
+    }
+
+    return new Deployment(this.wallet, data as DeploymentCreateSuccessResponse);
+  }
+
+  async get(id: string) {
+    const { data, error } = await this.client.GET(`/deployment/{id}`, {
+      params: {
+        path: {
+          id,
+        },
+      },
+    });
+
+    if (error) {
+      this.errorFormatter('Error getting deployment', error);
+    }
+
+    return new Deployment(this.wallet, data);
+  }
+
+  async list() {
+    const { data, error } = await this.client.GET('/deployments', {});
+
+    if (error) {
+      this.errorFormatter('Error listing deployments', error);
+    }
+
+    return data;
   }
 }

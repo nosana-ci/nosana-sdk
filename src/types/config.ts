@@ -35,4 +35,9 @@ export type ClientConfig = {
   solana?: Partial<SolanaConfig>;
   ipfs?: Partial<IPFSConfig>;
   secrets?: Partial<SecretsConfig>;
+  deplyoments?: Partial<DeplpoymentsConfig>;
+};
+
+export type DeplpoymentsConfig = {
+  backend_url: string;
 };

@@ -1,9 +1,42 @@
 services:
   deployments_db:
     image: mongodb/mongodb-community-server:latest
-    ports:
-      - '27017:27017'
     volumes:
       - deploymentsdbdata:/data/db
+    networks:
+      - deployments_network
+  deployment_manager:
+    depends_on:
+      - deployments_db
+    build:
+      context: .
+      dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./
+          target: /app
+          ignore:
+            - node_modules/
+            - examples/
+        - action: rebuild
+          path: package.json
+    environment:
+      - MONGODB_URI=mongodb://deployments_db:27017/deployments
+      - DEPLOYMENT_MANAGER_PORT=3000
+    image: deployment_manager:latest
+    command: node --no-warnings --loader ts-node/esm examples/deployments/manager.ts
+    ports:
+      - '3000:3000'
+    networks:
+      - deployments_network
+    volumes:
+      - deploymentsVault:/.nosana/vault
+
 volumes:
   deploymentsdbdata:
+  deploymentsVault:
+
+networks:
+  deployments_network:
+    driver: bridge

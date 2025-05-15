@@ -10,7 +10,13 @@ import {
 } from '@solana/web3.js';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 
-import type { Job, Market, Run } from '../types/index.js';
+import {
+  validateJobDefinition,
+  type Job,
+  type JobDefinition,
+  type Market,
+  type Run,
+} from '../types/index.js';
 import { SolanaManager } from './solana.js';
 import { IPFS } from '../services/ipfs.js';
 // @ts-ignore
@@ -18,6 +24,7 @@ const { BN } = anchor.default ? anchor.default : anchor;
 
 // local imports
 import { jobStateMapping, mapJob, excludedJobs } from '../utils.js';
+import type { Wallet } from '../types/index.js';
 
 const emptyResults =
   '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0';
@@ -27,22 +34,46 @@ const pda = (
   programId: PublicKey,
 ): PublicKey => PublicKey.findProgramAddressSync(seeds, programId)[0];
 
+type IPFS_HASH = string;
+
 /**
  * Class to interact with the Nosana Jobs Program
  * https://docs.nosana.io/secrets/start.html
  */
+
 export class Jobs extends SolanaManager {
+  private ipfs: IPFS;
+  constructor(wallet: Wallet, ipfs: IPFS) {
+    super(wallet);
+
+    this.ipfs = ipfs;
+  }
+
+  async pinJobDefinition(definition: JobDefinition): Promise<IPFS_HASH> {
+    if (!validateJobDefinition(definition).success) {
+      throw new Error(`Invalid job definition.`);
+    }
+
+    const ipfs_hash = await this.ipfs.pin(definition);
+    return ipfs_hash;
+  }
+
   /**
    * Function to list a Nosana Job in a market
-   * @param ipfsHash String of the IPFS hash locating the Nosana Job data.
+   * @param jobDefinition
    */
   async list(
-    ipfsHash: string,
+    jobDefinition: IPFS_HASH | JobDefinition,
     jobTimeout: number,
     market: string | PublicKey,
     node?: string | PublicKey,
     instructionOnly?: boolean,
   ) {
+    const ipfsHash =
+      typeof jobDefinition === 'object'
+        ? await this.pinJobDefinition(jobDefinition)
+        : jobDefinition;
+
     if (typeof market === 'string') market = new PublicKey(market);
 
     await this.loadNosanaJobs();
@@ -129,9 +160,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       jobAccount.price > 0
         ? await getAssociatedTokenAddress(
-          new PublicKey(this.config.nos_address),
-          jobAccount.project,
-        )
+            new PublicKey(this.config.nos_address),
+            jobAccount.project,
+          )
         : market.vault;
 
     try {
@@ -190,7 +221,7 @@ export class Jobs extends SolanaManager {
 
     // Add the current timeout to the extend time to make it feel like we're adding time
     // The unit of account for the timeout is in seconds
-    const newTimeout = new BN(jobAccount.timeout || 0).add(new BN(jobTimeout))
+    const newTimeout = new BN(jobAccount.timeout || 0).add(new BN(jobTimeout));
 
     try {
       // The timeout passed to the extend function always expects the time to be in seconds and to be larger than the current timeOut.
@@ -270,9 +301,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       jobAccount.price > 0
         ? await getAssociatedTokenAddress(
-          new PublicKey(this.config.nos_address),
-          jobAccount.project,
-        )
+            new PublicKey(this.config.nos_address),
+            jobAccount.project,
+          )
         : market.vault;
 
     try {
@@ -804,9 +835,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       job.price > 0
         ? await getAssociatedTokenAddress(
-          new PublicKey(this.config.nos_address),
-          job.project,
-        )
+            new PublicKey(this.config.nos_address),
+            job.project,
+          )
         : market.vault;
     const tx = await this.jobs!.methods.finish(result)
       .accounts({
