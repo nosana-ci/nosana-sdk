@@ -1,9 +1,16 @@
-import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import {
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  sendAndConfirmTransaction,
+  VersionedTransaction,
+} from '@solana/web3.js';
 import { Wallet } from '@coral-xyz/anchor';
 
 import { ConnectionSelector } from '../../../classes/connection/selector';
 import { TokenManager } from '../../../classes/tokenManager';
 import { getNosTokenAddressForAccount } from '../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount';
+import { clientSelector } from '../client';
+import { errorFormatter } from '../../../utils/errorFormatter';
 
 export class Vault {
   public publicKey: PublicKey;
@@ -54,9 +61,39 @@ export class Vault {
 
       await manager.transfer([this.wallet.payer]);
     } catch (e) {
-      console.log(e);
+      errorFormatter('Failed to topup vault.', e);
     }
   }
 
-  async widthdraw() {}
+  async widthdraw() {
+    const connection = ConnectionSelector();
+    const client = clientSelector(this.wallet);
+
+    const { data, error } = await client.POST(
+      `/vault/${this.publicKey.toString()}/widthdraw`,
+      {},
+    );
+
+    if (error) {
+      errorFormatter('Failed to widthdraw from vault', error);
+    }
+
+    const transaction = VersionedTransaction.deserialize(
+      Buffer.from(data.transaction, 'base64'),
+    );
+    transaction.sign([this.wallet.payer]);
+
+    try {
+      const signature = await connection.sendTransaction(transaction);
+      const latestBlockHash = await connection.getLatestBlockhash();
+
+      await connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature,
+      });
+    } catch {
+      errorFormatter('Vault withdrawal transaction failed.', error);
+    }
+  }
 }

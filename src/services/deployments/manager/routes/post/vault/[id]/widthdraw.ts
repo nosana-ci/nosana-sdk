@@ -30,8 +30,9 @@ export async function vaultWidthdrawHandler(
       vault.owner,
       'DESTINATION',
     );
-    tokenManager.addNOS();
-    tokenManager.addSOL();
+
+    await tokenManager.addSOL();
+    await tokenManager.addNOS();
 
     const vaultKey = fs.readFileSync(
       `${VAULT_PATH}${vault.vault.toString()}.json`,
@@ -43,9 +44,13 @@ export async function vaultWidthdrawHandler(
       return;
     }
 
-    tokenManager.sign(Keypair.fromSecretKey(JSON.parse(vaultKey)));
+    const tx = await tokenManager.signAndSerialize(
+      Keypair.fromSecretKey(
+        new Uint8Array(JSON.parse(vaultKey) as Iterable<number>),
+      ),
+    );
 
-    res.send(200).json({ transaction: 'TRANSACTION_ID' });
+    res.status(200).json({ transaction: tx });
   } catch (error) {
     console.error('Error widthdrawing tokens:', error);
     res.status(500).json({ error: 'Internal Server Error' });

@@ -39,7 +39,7 @@ export async function addNosToTransaction(
     createTransferInstruction(
       source.tokenAccount,
       destination.tokenAccount,
-      payer,
+      source.account,
       amount,
     ),
   );

@@ -3,6 +3,7 @@ import {
   sendAndConfirmTransaction,
   Signer,
   Transaction,
+  VersionedTransaction,
 } from '@solana/web3.js';
 
 import { ConnectionSelector } from '../connection/selector';
@@ -30,6 +31,9 @@ export class TokenManager {
       typeof destinationWallet === 'string'
         ? new PublicKey(destinationWallet)
         : destinationWallet;
+
+    this.transaction.feePayer =
+      payer === 'SOURCE' ? this.sourceWallet : this.destinationWallet;
   }
 
   public async addNOS(amount?: number) {
@@ -51,8 +55,15 @@ export class TokenManager {
     );
   }
 
-  public async sign(signer: Signer) {
+  public async signAndSerialize(signer: Signer): Promise<string> {
+    const connection = ConnectionSelector();
+    let blockhash = (await connection.getLatestBlockhash('finalized'))
+      .blockhash;
+    this.transaction.recentBlockhash = blockhash;
     this.transaction.sign(signer);
+    return this.transaction
+      .serialize({ requireAllSignatures: false, verifySignatures: false })
+      .toString('base64');
   }
 
   public async transfer(signers: Signer[]) {
