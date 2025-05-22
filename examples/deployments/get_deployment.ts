@@ -10,6 +10,6 @@ console.log(deployment.vault.publicKey);
 
 console.log(await deployment.vault.getBalance());
 
-// await deployment.vault.topup({ SOL: 0.005, NOS: 0.1 });
+await deployment.vault.topup({ SOL: 0.005, NOS: 0.1 });
 
-// console.log(await deployment.vault.getBalance());
+console.log(await deployment.vault.getBalance());

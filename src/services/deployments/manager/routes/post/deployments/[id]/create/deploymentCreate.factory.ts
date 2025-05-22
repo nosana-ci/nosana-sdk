@@ -10,6 +10,7 @@ import {
   DeploymentStatus,
   VaultDocument,
 } from '../../../../../types.js';
+import { VAULT_PATH } from '../../../../../definitions/vault.js';
 
 export async function createAndStoreVault(
   owner: string,
@@ -19,7 +20,7 @@ export async function createAndStoreVault(
   const vault = solana.Keypair.generate();
 
   fs.writeFileSync(
-    `/.nosana/vault/${vault.publicKey.toString()}.json`,
+    `${VAULT_PATH}${vault.publicKey.toString()}.json`,
     JSON.stringify(Buffer.from(vault.secretKey).toJSON().data),
   );
 

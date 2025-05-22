@@ -1,4 +1,3 @@
-import { Wallet } from '@coral-xyz/anchor';
 import {
   PublicKey,
   sendAndConfirmTransaction,
@@ -14,14 +13,14 @@ export class TokenManager {
   public transaction: Transaction;
   public sourceWallet: PublicKey;
   public destinationWallet: PublicKey;
-  private wallet: Wallet;
+  public payer: 'SOURCE' | 'DESTINATION';
 
   constructor(
     sourceWallet: PublicKey | string,
     destinationWallet: PublicKey | string,
-    wallet: Wallet,
+    payer: 'SOURCE' | 'DESTINATION',
   ) {
-    this.wallet = wallet;
+    this.payer = payer;
     this.transaction = new Transaction();
     this.sourceWallet =
       typeof sourceWallet === 'string'
@@ -33,17 +32,17 @@ export class TokenManager {
         : destinationWallet;
   }
 
-  public async addNOS(payer: 'SOURCE' | 'DESTINATION', amount?: number) {
+  public async addNOS(amount?: number) {
     await createTransferNOSInstruction(
       amount ?? 0,
       this.sourceWallet,
       this.destinationWallet,
-      payer === 'SOURCE' ? this.sourceWallet : this.destinationWallet,
+      this.payer === 'SOURCE' ? this.sourceWallet : this.destinationWallet,
       this.transaction,
     );
   }
 
-  public async addSOL(payer: 'SOURCE' | 'DESTINATION', amount?: number) {
+  public async addSOL(amount?: number) {
     await createTransferSOLInstruction(
       amount ?? 0,
       this.sourceWallet,
@@ -56,11 +55,8 @@ export class TokenManager {
     this.transaction.sign(signer);
   }
 
-  public async transfer() {
+  public async transfer(signers: Signer[]) {
     const connection = ConnectionSelector();
-
-    await sendAndConfirmTransaction(connection, this.transaction, [
-      this.wallet.payer,
-    ]);
+    await sendAndConfirmTransaction(connection, this.transaction, signers);
   }
 }

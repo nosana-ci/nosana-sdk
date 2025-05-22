@@ -1,9 +1,11 @@
+import fs from 'fs';
 import { Request } from 'express';
-import { PublicKey, Transaction } from '@solana/web3.js';
+import { Keypair } from '@solana/web3.js';
+
+import { TokenManager } from '../../../../../tokenManager';
 
 import { DeploymentsResponse } from '../../../../types';
-import { ConnectionSelector } from '../../../../../../../classes/connection/selector';
-import { getNosTokenAddressForAccount } from '../../../../../tokenManager/helpers/NOS/getNosTokenAddressForAccount';
+import { VAULT_PATH } from '../../../../definitions/vault';
 
 export async function vaultWidthdrawHandler(
   req: Request<{ id: string }>,
@@ -11,7 +13,6 @@ export async function vaultWidthdrawHandler(
 ) {
   const { db } = res.locals;
   const userId = req.headers['x-user-id'] as string;
-  const connection = ConnectionSelector();
 
   try {
     const vault = await db.vaults.findOne({
@@ -24,25 +25,27 @@ export async function vaultWidthdrawHandler(
       return;
     }
 
-    const transaction = new Transaction();
+    const tokenManager = new TokenManager(
+      vault.vault,
+      vault.owner,
+      'DESTINATION',
+    );
+    tokenManager.addNOS();
+    tokenManager.addSOL();
 
-    const { account: destinationTokenAccount, balance: destinationBalance } =
-      await getNosTokenAddressForAccount(
-        new PublicKey(vault.owner),
-        connection,
-      );
+    const vaultKey = fs.readFileSync(
+      `${VAULT_PATH}${vault.vault.toString()}.json`,
+      'utf8',
+    );
 
-    // TODO: work out how to make the user pay for transaction or calculate required SOL transaction
+    if (!vaultKey) {
+      res.send(500).json({ error: 'Failed to find vault.' });
+      return;
+    }
 
-    // await sendNosTokens(
-    //   amount,
-    //   sourceTokenAccount,
-    //   destination,
-    //   destinationTokenAccount,
-    //   payer,
-    //   destinationBalance === null,
-    //   transaction,
-    // );
+    tokenManager.sign(Keypair.fromSecretKey(JSON.parse(vaultKey)));
+
+    res.send(200).json({ transaction: 'TRANSACTION_ID' });
   } catch (error) {
     console.error('Error widthdrawing tokens:', error);
     res.status(500).json({ error: 'Internal Server Error' });

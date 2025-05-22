@@ -1,4 +1,3 @@
-import { Wallet } from '@coral-xyz/anchor';
 import { PublicKey, Transaction } from '@solana/web3.js';
 
 import { ConnectionSelector } from '../../../../../classes/connection/selector';

@@ -40,19 +40,19 @@ export class Vault {
     const manager = new TokenManager(
       this.wallet.publicKey,
       this.publicKey,
-      this.wallet,
+      'SOURCE',
     );
 
     try {
       if (NOS > 0) {
-        await manager.addNOS('SOURCE', lamports ? NOS : NOS * 1e6);
+        await manager.addNOS(lamports ? NOS : NOS * 1e6);
       }
 
       if (SOL > 0) {
-        await manager.addSOL('SOURCE', lamports ? SOL : SOL * LAMPORTS_PER_SOL);
+        await manager.addSOL(lamports ? SOL : SOL * LAMPORTS_PER_SOL);
       }
 
-      await manager.transfer();
+      await manager.transfer([this.wallet.payer]);
     } catch (e) {
       console.log(e);
     }
