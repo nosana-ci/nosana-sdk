@@ -5,7 +5,7 @@ import {
   Transaction,
 } from '@solana/web3.js';
 
-import { ConnectionSelector } from '../../../classes/connection/selector';
+import { ConnectionSelector } from '../connection/selector';
 import { createTransferNOSInstruction } from './helpers/NOS/createTransferNOSInstruction';
 import { createTransferSOLInstruction } from './helpers/SOL/createTransferSOLInstruction';
 

@@ -2,8 +2,8 @@ import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { Wallet } from '@coral-xyz/anchor';
 
 import { ConnectionSelector } from '../../../classes/connection/selector';
-import { TokenManager } from '../tokenManager';
-import { getNosTokenAddressForAccount } from '../tokenManager/helpers/NOS/getNosTokenAddressForAccount';
+import { TokenManager } from '../../../classes/tokenManager';
+import { getNosTokenAddressForAccount } from '../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount';
 
 export class Vault {
   public publicKey: PublicKey;

@@ -2,7 +2,7 @@ import { Request } from 'express';
 import { PublicKey } from '@solana/web3.js';
 
 import { ConnectionSelector } from '../../../../../../../classes/connection/selector';
-import { getNosTokenAddressForAccount } from '../../../../../tokenManager/helpers/NOS/getNosTokenAddressForAccount';
+import { getNosTokenAddressForAccount } from '../../../../../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount';
 
 import { DeploymentsResponse } from '../../../../types';
 

@@ -5,7 +5,7 @@ import {
 } from '@solana/spl-token';
 import { Connection, PublicKey } from '@solana/web3.js';
 
-import { Config } from '../../../../../config';
+import { Config } from '../../../../config';
 
 export async function getNosTokenAddressForAccount(
   account: PublicKey,

@@ -3,7 +3,7 @@ import solana from '@solana/web3.js';
 
 import { DeploymentCreateRequest } from './deploymentCreate.types.js';
 import { ConnectionSelector } from '../../../../../../../../classes/connection/selector.js';
-import { getNosTokenAddressForAccount } from '../../../../../../tokenManager/helpers/NOS/getNosTokenAddressForAccount.js';
+import { getNosTokenAddressForAccount } from '../../../../../../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount.js';
 
 import {
   DeploymentDocument,

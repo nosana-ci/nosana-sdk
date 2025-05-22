@@ -2,7 +2,7 @@ import fs from 'fs';
 import { Request } from 'express';
 import { Keypair } from '@solana/web3.js';
 
-import { TokenManager } from '../../../../../tokenManager';
+import { TokenManager } from '../../../../../../../classes/tokenManager';
 
 import { DeploymentsResponse } from '../../../../types';
 import { VAULT_PATH } from '../../../../definitions/vault';

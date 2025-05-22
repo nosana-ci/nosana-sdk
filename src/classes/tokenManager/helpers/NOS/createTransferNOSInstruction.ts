@@ -1,6 +1,6 @@
 import { PublicKey, Transaction } from '@solana/web3.js';
 
-import { ConnectionSelector } from '../../../../../classes/connection/selector';
+import { ConnectionSelector } from '../../../connection/selector';
 import { getNosTokenAddressForAccount } from './getNosTokenAddressForAccount';
 import { addNosToTransaction } from './addNosTransaction';
 

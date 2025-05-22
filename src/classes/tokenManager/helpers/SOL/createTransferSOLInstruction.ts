@@ -1,6 +1,6 @@
 import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 
-import { ConnectionSelector } from '../../../../../classes/connection/selector';
+import { ConnectionSelector } from '../../../connection/selector';
 
 export async function createTransferSOLInstruction(
   amount: number,

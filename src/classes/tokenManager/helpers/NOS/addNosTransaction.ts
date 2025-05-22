@@ -6,7 +6,7 @@ import {
 } from '@solana/spl-token';
 import { PublicKey, Transaction } from '@solana/web3.js';
 
-import { Config } from '../../../../../config';
+import { Config } from '../../../../config';
 
 export async function addNosToTransaction(
   amount: number,
