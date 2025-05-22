@@ -1,14 +1,15 @@
 import fs from 'fs';
 import solana from '@solana/web3.js';
 
+import { DeploymentCreateRequest } from './deploymentCreate.types.js';
+import { ConnectionSelector } from '../../../../../../../../classes/connection/selector.js';
+import { getNosTokenAddressForAccount } from '../../../../../../tokenManager/helpers/NOS/getNosTokenAddressForAccount.js';
+
 import {
   DeploymentDocument,
   DeploymentStatus,
   VaultDocument,
-} from '../../../../types.js';
-import { DeploymentCreateRequest } from './deploymentCreate.types.js';
-import { getNosTokenAddressForAccount } from '../../../../../vault/helpers/topupNos.js';
-import { ConnectionSelector } from '../../../../../../../classes/connection/selector.js';
+} from '../../../../../types.js';
 
 export async function createAndStoreVault(
   owner: string,
@@ -39,7 +40,13 @@ export async function createAndStoreVault(
 }
 
 export function createDeplyoment(
-  { name, market, ipfs_definition_hash, replicas }: DeploymentCreateRequest,
+  {
+    name,
+    market,
+    ipfs_definition_hash,
+    replicas,
+    timeout,
+  }: DeploymentCreateRequest,
   vault: string,
   owner: string,
   created_at: Date,
@@ -49,10 +56,11 @@ export function createDeplyoment(
     vault,
     name,
     market,
-    ipfs_definition_hash,
-    replicas,
     owner,
     status: DeploymentStatus.DRAFT,
+    ipfs_definition_hash,
+    replicas,
+    timeout,
     active_jobs: [],
     past_jobs: [],
     created_at,

@@ -3,9 +3,13 @@ import { createTestClient } from '../utils/createTestClient';
 const client = createTestClient();
 
 const deployment = await client.deployments.get(
-  'qtyjTutjqVF7ZLzCDLpzrVYviCpq7vWJ22K8JWMgvFV',
+  '6P8j7TNNFQ6fRYVeVs6obRuUMmgLYDz63HMBd86jeFGe',
 );
 
-console.log(deployment);
+console.log(deployment.vault.publicKey);
 
-deployment.vault.topup({ sol: 0.005, nos: 0.1 });
+console.log(await deployment.vault.getBalance());
+
+// await deployment.vault.topup({ SOL: 0.005, NOS: 0.1 });
+
+// console.log(await deployment.vault.getBalance());

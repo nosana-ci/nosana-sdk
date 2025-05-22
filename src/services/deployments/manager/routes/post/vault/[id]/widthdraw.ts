@@ -3,10 +3,7 @@ import { PublicKey, Transaction } from '@solana/web3.js';
 
 import { DeploymentsResponse } from '../../../../types';
 import { ConnectionSelector } from '../../../../../../../classes/connection/selector';
-import {
-  getNosTokenAddressForAccount,
-  sendNosTokens,
-} from '../../../../../vault/helpers/topupNos';
+import { getNosTokenAddressForAccount } from '../../../../../tokenManager/helpers/NOS/getNosTokenAddressForAccount';
 
 export async function vaultWidthdrawHandler(
   req: Request<{ id: string }>,

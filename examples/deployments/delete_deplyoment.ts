@@ -27,8 +27,6 @@ const deployment = await client.deployments.create({
 
 console.log(deployment);
 
-// console.log(await deployment.vault.getBalance());
+await deployment.delete();
 
-// await deployment.vault.topup({ sol: 0.05, nos: 1 });
-
-// console.log(await deployment.vault.getBalance());
+console.log(deployment);

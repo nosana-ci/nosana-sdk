@@ -9,7 +9,8 @@ import type { Wallet } from '../../types/index.js';
 import type {
   DeploymentCreateRequest,
   DeploymentCreateSuccessResponse,
-} from './manager/routes/post/deployment/create/deploymentCreate.types.js';
+} from './manager/routes/post/deployments/[id]/create/deploymentCreate.types.js';
+import { errorFormatter } from '../../utils/errorFormatter.js';
 
 export class Deployments {
   public manager: DeploymentsManager;
@@ -22,25 +23,21 @@ export class Deployments {
     this.client = clientSelector(wallet);
   }
 
-  private errorFormatter(customMessage: string, { error }: any) {
-    throw new Error(`${customMessage}: ${error}`);
-  }
-
-  async create(deployment: DeploymentCreateRequest): Promise<Deployment> {
+  async create(deploymentBody: DeploymentCreateRequest): Promise<Deployment> {
     const { data, error } = await this.client.POST('/deployment/create', {
       body: {
-        ...deployment,
+        ...deploymentBody,
       },
     });
 
     if (error) {
-      this.errorFormatter('Error creating deployment', error);
+      errorFormatter('Error creating deployment', error);
     }
 
     return new Deployment(this.wallet, data as DeploymentCreateSuccessResponse);
   }
 
-  async get(id: string) {
+  async get(id: string): Promise<Deployment> {
     const { data, error } = await this.client.GET(`/deployment/{id}`, {
       params: {
         path: {
@@ -50,19 +47,30 @@ export class Deployments {
     });
 
     if (error) {
-      this.errorFormatter('Error getting deployment', error);
+      errorFormatter('Error getting deployment', error);
     }
 
-    return new Deployment(this.wallet, data);
+    return new Deployment(this.wallet, data as DeploymentCreateSuccessResponse);
   }
 
-  async list() {
+  async list(): Promise<Deployment[]> {
     const { data, error } = await this.client.GET('/deployments', {});
 
     if (error) {
-      this.errorFormatter('Error listing deployments', error);
+      errorFormatter('Error listing deployments', error);
     }
 
-    return data;
+    return data.map(
+      (deployment: DeploymentCreateSuccessResponse) =>
+        new Deployment(this.wallet, deployment),
+    );
+  }
+
+  async delete(id: string) {
+    const { error } = await this.client.DELETE(`/deployment/${id}`, {});
+
+    if (error) {
+      errorFormatter('Error deleting deployment', error);
+    }
   }
 }

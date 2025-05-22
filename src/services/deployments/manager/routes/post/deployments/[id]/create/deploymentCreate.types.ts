@@ -1,9 +1,10 @@
-import { DeploymentDocument } from '../../../../types';
+import { DeploymentDocument } from '../../../../../types';
 
 export type DeploymentCreateRequest = {
   name: string;
   market: string;
   replicas: number;
+  timeout: number;
   ipfs_definition_hash: string;
 };
 

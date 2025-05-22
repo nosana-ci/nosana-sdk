@@ -1,17 +1,16 @@
 import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
-import { Wallet } from '@coral-xyz/anchor';
 
-import { ConnectionSelector } from '../../../../classes/connection/selector';
+import { ConnectionSelector } from '../../../../../classes/connection/selector';
 
-export async function topupSol(
+export async function createTransferSOLInstruction(
   amount: number,
+  source: PublicKey,
   destination: PublicKey,
-  wallet: Wallet,
   transaction: Transaction,
 ) {
   const connection = ConnectionSelector();
 
-  const balance = await connection.getBalance(wallet.publicKey);
+  const balance = await connection.getBalance(source);
 
   if (balance < amount) {
     throw new Error('Insufficient SOL balance.');
@@ -19,9 +18,9 @@ export async function topupSol(
 
   transaction.add(
     SystemProgram.transfer({
-      fromPubkey: wallet.publicKey,
+      fromPubkey: source,
       toPubkey: destination,
-      lamports: amount,
+      lamports: amount === 0 ? balance : amount,
     }),
   );
 }

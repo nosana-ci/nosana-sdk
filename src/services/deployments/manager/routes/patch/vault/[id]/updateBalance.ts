@@ -2,7 +2,7 @@ import { Request } from 'express';
 import { PublicKey } from '@solana/web3.js';
 
 import { ConnectionSelector } from '../../../../../../../classes/connection/selector';
-import { getNosTokenAddressForAccount } from '../../../../../vault/helpers/topupNos';
+import { getNosTokenAddressForAccount } from '../../../../../tokenManager/helpers/NOS/getNosTokenAddressForAccount';
 
 import { DeploymentsResponse } from '../../../../types';
 
@@ -17,12 +17,12 @@ export async function vaultUpdateBalanceHandler(
     const connection = ConnectionSelector();
 
     const [solBalance, { account, balance }] = await Promise.all([
-      connection.getBalance(new PublicKey(req.body.id)),
-      getNosTokenAddressForAccount(new PublicKey(userId), connection),
+      connection.getBalance(new PublicKey(req.params.id)),
+      getNosTokenAddressForAccount(new PublicKey(req.params.id), connection),
     ]);
 
     const { acknowledged } = await db.vaults.updateOne(
-      { vault: req.params.id },
+      { vault: req.params.id, owner: userId },
       {
         $set: {
           sol: solBalance,

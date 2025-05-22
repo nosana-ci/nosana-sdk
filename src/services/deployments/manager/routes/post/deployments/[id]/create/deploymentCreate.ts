@@ -1,7 +1,6 @@
 import typia from 'typia';
 import { Request } from 'express';
 
-import { DeploymentsResponse } from '../../../../types.js';
 import {
   DeploymentCreateRequest,
   DeploymentCreateResponse,
@@ -10,6 +9,8 @@ import {
   createAndStoreVault,
   createDeplyoment,
 } from './deploymentCreate.factory.js';
+
+import { DeploymentsResponse } from '../../../../../types.js';
 
 export async function deploymentCreateHandler(
   req: Request<unknown, unknown, DeploymentCreateRequest>,
@@ -49,6 +50,7 @@ export async function deploymentCreateHandler(
       return;
     }
 
+    Reflect.deleteProperty(deployment, '_id');
     res.status(201).json(deployment);
   } catch (error) {
     console.error('Error creating deployment:', error);

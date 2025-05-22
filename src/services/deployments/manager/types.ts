@@ -3,6 +3,7 @@ import { Collection } from 'mongodb';
 
 export const DeploymentStatus = {
   DRAFT: 'DRAFT',
+  STARTING: 'STARTING',
   RUNNING: 'RUNNING',
   STOPPED: 'STOPPED',
   ERROR: 'ERROR',
@@ -18,8 +19,9 @@ export type DeploymentDocument = {
   owner: string; // Owners PublicKey
   name: string;
   status: DeploymentStatus;
-  replicas: number;
   ipfs_definition_hash: string;
+  replicas: number;
+  timeout: number;
   active_jobs: string[];
   past_jobs: string[];
   created_at: Date;
@@ -43,13 +45,15 @@ export type VaultDocument = {
   updated_at: Date;
 };
 
+export type Collections = {
+  deployments: Collection<DeploymentDocument>;
+  events: Collection<EventDocument>;
+  vaults: Collection<VaultDocument>;
+};
+
 export type DeploymentsResponse<ResponseBody extends {} = any> =
   Response<ResponseBody> & {
     locals: {
-      db: {
-        deployments: Collection<DeploymentDocument>;
-        events: Collection<EventDocument>;
-        vaults: Collection<VaultDocument>;
-      };
+      db: Collections;
     };
   };
