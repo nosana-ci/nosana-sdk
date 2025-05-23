@@ -4,13 +4,13 @@ import { clientSelector, QueryClient } from './client/index.js';
 import { Deployment } from './deployment/index.js';
 import { DeploymentsManager } from './manager/index.js';
 import { getWallet } from '../../utils.js';
+import { errorFormatter } from '../../utils/errorFormatter.js';
 
 import type { Wallet } from '../../types/index.js';
 import type {
   DeploymentCreateRequest,
   DeploymentCreateSuccessResponse,
 } from './manager/routes/post/deployments/[id]/create/deploymentCreate.types.js';
-import { errorFormatter } from '../../utils/errorFormatter.js';
 
 export class Deployments {
   public manager: DeploymentsManager;
@@ -37,11 +37,11 @@ export class Deployments {
     return new Deployment(this.wallet, data as DeploymentCreateSuccessResponse);
   }
 
-  async get(id: string): Promise<Deployment> {
+  async get(deployment: string): Promise<Deployment> {
     const { data, error } = await this.client.GET(`/deployment/{id}`, {
       params: {
         path: {
-          id,
+          id: deployment,
         },
       },
     });
@@ -66,11 +66,14 @@ export class Deployments {
     );
   }
 
-  async delete(id: string) {
-    const { error } = await this.client.DELETE(`/deployment/${id}`, {});
+  async archive(deployment: string) {
+    const { error } = await this.client.DELETE(
+      `/deployment/${deployment}/archive`,
+      {},
+    );
 
     if (error) {
-      errorFormatter('Error deleting deployment', error);
+      errorFormatter('Error archiving deployment', error);
     }
   }
 }
