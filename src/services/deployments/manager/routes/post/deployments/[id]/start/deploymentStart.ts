@@ -1,30 +1,21 @@
 import { Request } from 'express';
 
-import { DeploymentsResponse } from '../../../../../types.js';
+import { DeploymentsResponse, DeploymentStatus } from '../../../../../types.js';
+import { ErrorsMessages } from '../../../../../definitions/errors.js';
 
 export async function deploymentStartHandler(
-  req: Request<{ id: string }, unknown, unknown>,
+  req: Request<{ deployment: string }, unknown, unknown>,
   res: DeploymentsResponse,
 ) {
-  const { db } = res.locals;
+  const { db, deployment } = res.locals;
   const userId = req.headers['x-user-id'] as string;
 
   try {
-    const deployment = await db.deployments.findOne({
-      id: req.params.id,
-      owner: userId,
-    });
-
-    if (deployment === null) {
-      res.status(404).json({ error: 'Deployment not found.' });
-      return;
-    }
-
     const { acknowledged } = await db.deployments.updateOne(
-      { id: { $eq: req.params.id }, owner: { $eq: userId } },
+      { id: { $eq: deployment.id }, owner: { $eq: userId } },
       {
         $set: {
-          status: 'STARTING',
+          status: DeploymentStatus.STARTING,
         },
       },
     );
@@ -32,13 +23,15 @@ export async function deploymentStartHandler(
     if (!acknowledged) {
       res
         .status(500)
-        .json({ error: 'Something went wrong when starting deployment' });
+        .json({ error: ErrorsMessages.deployments.FAILED_STARTING });
       return;
     }
 
-    res.status(200).json({ status: 'STARTING' });
+    res.status(200).json({ status: DeploymentStatus.STARTING });
   } catch (error) {
-    console.error('Error creating deployment:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: ErrorsMessages.generic.SOMETHING_WENT_WRONG });
   }
 }

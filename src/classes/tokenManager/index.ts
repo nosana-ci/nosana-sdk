@@ -3,7 +3,6 @@ import {
   sendAndConfirmTransaction,
   Signer,
   Transaction,
-  VersionedTransaction,
 } from '@solana/web3.js';
 
 import { ConnectionSelector } from '../connection/selector';

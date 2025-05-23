@@ -9,6 +9,7 @@ import {
   DeploymentDocument,
   DeploymentStatus,
   VaultDocument,
+  VaultStatus,
 } from '../../../../../types.js';
 import { VAULT_PATH } from '../../../../../definitions/vault.js';
 
@@ -31,6 +32,7 @@ export async function createAndStoreVault(
 
   return {
     vault: vault.publicKey.toString(),
+    status: VaultStatus.OPEN,
     owner,
     sol: 0,
     nos: 0,

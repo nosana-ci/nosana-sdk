@@ -1,7 +1,14 @@
-import express, { Express } from 'express';
 import { Db } from 'mongodb';
+import express, { Express } from 'express';
 
-import { authMiddleware } from '../middleware/authMiddleware';
+import { CollectionsNames } from '../definitions/collection';
+
+import {
+  authMiddleware,
+  getDeploymentMiddleware,
+  getVaultMiddleware,
+  validateActiveDeploymentMiddleware,
+} from '../middleware';
 
 import { deploymentIdHandler, deploymentsHandler } from './get';
 import {
@@ -10,12 +17,12 @@ import {
   vaultWidthdrawHandler,
 } from './post';
 import {
+  deploymentArchiveHandler,
   deploymentUpdateTimeoutHandler,
   vaultUpdateBalanceHandler,
 } from './patch';
-import { CollectionsNames } from '../definitions/collection';
+
 import { Collections } from '../types';
-import { deploymentDeleteHandler } from './delete/deployments/[id]/deleteDeployment';
 
 export class DeploymentManagerApi {
   private app: Express;
@@ -46,20 +53,47 @@ export class DeploymentManagerApi {
   }
 
   private setupDeploymentsRoutes() {
+    // GET
     this.app.get('/api/deployments', deploymentsHandler);
-    this.app.get('/api/deployment/:id', deploymentIdHandler);
+    this.app.get(
+      '/api/deployment/:deployment',
+      getDeploymentMiddleware,
+      deploymentIdHandler,
+    );
+    // POST
     this.app.post('/api/deployment/create', deploymentCreateHandler);
-    this.app.post('/api/deployment/:id/start', deploymentStartHandler);
+    this.app.post(
+      '/api/deployment/:deployment/start',
+      getDeploymentMiddleware,
+      validateActiveDeploymentMiddleware,
+      deploymentStartHandler,
+    );
+    // PATCH
     this.app.patch(
-      '/api/deployment/:id/update-timeout',
+      '/api/deployment/:deployment/update-timeout',
+      getDeploymentMiddleware,
+      validateActiveDeploymentMiddleware,
       deploymentUpdateTimeoutHandler,
     );
-    this.app.delete('/api/deployment/:id', deploymentDeleteHandler);
+    this.app.patch(
+      '/api/deployment/:deployment/archive',
+      getDeploymentMiddleware,
+      validateActiveDeploymentMiddleware,
+      deploymentArchiveHandler,
+    );
   }
 
   private setupVaultRoutes() {
-    this.app.post('/api/vault/:id/widthdraw', vaultWidthdrawHandler);
-    this.app.patch('/api/vault/:id/update-balance', vaultUpdateBalanceHandler);
+    this.app.post(
+      '/api/vault/:vault/widthdraw',
+      getVaultMiddleware,
+      vaultWidthdrawHandler,
+    );
+    this.app.patch(
+      '/api/vault/:vault/update-balance',
+      getVaultMiddleware,
+      vaultUpdateBalanceHandler,
+    );
   }
 
   start() {

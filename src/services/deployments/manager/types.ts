@@ -3,14 +3,25 @@ import { Collection } from 'mongodb';
 
 export const DeploymentStatus = {
   DRAFT: 'DRAFT',
+  ERROR: 'ERROR',
   STARTING: 'STARTING',
   RUNNING: 'RUNNING',
   STOPPED: 'STOPPED',
-  ERROR: 'ERROR',
+  INSUFFICIENT_FUNDS: 'INSUFFICIENT_FUNDS',
+  ARCHIVED: 'ARCHIVED',
 } as const;
 
 export type DeploymentStatus =
   (typeof DeploymentStatus)[keyof typeof DeploymentStatus];
+
+export const DeploymentStrategy = {
+  SIMPLE: 'SIMPLE',
+  SCHEDULED: 'SCHEDULED',
+  INFINATE: 'INFINATE',
+} as const;
+
+export type DeploymentStrategy =
+  (typeof DeploymentStrategy)[keyof typeof DeploymentStrategy];
 
 export type DeploymentDocument = {
   id: string; // Deployment PublicKey
@@ -35,9 +46,17 @@ export type EventDocument = {
   created_at: Date;
 };
 
+export const VaultStatus = {
+  OPEN: 'OPEN',
+  ARCHIVED: 'ARCHIVED',
+} as const;
+
+export type VaultStatus = (typeof VaultStatus)[keyof typeof VaultStatus];
+
 export type VaultDocument = {
   vault: string;
   owner: string;
+  status: VaultStatus;
   sol: number;
   nos: number;
   nos_ata: string;
@@ -55,5 +74,14 @@ export type DeploymentsResponse<ResponseBody extends {} = any> =
   Response<ResponseBody> & {
     locals: {
       db: Collections;
+      deployment: DeploymentDocument;
+    };
+  };
+
+export type VaultsResponse<ResponseBody extends {} = any> =
+  Response<ResponseBody> & {
+    locals: {
+      db: Collections;
+      vault: VaultDocument;
     };
   };

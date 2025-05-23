@@ -1,19 +1,21 @@
 import { Request } from 'express';
 
+import { ErrorsMessages } from '../../../../definitions/errors';
+
 import { DeploymentsResponse } from '../../../../types';
 
 export async function deploymentUpdateTimeoutHandler(
-  req: Request<{ id: string }, unknown, { timeout: number }>,
+  req: Request<{ deployment: string }, unknown, { timeout: number }>,
   res: DeploymentsResponse,
 ) {
-  const { db } = res.locals;
-  const userId = req.headers['x-user-id'] as string;
-  const deploymentId = req.params.id;
+  const { db, deployment } = res.locals;
+
   const timeout = req.body.timeout;
+  const userId = req.headers['x-user-id'] as string;
 
   try {
     const { acknowledged } = await db.deployments.updateOne(
-      { id: deploymentId, owner: userId },
+      { id: { $eq: deployment.id }, owner: { $eq: userId } },
       {
         $set: {
           timeout,
@@ -23,14 +25,16 @@ export async function deploymentUpdateTimeoutHandler(
 
     if (!acknowledged) {
       res.status(500).json({
-        error: 'Something when wrong whilst updating deployments timeout.',
+        error: ErrorsMessages.deployments.FAILED_TIMOUT_UPDATE,
       });
       return;
     }
 
     res.status(200).send();
   } catch (error) {
-    console.error('Error fetching deployments:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: ErrorsMessages.generic.SOMETHING_WENT_WRONG });
   }
 }

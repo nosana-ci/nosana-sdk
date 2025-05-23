@@ -1,26 +1,32 @@
 import { PublicKey } from '@solana/web3.js';
 import { Wallet } from '@coral-xyz/anchor';
 
-import { DeploymentDocument, DeploymentStatus } from '../manager/types';
 import { Vault } from '../vault';
 import { clientSelector, QueryClient } from '../client';
 import { errorFormatter } from '../../../utils/errorFormatter';
 import { AutoDestructable } from '../../../classes/autoDestructable';
 
+import {
+  DeploymentDocument,
+  DeploymentStatus,
+  DeploymentStrategy,
+} from '../manager/types';
+
 export class Deployment extends AutoDestructable {
-  public id!: string;
-  public market!: PublicKey;
-  public owner!: PublicKey;
-  public name!: string;
-  public status!: DeploymentStatus;
-  public replicas!: number;
-  public timeout!: number;
-  public ipfs_definition_hash!: string;
-  public active_jobs!: string[];
-  public past_jobs!: string[];
-  public created_at!: Date;
-  public updated_at!: Date;
-  public vault: Vault;
+  public readonly id!: string;
+  public readonly market!: PublicKey;
+  public readonly owner!: PublicKey;
+  public readonly name!: string;
+  public readonly status!: DeploymentStatus;
+  public readonly replicas!: number;
+  public readonly timeout!: number;
+  public readonly strategy!: DeploymentStrategy;
+  public readonly ipfs_definition_hash!: string;
+  public readonly active_jobs!: string[];
+  public readonly past_jobs!: string[];
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+  public readonly vault: Vault;
   private client: QueryClient;
 
   constructor(wallet: Wallet, deployment: DeploymentDocument) {
@@ -38,6 +44,10 @@ export class Deployment extends AutoDestructable {
 
     this.client = clientSelector(wallet);
     this.vault = new Vault(new PublicKey(deployment.vault), wallet);
+
+    if (this.status === 'ARCHIVED') {
+      super.freeze();
+    }
   }
 
   async start() {
@@ -68,13 +78,16 @@ export class Deployment extends AutoDestructable {
 
   async stop() {}
 
-  async delete() {
-    const { error } = await this.client.DELETE(`/deployment/${this.id}`, {});
+  async archive() {
+    const { error } = await this.client.PATCH(
+      `/deployment/${this.id}/archive`,
+      {},
+    );
 
     if (error) {
       errorFormatter('Error deleting deployment', error);
     }
 
-    super.delete();
+    super.freeze();
   }
 }

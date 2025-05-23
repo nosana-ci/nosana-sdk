@@ -2,8 +2,8 @@ import { NextFunction, Request } from 'express';
 import { Wallet } from '@coral-xyz/anchor';
 import { Keypair, PublicKey } from '@solana/web3.js';
 
-import { AuthorizationManager } from '../../../authorization.js';
-import { DeploymentsResponse } from '../types.js';
+import { AuthorizationManager } from '../../../../authorization.js';
+import { DeploymentsResponse } from '../../types.js';
 
 export async function authMiddleware(
   req: Request,

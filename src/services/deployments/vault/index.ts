@@ -1,15 +1,14 @@
 import {
   LAMPORTS_PER_SOL,
   PublicKey,
-  sendAndConfirmTransaction,
   VersionedTransaction,
 } from '@solana/web3.js';
 import { Wallet } from '@coral-xyz/anchor';
 
-import { ConnectionSelector } from '../../../classes/connection/selector';
-import { TokenManager } from '../../../classes/tokenManager';
-import { getNosTokenAddressForAccount } from '../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount';
 import { clientSelector } from '../client';
+import { TokenManager } from '../../../classes/tokenManager';
+import { ConnectionSelector } from '../../../classes/connection/selector';
+import { getNosTokenAddressForAccount } from '../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount';
 import { errorFormatter } from '../../../utils/errorFormatter';
 
 export class Vault {
@@ -21,7 +20,7 @@ export class Vault {
     this.wallet = wallet;
   }
 
-  async getBalance() {
+  async getBalance(): Promise<{ SOL: number; NOS: number }> {
     const connection = ConnectionSelector();
     const solBalance = await connection.getBalance(this.publicKey);
     const { balance } = await getNosTokenAddressForAccount(
@@ -30,8 +29,8 @@ export class Vault {
     );
 
     return {
-      sol: solBalance / LAMPORTS_PER_SOL,
-      nos: balance ? balance / 1e6 : 0,
+      SOL: solBalance / LAMPORTS_PER_SOL,
+      NOS: balance ? balance / 1e6 : 0,
     };
   }
 

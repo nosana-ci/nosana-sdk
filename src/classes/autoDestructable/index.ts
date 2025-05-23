@@ -1,5 +1,5 @@
 export abstract class AutoDestructable {
-  private __isDestroyed = false;
+  private __isFrozen = false;
 
   constructor() {
     const proto = Object.getPrototypeOf(this);
@@ -13,15 +13,15 @@ export abstract class AutoDestructable {
       const originalMethod = (this as any)[name];
 
       (this as any)[name] = (...args: any[]) => {
-        if (this.__isDestroyed) {
-          throw new Error(`Cannot call '${name}': object is destroyed.`);
+        if (this.__isFrozen) {
+          throw new Error(`Cannot call '${name}': object is frozen.`);
         }
         return originalMethod.apply(this, args);
       };
     }
   }
 
-  delete(): void {
-    this.__isDestroyed = true;
+  freeze(): void {
+    this.__isFrozen = true;
   }
 }

@@ -4,25 +4,26 @@ import { PublicKey } from '@solana/web3.js';
 import { ConnectionSelector } from '../../../../../../../classes/connection/selector';
 import { getNosTokenAddressForAccount } from '../../../../../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount';
 
-import { DeploymentsResponse } from '../../../../types';
+import { VaultsResponse } from '../../../../types';
+import { ErrorsMessages } from '../../../../definitions/errors';
 
 export async function vaultUpdateBalanceHandler(
-  req: Request<{ id: string }>,
-  res: DeploymentsResponse,
+  req: Request<{ vault: string }>,
+  res: VaultsResponse,
 ) {
-  const { db } = res.locals;
+  const { db, vault } = res.locals;
   const userId = req.headers['x-user-id'] as string;
 
   try {
     const connection = ConnectionSelector();
 
     const [solBalance, { account, balance }] = await Promise.all([
-      connection.getBalance(new PublicKey(req.params.id)),
-      getNosTokenAddressForAccount(new PublicKey(req.params.id), connection),
+      connection.getBalance(new PublicKey(vault.vault)),
+      getNosTokenAddressForAccount(new PublicKey(vault.vault), connection),
     ]);
 
     const { acknowledged } = await db.vaults.updateOne(
-      { vault: req.params.id, owner: userId },
+      { vault: vault.vault, owner: userId },
       {
         $set: {
           sol: solBalance,
@@ -35,16 +36,18 @@ export async function vaultUpdateBalanceHandler(
     if (!acknowledged) {
       res
         .status(500)
-        .json({ error: 'Something when wrong whilst updating the balance.' });
+        .json({ error: ErrorsMessages.vaults.FAILED_TO_UPDATE_BALANCE });
       return;
     }
 
     res.status(200).json({
-      sol: solBalance,
-      nos: balance,
+      SOL: solBalance,
+      NOS: balance,
     });
   } catch (error) {
-    console.error('Error fetching deployments:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: ErrorsMessages.generic.SOMETHING_WENT_WRONG });
   }
 }

@@ -27,6 +27,6 @@ const deployment = await client.deployments.create({
 
 console.log(deployment);
 
-await deployment.delete();
+await deployment.archive();
 
 console.log(deployment);
