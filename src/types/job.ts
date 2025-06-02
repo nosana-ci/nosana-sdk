@@ -40,11 +40,13 @@ export type HttpHealthCheck = {
   expected_status: number;
   headers?: Record<string, string>;
   body?: any;
+  continuous: boolean;
 };
 
 export type WebSocketHealthCheck = {
   type: WebSocketHealthCheckType;
   expected_response: string;
+  continuous: boolean;
 };
 
 // Union type for health checks
