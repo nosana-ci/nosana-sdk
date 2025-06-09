@@ -1,11 +1,14 @@
 import { DeploymentsConnection } from './connection/index.js';
+import { DeploymentManagerListener } from './listeners/index.js';
 import { DeploymentManagerApi } from './routes/index.js';
 
 export class DeploymentsManager {
   private api: DeploymentManagerApi;
+  private listeners: DeploymentManagerListener;
 
   constructor() {
     this.api = new DeploymentManagerApi();
+    this.listeners = new DeploymentManagerListener();
   }
 
   public async start() {
@@ -17,10 +20,12 @@ export class DeploymentsManager {
       }
 
       this.api.setup(dbClient);
+      this.listeners.setup(dbClient);
     } catch (error) {
       throw error;
     }
 
     this.api.start();
+    this.listeners.start();
   }
 }

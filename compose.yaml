@@ -1,10 +1,23 @@
 services:
   deployments_db:
-    image: mongodb/mongodb-community-server:latest
+    image: mongo:7.0
     volumes:
       - deploymentsdbdata:/data/db
+      - deploymentsdbconfig:/data/configdb
     networks:
       - deployments_network
+    ports:
+      - '27017:27017'
+    command: ['--replSet', 'rs0', '--bind_ip_all', '--port', '27017']
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    healthcheck:
+      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'host.docker.internal:27017'}]}) }" | mongosh --port 27017 --quiet
+      interval: 5s
+      timeout: 30s
+      start_period: 0s
+      start_interval: 1s
+      retries: 30
   deployment_manager:
     depends_on:
       - deployments_db
@@ -22,10 +35,12 @@ services:
         - action: rebuild
           path: package.json
     environment:
-      - MONGODB_URI=mongodb://deployments_db:27017/deployments
+      - MONGODB_URI=mongodb://host.docker.internal:27017/deployments?replicaSet=rs0
       - DEPLOYMENT_MANAGER_PORT=3000
     image: deployment_manager:latest
     command: node --no-warnings --loader ts-node/esm examples/deployments/manager.ts
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     ports:
       - '3000:3000'
     networks:
@@ -36,6 +51,7 @@ services:
 volumes:
   deploymentsdbdata:
   deploymentsVault:
+  deploymentsdbconfig:
 
 networks:
   deployments_network:

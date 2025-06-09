@@ -40,4 +40,5 @@ export type ClientConfig = {
 
 export type DeplpoymentsConfig = {
   backend_url: string;
+  tasks_batch_size: number;
 };

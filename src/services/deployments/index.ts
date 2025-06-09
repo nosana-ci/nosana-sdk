@@ -10,7 +10,7 @@ import type { Wallet } from '../../types/index.js';
 import type {
   DeploymentCreateRequest,
   DeploymentCreateSuccessResponse,
-} from './manager/routes/post/deployments/[id]/create/deploymentCreate.types.js';
+} from './manager/routes/post/deployments/create/deploymentCreate.types.js';
 
 export class Deployments {
   public manager: DeploymentsManager;

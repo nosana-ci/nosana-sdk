@@ -1,7 +1,7 @@
-export abstract class AutoDestructable {
+export abstract class AutoDestructurable {
   private __isFrozen = false;
 
-  constructor() {
+  constructor(error_message: string | ((functionName: string) => string)) {
     const proto = Object.getPrototypeOf(this);
 
     const methodNames = Object.getOwnPropertyNames(proto).filter(
@@ -14,7 +14,10 @@ export abstract class AutoDestructable {
 
       (this as any)[name] = (...args: any[]) => {
         if (this.__isFrozen) {
-          throw new Error(`Cannot call '${name}': object is frozen.`);
+          if (typeof error_message === 'string') {
+            throw new Error(error_message);
+          }
+          throw new Error(error_message(name));
         }
         return originalMethod.apply(this, args);
       };

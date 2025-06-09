@@ -14,6 +14,7 @@ import { deploymentIdHandler, deploymentsHandler } from './get';
 import {
   deploymentCreateHandler,
   deploymentStartHandler,
+  deploymentStopHandler,
   vaultWidthdrawHandler,
 } from './post';
 import {
@@ -32,14 +33,11 @@ export class DeploymentManagerApi {
   }
 
   public setup(db: Db) {
-    const collections: Collections = CollectionsNames.reduce(
-      (collections, name) => {
-        // @ts-ignore
-        collections[name] = db.collection(name);
-        return collections;
-      },
-      {} as Collections,
-    );
+    const collections = CollectionsNames.reduce((collections, name) => {
+      // @ts-ignore
+      collections[name] = db.collection(name);
+      return collections;
+    }, {} as Collections);
 
     this.app.use((_, res, next) => {
       res.locals.db = collections;
@@ -68,18 +66,24 @@ export class DeploymentManagerApi {
       validateActiveDeploymentMiddleware,
       deploymentStartHandler,
     );
-    // PATCH
-    this.app.patch(
-      '/api/deployment/:deployment/update-timeout',
+    this.app.post(
+      '/api/deployment/:deployment/stop',
       getDeploymentMiddleware,
       validateActiveDeploymentMiddleware,
-      deploymentUpdateTimeoutHandler,
+      deploymentStopHandler,
     );
+    // PATCH
     this.app.patch(
       '/api/deployment/:deployment/archive',
       getDeploymentMiddleware,
       validateActiveDeploymentMiddleware,
       deploymentArchiveHandler,
+    );
+    this.app.patch(
+      '/api/deployment/:deployment/update-timeout',
+      getDeploymentMiddleware,
+      validateActiveDeploymentMiddleware,
+      deploymentUpdateTimeoutHandler,
     );
   }
 

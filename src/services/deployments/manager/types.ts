@@ -6,6 +6,7 @@ export const DeploymentStatus = {
   ERROR: 'ERROR',
   STARTING: 'STARTING',
   RUNNING: 'RUNNING',
+  STOPPING: 'STOPPING',
   STOPPED: 'STOPPED',
   INSUFFICIENT_FUNDS: 'INSUFFICIENT_FUNDS',
   ARCHIVED: 'ARCHIVED',
@@ -16,8 +17,9 @@ export type DeploymentStatus =
 
 export const DeploymentStrategy = {
   SIMPLE: 'SIMPLE',
+  'SIMPLE-EXTEND': 'SIMPLE-EXTEND',
   SCHEDULED: 'SCHEDULED',
-  INFINATE: 'INFINATE',
+  INFINITE: 'INFINITE',
 } as const;
 
 export type DeploymentStrategy =
@@ -30,11 +32,10 @@ export type DeploymentDocument = {
   owner: string; // Owners PublicKey
   name: string;
   status: DeploymentStatus;
+  strategy: DeploymentStrategy;
   ipfs_definition_hash: string;
   replicas: number;
   timeout: number;
-  active_jobs: string[];
-  past_jobs: string[];
   created_at: Date;
   updated_at: Date;
 };
@@ -85,3 +86,19 @@ export type VaultsResponse<ResponseBody extends {} = any> =
       vault: VaultDocument;
     };
   };
+
+export const TaskType = {
+  LIST: 'LIST',
+  EXTEND: 'EXTEND',
+  STOP: 'STOP',
+} as const;
+
+export type TaskType = (typeof TaskType)[keyof typeof TaskType];
+
+export type TaskDocument = {
+  task: TaskType;
+  due_at: Date;
+  deploymentId: string;
+  tx: string | undefined;
+  created_at: Date;
+};

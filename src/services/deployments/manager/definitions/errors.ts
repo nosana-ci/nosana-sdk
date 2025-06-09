@@ -6,8 +6,9 @@ export const ErrorsMessages = {
     NOT_FOUND: 'Deployment not found.',
     ARCHIVED: 'Cannot modify an archived deployment.',
     FAILED_STARTING: 'Failed to start deployment.',
+    FAILED_TO_STOP: 'Failed to stop deployment.',
     FAILED_TO_ARCHIVE: 'Failed to archive deployment.',
-    FAILED_TIMOUT_UPDATE: 'Failed to update deployment timoeut.',
+    FAILED_TIMEOUT_UPDATE: 'Failed to update deployment timeout.',
     INCORRECT_STATE: 'Deployment is in the incorrect state.',
   },
   vaults: {

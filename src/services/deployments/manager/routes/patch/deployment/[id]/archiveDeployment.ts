@@ -1,4 +1,3 @@
-import fs from 'fs';
 import { Request } from 'express';
 import { Wallet } from '@coral-xyz/anchor';
 import { Keypair, PublicKey } from '@solana/web3.js';

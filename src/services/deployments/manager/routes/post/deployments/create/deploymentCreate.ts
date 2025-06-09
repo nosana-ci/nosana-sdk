@@ -7,10 +7,10 @@ import {
 } from './deploymentCreate.types.js';
 import {
   createAndStoreVault,
-  createDeplyoment,
+  createDeployment,
 } from './deploymentCreate.factory.js';
 
-import { DeploymentsResponse } from '../../../../../types.js';
+import { DeploymentsResponse } from '../../../../types.js';
 
 export async function deploymentCreateHandler(
   req: Request<unknown, unknown, DeploymentCreateRequest>,
@@ -37,7 +37,7 @@ export async function deploymentCreateHandler(
       return;
     }
 
-    const deployment = createDeplyoment(
+    const deployment = createDeployment(
       req.body,
       vault.vault,
       userId,

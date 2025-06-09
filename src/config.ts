@@ -45,9 +45,11 @@ export class Config {
 const deploymentsConfigPreset: { [key: string]: DeplpoymentsConfig } = {
   mainnet: {
     backend_url: 'http://localhost:3000',
+    tasks_batch_size: 10,
   },
   devnet: {
     backend_url: 'http://localhost:3000',
+    tasks_batch_size: 10,
   },
 };
 

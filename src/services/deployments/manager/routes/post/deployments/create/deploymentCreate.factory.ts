@@ -2,16 +2,16 @@ import fs from 'fs';
 import solana from '@solana/web3.js';
 
 import { DeploymentCreateRequest } from './deploymentCreate.types.js';
-import { ConnectionSelector } from '../../../../../../../../classes/connection/selector.js';
-import { getNosTokenAddressForAccount } from '../../../../../../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount.js';
+import { ConnectionSelector } from '../../../../../../../classes/connection/selector.js';
+import { getNosTokenAddressForAccount } from '../../../../../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount.js';
 
 import {
   DeploymentDocument,
   DeploymentStatus,
   VaultDocument,
   VaultStatus,
-} from '../../../../../types.js';
-import { VAULT_PATH } from '../../../../../definitions/vault.js';
+} from '../../../../types.js';
+import { VAULT_PATH } from '../../../../definitions/vault.js';
 
 export async function createAndStoreVault(
   owner: string,
@@ -42,12 +42,13 @@ export async function createAndStoreVault(
   };
 }
 
-export function createDeplyoment(
+export function createDeployment(
   {
     name,
     market,
     ipfs_definition_hash,
     replicas,
+    strategy,
     timeout,
   }: DeploymentCreateRequest,
   vault: string,
@@ -60,12 +61,11 @@ export function createDeplyoment(
     name,
     market,
     owner,
+    strategy,
     status: DeploymentStatus.DRAFT,
     ipfs_definition_hash,
     replicas,
     timeout,
-    active_jobs: [],
-    past_jobs: [],
     created_at,
     updated_at: created_at,
   };

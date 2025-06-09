@@ -1,28 +1,25 @@
 import { Db } from 'mongodb';
 
-import { Collections } from '../types';
-import { CollectionsNames } from '../definitions/collection';
+import { DeploymentListener } from './deployments';
+import { TaskListener } from './tasks';
 
-export class DeploymentManagerListeners {
-  private collections: Collections;
+export class DeploymentManagerListener {
+  private deployments: DeploymentListener | undefined;
+  private tasks: TaskListener | undefined;
 
-  constructor(db: Db) {
-    // @ts-ignore
-    let collections: Collections = {};
-    for (const collection of CollectionsNames) {
-      // @ts-ignore
-      collections[collection] = db.collection(collection);
-    }
-    this.collections = collections;
+  setup(db: Db) {
+    this.deployments = new DeploymentListener(db);
+    this.tasks = new TaskListener(db);
   }
 
-  async start() {
-    const deploymentsStreams = this.collections.deployments.watch();
-
-    for await (const stream of deploymentsStreams) {
-      console.log(stream);
+  start() {
+    if (!this.deployments || !this.tasks) {
+      throw new Error(
+        'Listener setup is required before starting the service.',
+      );
     }
 
-    await deploymentsStreams.close();
+    this.deployments.start();
+    this.tasks.start();
   }
 }
