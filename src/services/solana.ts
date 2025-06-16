@@ -886,4 +886,109 @@ export class SolanaManager {
       sft: newMint.publicKey.toString(),
     };
   }
+
+  /**
+   * Check if a transaction is confirmed or finalized
+   * @param transactionHash - The transaction signature to check
+   * @returns boolean indicating if transaction is confirmed/finalized
+   */
+  public async checkTransactionConfirmation(
+    transactionHash: string,
+  ): Promise<boolean> {
+    try {
+      if (!this.connection) {
+        return false;
+      }
+
+      const statuses = await this.connection.getSignatureStatuses(
+        [transactionHash],
+        {
+          searchTransactionHistory: true,
+        },
+      );
+      const status = statuses.value[0];
+
+      if (status && !status.err) {
+        const confirmationStatus = status.confirmationStatus;
+        return (
+          confirmationStatus === 'confirmed' ||
+          confirmationStatus === 'finalized'
+        );
+      }
+
+      return false;
+    } catch (error) {
+      console.error(
+        `Error checking transaction confirmation for ${transactionHash}:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Poll a transaction's status until it confirms or times out
+   * @param transactionHash - The transaction signature to monitor
+   * @param lastValidBlockHeight - The last valid block height for the transaction
+   * @param maxWaitTimeMs - Maximum time to wait for confirmation in milliseconds
+   * @returns Object containing success status and optional error information
+   */
+  public async pollTransactionStatus(
+    transactionHash: string,
+    lastValidBlockHeight: number,
+    maxWaitTimeMs: number = 30000,
+  ): Promise<{ success: boolean; expired?: boolean; error?: any }> {
+    if (!this.connection) {
+      throw new Error('Solana connection not available');
+    }
+
+    const startTime = Date.now();
+    let checkCount = 0;
+
+    while (Date.now() - startTime < maxWaitTimeMs) {
+      checkCount++;
+      const currentBlockHeight = await this.connection.getBlockHeight();
+
+      // check if blockhash has expired
+      if (currentBlockHeight > lastValidBlockHeight) {
+        console.log('Blockhash expired - transaction definitely failed');
+        return { success: false, expired: true };
+      }
+
+      const statuses = await this.connection.getSignatureStatuses(
+        [transactionHash],
+        {
+          searchTransactionHistory: true,
+        },
+      );
+      const status = statuses.value[0];
+
+      if (status) {
+        // check if transaction failed
+        if (status.err) {
+          return { success: false, error: status.err };
+        }
+
+        if (
+          status.confirmationStatus === 'finalized' ||
+          status.confirmationStatus === 'confirmed'
+        ) {
+          console.log(
+            `Transaction confirmed/finalized after ${checkCount} checks`,
+          );
+          return { success: true };
+        } else if (status.confirmationStatus === 'processed') {
+          console.log(
+            `Transaction ${transactionHash} is processed, waiting for confirmation...`,
+          );
+        }
+      }
+
+      await sleep(1);
+    }
+
+    throw new Error(
+      'Transaction confirmation timeout - please wait before retrying',
+    );
+  }
 }
