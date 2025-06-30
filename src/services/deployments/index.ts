@@ -2,7 +2,7 @@ import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
 
 import { clientSelector, QueryClient } from './client/index.js';
 import { Deployment } from './deployment/index.js';
-import { DeploymentsManager } from './manager/index.js';
+import { startDeploymentManager } from './manager/index.js';
 import { getWallet } from '../../utils.js';
 import { errorFormatter } from '../../utils/errorFormatter.js';
 
@@ -10,16 +10,20 @@ import type { Wallet } from '../../types/index.js';
 import type {
   DeploymentCreateRequest,
   DeploymentCreateSuccessResponse,
-} from './manager/routes/post/deployments/create/deploymentCreate.types.js';
+} from './manager/routes/routes/post/deployments/create/deploymentCreate.types.js';
 
 export class Deployments {
-  public manager: DeploymentsManager;
+  public manager: {
+    start: () => Promise<void>;
+  };
   private client: QueryClient;
   private wallet: AnchorWallet;
 
   constructor(wallet: Wallet) {
     this.wallet = getWallet(wallet);
-    this.manager = new DeploymentsManager();
+    this.manager = {
+      start: async () => await startDeploymentManager(),
+    };
     this.client = clientSelector(wallet);
   }
 

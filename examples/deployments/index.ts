@@ -27,6 +27,17 @@ async function command() {
       deployment = await client.deployments.get(args[1]);
       await deployment.archive();
       return deployment;
+    case 'balance':
+      deployment = await client.deployments.get(args[1]);
+      return await deployment.vault.getBalance();
+    case 'topup':
+      deployment = await client.deployments.get(args[1]);
+      await deployment.vault.topup({ SOL: 0.05, NOS: 0.05 });
+      return await deployment.vault.getBalance();
+    case 'withdraw':
+      deployment = await client.deployments.get(args[1]);
+      await deployment.vault.widthdraw();
+      return await deployment.vault.getBalance();
   }
 }
 

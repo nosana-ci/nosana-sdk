@@ -1,44 +1,55 @@
-import { Collection, Db } from 'mongodb';
+import { Db } from 'mongodb';
 
 import { Listener } from '../listener';
+import { getNextTaskTime } from '../../tasks/utils';
+import { scheduleTask } from '../../tasks/scheduleTask';
 
-import { DeploymentDocument, DeploymentStatus, TaskType } from '../../types';
-import { scheduleTask } from '../tasks/scheduleTask';
+import {
+  DeploymentDocument,
+  DeploymentStatus,
+  DeploymentStrategy,
+  TaskType,
+} from '../../types';
 
-export class DeploymentListener {
-  private db: Db;
-  private collection: Collection<DeploymentDocument>;
-  private listener: Listener<DeploymentDocument> | undefined;
+export function startDeploymentListener(db: Db) {
+  const listener: Listener<DeploymentDocument> | undefined = new Listener(
+    db,
+    'deployments',
+  );
 
-  constructor(db: Db) {
-    this.db = db;
-    this.collection = db.collection('deployments');
-    this.listener = new Listener(db, 'deployments');
-  }
-
-  start() {
-    if (!this.listener) {
+  const start = () => {
+    if (!listener) {
       throw new Error(
         'Listener setup is required before starting the service.',
       );
     }
 
-    this.listener.addListener(
+    listener.addListener(
       'update',
-      ({ id }) => scheduleTask(this.db, TaskType.LIST, id),
+      ({ id, strategy, schedule }) =>
+        scheduleTask(
+          db,
+          TaskType.LIST,
+          id,
+          strategy === DeploymentStrategy.SCHEDULED
+            ? getNextTaskTime(schedule, new Date())
+            : undefined,
+        ),
       {
         status: { $eq: DeploymentStatus.STARTING },
       },
     );
 
-    this.listener.addListener(
+    listener.addListener(
       'update',
-      ({ id }) => scheduleTask(this.db, TaskType.STOP, id),
+      ({ id }) => scheduleTask(db, TaskType.STOP, id),
       {
         status: { $eq: DeploymentStatus.STOPPING },
       },
     );
 
-    this.listener.start();
-  }
+    listener.start();
+  };
+
+  return { start };
 }

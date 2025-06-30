@@ -62,6 +62,7 @@
     "axios-retry": "^3.5.1",
     "bs58": "^5.0.0",
     "buffer": "^6.0.3",
+    "cron-parser": "^5.3.0",
     "express": "^5.1.0",
     "form-data": "^4.0.0",
     "mongodb": "6.15",

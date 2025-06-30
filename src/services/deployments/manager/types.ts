@@ -25,14 +25,23 @@ export const DeploymentStrategy = {
 export type DeploymentStrategy =
   (typeof DeploymentStrategy)[keyof typeof DeploymentStrategy];
 
-export type DeploymentDocument = {
+export type DeploymentDocument =
+  | ({
+      strategy: 'SCHEDULED';
+      schedule: string;
+    } & DeploymentDocumentBase)
+  | ({
+      strategy: Exclude<DeploymentStrategy, 'SCHEDULED'>;
+      schedule?: never;
+    } & DeploymentDocumentBase);
+
+export type DeploymentDocumentBase = {
   id: string; // Deployment PublicKey
   vault: string; // Vault PublicKey
   market: string; // Market PublicKey
   owner: string; // Owners PublicKey
   name: string;
   status: DeploymentStatus;
-  strategy: DeploymentStrategy;
   ipfs_definition_hash: string;
   replicas: number;
   timeout: number;
@@ -42,8 +51,10 @@ export type DeploymentDocument = {
 
 export type EventDocument = {
   category: 'Deployment' | 'Event';
+  deploymentId: string;
   type: string;
   message: string;
+  tx?: string | undefined;
   created_at: Date;
 };
 
@@ -100,5 +111,13 @@ export type TaskDocument = {
   due_at: Date;
   deploymentId: string;
   tx: string | undefined;
+  created_at: Date;
+};
+
+export type JobsDocument = {
+  job: string;
+  deployment: string;
+  run: string;
+  tx: string;
   created_at: Date;
 };
