@@ -46,8 +46,10 @@ export class Jobs extends SolanaManager {
     market: string | PublicKey,
     node?: string | PublicKey,
     instructionOnly?: boolean,
+    project?: string | PublicKey,
   ) {
     if (typeof market === 'string') market = new PublicKey(market);
+    if (typeof project === 'string') project = new PublicKey(project);
 
     await this.loadNosanaJobs();
     await this.setAccounts();
@@ -59,6 +61,7 @@ export class Jobs extends SolanaManager {
         job: jobKey.publicKey,
         run: runKey.publicKey,
         market: market,
+        authority: project || this.provider!.wallet.publicKey,
         vault: pda(
           [
             market.toBuffer(),
