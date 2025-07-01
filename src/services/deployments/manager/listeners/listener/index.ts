@@ -6,54 +6,49 @@ import { CollectionsNames } from '../../definitions/collection';
 import { Collections } from '../../types';
 import { EventCallback, Filters, InsertEvent, UpdateEvent } from './types';
 
-export class Listener<T extends Document> {
-  private readonly collection: Collection<T>;
+export type CollectionListener<T extends Document> = ReturnType<
+  typeof createCollectionListener<T>
+>;
 
-  private insertCallbacks: Array<EventCallback<T>>;
-  private updateCallbacks: Array<{
+export function createCollectionListener<T extends Document>(
+  key: keyof Collections,
+  db: Db,
+) {
+  if (!CollectionsNames.includes(key)) throw new Error('Invalid collection.');
+
+  const collection: Collection<T> = db.collection(key);
+  const insertCallbacks: Array<EventCallback<T>> = [];
+  const updateCallbacks: Array<{
     filters?: Filters<T>;
     callback: EventCallback<T>;
-  }>;
+  }> = [];
 
-  constructor(db: Db, collection: keyof Collections) {
-    if (!CollectionsNames.includes(collection)) {
-      throw new Error('Invalid collection.');
-    }
-
-    this.insertCallbacks = [] as typeof this.insertCallbacks;
-    this.updateCallbacks = [] as typeof this.updateCallbacks;
-
-    this.collection = db.collection(collection) as Collection<T>;
-  }
-
-  public addListener(...params: InsertEvent<T> | UpdateEvent<T>) {
+  const addListener = (...params: InsertEvent<T> | UpdateEvent<T>): void => {
     const [eventType, callback, filters] = params;
     switch (eventType) {
       case 'insert':
-        this.insertCallbacks.push(callback);
+        insertCallbacks.push(callback);
         break;
       case 'update':
-        this.updateCallbacks.push({
+        updateCallbacks.push({
           filters: filters,
           callback: callback,
         });
     }
-  }
+  };
 
-  public async start() {
-    const stream = this.collection.watch<T>([], {
+  const start = async () => {
+    const stream = collection.watch<T>([], {
       fullDocument: 'updateLookup',
     });
 
     for await (const event of stream) {
       switch (event.operationType) {
         case 'insert':
-          this.insertCallbacks.forEach((callback) =>
-            callback(event.fullDocument),
-          );
+          insertCallbacks.forEach((callback) => callback(event.fullDocument));
           break;
         case 'update':
-          this.updateCallbacks.forEach(({ filters, callback }) => {
+          updateCallbacks.forEach(({ filters, callback }) => {
             if (!event.updateDescription.updatedFields) return;
 
             if (filters) {
@@ -70,5 +65,7 @@ export class Listener<T extends Document> {
           });
       }
     }
-  }
+  };
+
+  return { addListener, start };
 }
