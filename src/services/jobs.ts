@@ -5,6 +5,7 @@ import {
   Keypair,
   PublicKey,
   SendTransactionError,
+  Signer,
   TransactionInstruction,
   TransactionSignature,
 } from '@solana/web3.js';
@@ -46,22 +47,22 @@ export class Jobs extends SolanaManager {
     market: string | PublicKey,
     node?: string | PublicKey,
     instructionOnly?: boolean,
-    project?: string | PublicKey,
+    project?: Keypair,
   ) {
     if (typeof market === 'string') market = new PublicKey(market);
-    if (typeof project === 'string') project = new PublicKey(project);
 
     await this.loadNosanaJobs();
     await this.setAccounts();
     const jobKey = Keypair.generate();
     const runKey = Keypair.generate();
+
     try {
       const accounts = {
         ...this.accounts,
         job: jobKey.publicKey,
         run: runKey.publicKey,
         market: market,
-        authority: project || this.provider!.wallet.publicKey,
+        authority: project?.publicKey || this.provider!.wallet.publicKey,
         vault: pda(
           [
             market.toBuffer(),
@@ -92,7 +93,7 @@ export class Jobs extends SolanaManager {
         new BN(jobTimeout),
       )
         .accounts(accounts)
-        .signers([jobKey, runKey]);
+        .signers(project ? [jobKey, runKey, project] : [jobKey, runKey]);
 
       if (instructionOnly) {
         return await tx.instruction();
