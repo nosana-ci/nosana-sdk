@@ -1,5 +1,7 @@
 import { Request } from 'express';
 
+import { fetchDeployments } from '../../../helper/fetchDeployments.js';
+
 import { DeploymentsResponse } from '../../../../types.js';
 
 export async function deploymentsHandler(
@@ -10,7 +12,11 @@ export async function deploymentsHandler(
   const userId = req.headers['x-user-id'];
 
   try {
-    const deployments = await db.deployments.find({ owner: userId }).toArray();
+    const deployments = await fetchDeployments(
+      { owner: userId as string },
+      db.deployments,
+    );
+
     deployments.forEach((deployment) => {
       Reflect.deleteProperty(deployment, '_id');
     });

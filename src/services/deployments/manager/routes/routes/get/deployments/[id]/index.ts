@@ -3,7 +3,7 @@ import { Request } from 'express';
 import { DeploymentsResponse } from '../../../../../types.js';
 
 export async function deploymentIdHandler(
-  req: Request<{ deployment: string }>,
+  _: Request<{ deployment: string }>,
   res: DeploymentsResponse,
 ) {
   const { deployment } = res.locals;

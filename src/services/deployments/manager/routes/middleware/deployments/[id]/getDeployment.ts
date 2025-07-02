@@ -2,6 +2,7 @@ import { Request, NextFunction } from 'express';
 
 import { DeploymentsResponse } from '../../../../types';
 import { ErrorsMessages } from '../../../../definitions/errors';
+import { fetchDeployments } from '../../../helper/fetchDeployments';
 
 export async function getDeploymentMiddleware(
   req: Request<{ deployment: string }>,
@@ -9,21 +10,18 @@ export async function getDeploymentMiddleware(
   next: NextFunction,
 ): Promise<void> {
   const { db } = res.locals;
-  const deploymentId = req.params.deployment;
-  const userId = req.headers['x-user-id'] as string;
+  const id = req.params.deployment;
+  const owner = req.headers['x-user-id'] as string;
 
   try {
-    const deployment = await db.deployments.findOne({
-      id: deploymentId,
-      owner: userId,
-    });
+    const deployments = await fetchDeployments({ id, owner }, db.deployments);
 
-    if (deployment === null) {
+    if (deployments.length === 0) {
       res.status(404).json({ error: ErrorsMessages.deployments.NOT_FOUND });
       return;
     }
 
-    res.locals.deployment = deployment;
+    res.locals.deployment = deployments[0];
     next();
   } catch (error) {
     console.log(error);

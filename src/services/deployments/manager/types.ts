@@ -88,11 +88,16 @@ export type Collections = {
   vaults: VaultCollection;
 };
 
+export type DeploymentAggregation = DeploymentDocument & {
+  events: EventDocument[];
+  jobs: JobsDocument[];
+};
+
 export type DeploymentsResponse<ResponseBody extends {} = any> =
   Response<ResponseBody> & {
     locals: {
       db: Collections;
-      deployment: DeploymentDocument;
+      deployment: DeploymentAggregation;
     };
   };
 
