@@ -5,7 +5,7 @@ import { NGINX_JOB, HELLO_JOB } from './jobs';
 import { DeploymentStrategy } from '../../src/services/deployments/manager/types';
 
 export async function createDeployment(client: Client) {
-  const ipfs_definition_hash = await client.jobs.pinJobDefinition(HELLO_JOB);
+  const ipfs_definition_hash = await client.jobs.pinJobDefinition(NGINX_JOB);
 
   const deployment = await client.deployments.create({
     name: 'my first deployment',

@@ -64,17 +64,17 @@ export class Vault {
     }
   }
 
-  async widthdraw() {
+  async withdraw() {
     const connection = ConnectionSelector();
     const client = clientSelector(this.wallet);
 
     const { data, error } = await client.POST(
-      `/vault/${this.publicKey.toString()}/widthdraw`,
+      `/vault/${this.publicKey.toString()}/withdraw`,
       {},
     );
 
     if (error) {
-      errorFormatter('Failed to widthdraw from vault', error);
+      errorFormatter('Failed to withdraw from vault', error);
     }
 
     const transaction = VersionedTransaction.deserialize(

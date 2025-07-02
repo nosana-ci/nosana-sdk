@@ -2,15 +2,16 @@ import { Db } from 'mongodb';
 
 import { Config } from '../../../../../../config';
 import { VAULT_PATH } from '../../../definitions/vault';
-import { OutstandingTasksDocument } from '../../getOutstandingTasks';
 
 import { Worker } from '../Worker';
+import { onExtendConfirmed, onExtendError, onExtendExit } from './events';
 
 import {
+  DeploymentDocument,
   DeploymentStatus,
   EventDocument,
-  TaskDocument,
-  TaskType,
+  WorkerEventMessage,
+  OutstandingTasksDocument,
 } from '../../../types';
 
 export function spawnExtendTask(
@@ -18,10 +19,10 @@ export function spawnExtendTask(
   task: OutstandingTasksDocument,
   complete: () => void,
 ): Worker {
-  let errorType: DeploymentStatus;
+  let errorStatus: DeploymentStatus | undefined = undefined;
 
-  const tasks = db.collection<TaskDocument>('tasks');
   const events = db.collection<EventDocument>('events');
+  const deployments = db.collection<DeploymentDocument>('documents');
 
   const worker = new Worker('./extend/worker.ts', {
     workerData: {
@@ -31,62 +32,24 @@ export function spawnExtendTask(
     },
   });
 
-  worker.on(
-    'message',
-    ({
-      event,
-      error,
-      job,
-    }: {
-      event: 'CONFIRMED' | string;
-      error?: any;
-      job: string;
-    }) => {
-      switch (event) {
-        case 'CONFIRMED':
-          events.insertOne({
-            deploymentId: task.deploymentId,
-            category: 'Deployment',
-            type: 'JOB_EXTEND_SUCCESSFUL',
-            message: `Successfully extended job - ${job}`,
-            created_at: new Date(),
-          });
-          break;
-        case 'ERROR':
-          events.insertOne({
-            deploymentId: task.deploymentId,
-            category: 'Deployment',
-            type: 'JOB_EXTEND_FAILED',
-            message:
-              error instanceof Error
-                ? error.message
-                : typeof error === 'object'
-                ? JSON.stringify(error)
-                : error,
-            created_at: new Date(),
-          });
-          if (typeof error === 'object' && error.InsufficientFundsForRent) {
-            errorType = DeploymentStatus.INSUFFICIENT_FUNDS;
-          }
-          errorType = DeploymentStatus.ERROR;
-          break;
-      }
-    },
-  );
+  worker.on('message', ({ event, error, tx }: WorkerEventMessage) => {
+    switch (event) {
+      case 'CONFIRMED':
+        onExtendConfirmed(tx, events, task);
+        break;
+      case 'ERROR':
+        onExtendError(
+          error,
+          (status: DeploymentStatus) => (errorStatus = status),
+          events,
+          task,
+        );
+        break;
+    }
+  });
 
   worker.on('exit', async (_code) => {
-    if (!errorType) {
-      tasks.insertOne({
-        task: TaskType.EXTEND,
-        due_at: new Date(
-          new Date().getTime() +
-            Math.min(360, task.deployment.timeout / 0.9) * 1000,
-        ),
-        deploymentId: task.deploymentId,
-        tx: undefined,
-        created_at: new Date(),
-      });
-    }
+    await onExtendExit(errorStatus, deployments, task, db);
 
     complete();
   });

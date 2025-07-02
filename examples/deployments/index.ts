@@ -36,8 +36,14 @@ async function command() {
       return await deployment.vault.getBalance();
     case 'withdraw':
       deployment = await client.deployments.get(args[1]);
-      await deployment.vault.widthdraw();
+      await deployment.vault.withdraw();
       return await deployment.vault.getBalance();
+    case 'withdraw-all':
+      const deployments = await client.deployments.list();
+      for (const deployment of deployments) {
+        await deployment.vault.withdraw().catch(() => {});
+      }
+      return;
   }
 }
 

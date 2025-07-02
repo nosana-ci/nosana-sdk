@@ -7,6 +7,7 @@ import { spawnExtendTask } from './task/extend/spawner';
 import { getOutstandingTasks } from './getOutstandingTasks';
 
 import { TaskDocument, TaskType } from '../types';
+import { spawnStopTask } from './task/stop/spawner';
 
 export function startTaskListener(db: Db) {
   const tasks = new Map<ObjectId, Worker>();
@@ -47,6 +48,12 @@ export function startTaskListener(db: Db) {
           tasks.set(
             task._id,
             spawnExtendTask(db, task, () => completeTask(task._id)),
+          );
+          break;
+        case TaskType.STOP:
+          tasks.set(
+            task._id,
+            spawnStopTask(db, task, () => completeTask(task._id)),
           );
           break;
       }

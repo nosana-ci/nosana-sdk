@@ -3,8 +3,8 @@ import { register } from 'ts-node';
 import { parentPort, workerData } from 'worker_threads';
 
 import { Client, ClientConfig } from '../../../../../../client';
-import { OutstandingTasksDocument } from '../../getOutstandingTasks';
-import { error } from 'console';
+
+import { OutstandingTasksDocument } from '../../../types';
 
 register();
 

@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { Collection } from 'mongodb';
+import { Collection, Document } from 'mongodb';
 
 export const DeploymentStatus = {
   DRAFT: 'DRAFT',
@@ -35,6 +35,8 @@ export type DeploymentDocument =
       schedule?: never;
     } & DeploymentDocumentBase);
 
+export type DeploymentCollection = Collection<DeploymentDocument>;
+
 export type DeploymentDocumentBase = {
   id: string; // Deployment PublicKey
   vault: string; // Vault PublicKey
@@ -58,6 +60,8 @@ export type EventDocument = {
   created_at: Date;
 };
 
+export type EventsCollection = Collection<EventDocument>;
+
 export const VaultStatus = {
   OPEN: 'OPEN',
   ARCHIVED: 'ARCHIVED',
@@ -76,10 +80,12 @@ export type VaultDocument = {
   updated_at: Date;
 };
 
+export type VaultCollection = Collection<VaultDocument>;
+
 export type Collections = {
-  deployments: Collection<DeploymentDocument>;
-  events: Collection<EventDocument>;
-  vaults: Collection<VaultDocument>;
+  deployments: DeploymentCollection;
+  events: EventsCollection;
+  vaults: VaultCollection;
 };
 
 export type DeploymentsResponse<ResponseBody extends {} = any> =
@@ -114,6 +120,8 @@ export type TaskDocument = {
   created_at: Date;
 };
 
+export type TasksCollection = Collection<TaskDocument>;
+
 export type JobsDocument = {
   job: string;
   deployment: string;
@@ -121,3 +129,17 @@ export type JobsDocument = {
   tx: string;
   created_at: Date;
 };
+
+export interface WorkerEventMessage {
+  event: 'CONFIRMED' | string;
+  error?: any;
+  job: string;
+  run: string;
+  tx: string;
+}
+
+export type OutstandingTasksDocument = Document &
+  TaskDocument & {
+    deployment: DeploymentDocument;
+    jobs: JobsDocument[];
+  };

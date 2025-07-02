@@ -1,6 +1,7 @@
 import { Request } from 'express';
 
 import { ErrorsMessages } from '../../../../../../definitions/errors';
+
 import { DeploymentsResponse, DeploymentStatus } from '../../../../../../types';
 
 export async function deploymentStopHandler(
@@ -12,12 +13,9 @@ export async function deploymentStopHandler(
   const userId = req.headers['x-user-id'] as string;
 
   if (
-    !(
-      [
-        DeploymentStatus.RUNNING,
-        DeploymentStatus.STARTING,
-      ] as DeploymentStatus[]
-    ).includes(deployment.status)
+    deployment.status !== DeploymentStatus.RUNNING &&
+    deployment.status !== DeploymentStatus.ERROR &&
+    deployment.status !== DeploymentStatus.INSUFFICIENT_FUNDS
   ) {
     res.status(500).json({ error: ErrorsMessages.deployments.INCORRECT_STATE });
     return;

@@ -1,12 +1,6 @@
-import { Collection, ObjectId, Document } from 'mongodb';
+import { Collection, ObjectId } from 'mongodb';
 
-import { DeploymentDocument, JobsDocument, TaskDocument } from '../types';
-
-export type OutstandingTasksDocument = Document &
-  TaskDocument & {
-    deployment: DeploymentDocument;
-    jobs: JobsDocument[];
-  };
+import { OutstandingTasksDocument, TaskDocument } from '../types';
 
 export async function getOutstandingTasks(
   collection: Collection<TaskDocument>,

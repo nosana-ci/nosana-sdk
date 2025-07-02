@@ -106,7 +106,7 @@ export class Deployment extends AutoDestructurable {
       errorFormatter(`Error stopping deployment`, error);
     }
 
-    this.status = DeploymentStatus.STOPPED;
+    this.status = DeploymentStatus.STOPPING;
     this.updated_at = data.updated_at;
   }
 

@@ -3,7 +3,8 @@ import { register } from 'ts-node';
 import { parentPort, workerData } from 'worker_threads';
 
 import { Client, ClientConfig } from '../../../../../../client';
-import { OutstandingTasksDocument } from '../../getOutstandingTasks';
+
+import { OutstandingTasksDocument } from '../../../types';
 
 register();
 
@@ -23,11 +24,13 @@ const {
 
 for (const { job } of jobs) {
   try {
-    await client.jobs.extend(job, timeout);
-    parentPort?.postMessage({
-      event: 'CONFIRMED',
-      job: job,
-    });
+    const res = await client.jobs.extend(job, timeout);
+    if (res) {
+      parentPort?.postMessage({
+        event: 'CONFIRMED',
+        ...res,
+      });
+    }
   } catch (error) {
     parentPort?.postMessage({
       event: 'ERROR',

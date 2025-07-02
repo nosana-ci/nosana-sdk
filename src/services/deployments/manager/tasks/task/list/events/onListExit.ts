@@ -1,5 +1,8 @@
+import { Db } from 'mongodb';
+
 import { OnListEventParams } from '../spawner';
 import { getNextTaskTime } from '../../../utils';
+import { scheduleTask } from '../../../scheduleTask';
 
 import {
   DeploymentStatus,
@@ -7,33 +10,34 @@ import {
   TaskType,
 } from '../../../../types';
 
-export async function onListExit({
-  error,
-  collections: { tasks, documents },
-  task,
-}: OnListEventParams) {
+export async function onListExit(
+  {
+    error,
+    collections: { tasks, documents },
+    task: {
+      deploymentId,
+      deployment: { timeout, strategy, schedule },
+      due_at,
+    },
+  }: OnListEventParams,
+  db: Db,
+) {
   if (!error) {
-    if (task.deployment.strategy === DeploymentStrategy['SIMPLE-EXTEND']) {
-      await tasks.insertOne({
-        task: TaskType.EXTEND,
-        due_at: new Date(
-          new Date().getSeconds() + task.deployment.timeout / 0.9,
-        ),
-        tx: undefined,
-        deploymentId: task.deploymentId,
-        created_at: new Date(),
-      });
+    if (strategy === DeploymentStrategy['SIMPLE-EXTEND']) {
+      scheduleTask(
+        db,
+        TaskType.EXTEND,
+        deploymentId,
+        new Date(new Date().getTime() + timeout * 0.9 * 60 * 1000),
+      );
     }
 
-    if (task.deployment.strategy === DeploymentStrategy.SCHEDULED) {
-      const nextTaskTime = getNextTaskTime(
-        task.deployment.schedule,
-        task.due_at,
-      );
+    if (strategy === DeploymentStrategy.SCHEDULED && schedule) {
+      const nextTaskTime = getNextTaskTime(schedule, due_at);
       await tasks.insertOne({
         task: TaskType.LIST,
         due_at: nextTaskTime,
-        deploymentId: task.deploymentId,
+        deploymentId: deploymentId,
         tx: undefined,
         created_at: new Date(),
       });
@@ -42,7 +46,7 @@ export async function onListExit({
 
   documents.updateOne(
     {
-      id: { $eq: task.deploymentId },
+      id: { $eq: deploymentId },
     },
     {
       $set: {

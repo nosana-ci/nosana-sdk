@@ -1,6 +1,6 @@
 import { Collection, Db } from 'mongodb';
 
-import type { TaskDocument, TaskType } from '../types';
+import type { TaskDocument, TasksCollection, TaskType } from '../types';
 
 export async function scheduleTask(
   db: Db,
@@ -8,9 +8,9 @@ export async function scheduleTask(
   deploymentId: string,
   due_at = new Date(),
 ) {
-  const { acknowledged } = await (
-    db.collection('tasks') as Collection<TaskDocument>
-  ).insertOne({
+  const tasks: TasksCollection = db.collection<TaskDocument>('tasks');
+
+  const { acknowledged } = await tasks.insertOne({
     task,
     due_at,
     deploymentId,

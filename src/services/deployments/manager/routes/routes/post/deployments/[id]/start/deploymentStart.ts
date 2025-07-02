@@ -1,10 +1,11 @@
 import { Request } from 'express';
 
+import { ErrorsMessages } from '../../../../../../definitions/errors.js';
+
 import {
   DeploymentsResponse,
   DeploymentStatus,
 } from '../../../../../../types.js';
-import { ErrorsMessages } from '../../../../../../definitions/errors.js';
 
 export async function deploymentStartHandler(
   req: Request<{ deployment: string }, unknown, unknown>,
@@ -12,6 +13,16 @@ export async function deploymentStartHandler(
 ) {
   const { db, deployment } = res.locals;
   const userId = req.headers['x-user-id'] as string;
+
+  if (
+    deployment.status !== DeploymentStatus.DRAFT &&
+    deployment.status !== DeploymentStatus.STOPPED &&
+    deployment.status !== DeploymentStatus.ERROR &&
+    deployment.status !== DeploymentStatus.INSUFFICIENT_FUNDS
+  ) {
+    res.status(500).json({ error: ErrorsMessages.deployments.INCORRECT_STATE });
+    return;
+  }
 
   try {
     const { acknowledged } = await db.deployments.updateOne(
