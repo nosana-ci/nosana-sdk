@@ -101,6 +101,7 @@ export type JobDefinition = {
   version: string;
   type: JobType;
   logistics?: JobLogistics;
+  deployment_id ?: string;
   meta?: {
     trigger?: string;
     system_resources?: {
