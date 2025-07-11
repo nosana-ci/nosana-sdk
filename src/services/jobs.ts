@@ -48,11 +48,16 @@ export class Jobs extends SolanaManager {
     node?: string | PublicKey,
     instructionOnly?: boolean,
     project?: Keypair,
+    payer?: PublicKey,
   ) {
     if (typeof market === 'string') market = new PublicKey(market);
 
     await this.loadNosanaJobs();
     await this.setAccounts();
+    const mint = new PublicKey(this.config.nos_address);
+    if (!payer) {
+      payer = this.accounts!.payer;
+    }
     const jobKey = Keypair.generate();
     const runKey = Keypair.generate();
 
@@ -61,12 +66,14 @@ export class Jobs extends SolanaManager {
         ...this.accounts,
         job: jobKey.publicKey,
         run: runKey.publicKey,
+        user: await getAssociatedTokenAddress(mint, payer),
+        payer: payer,
         market: market,
         authority: project?.publicKey || this.provider!.wallet.publicKey,
         vault: pda(
           [
             market.toBuffer(),
-            new PublicKey(this.config.nos_address).toBuffer(),
+            mint.toBuffer(),
           ],
           this.jobs!.programId,
         ),
@@ -137,9 +144,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       jobAccount.price > 0
         ? await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            jobAccount.project,
-          )
+          new PublicKey(this.config.nos_address),
+          jobAccount.payer,
+        )
         : market.vault;
 
     try {
@@ -208,9 +215,10 @@ export class Jobs extends SolanaManager {
           job: job,
           market: market.address,
           vault: market.vault,
+          payer: jobAccount.payer,
           user: await getAssociatedTokenAddress(
             new PublicKey(this.config.nos_address),
-            this.provider!.wallet.publicKey,
+            jobAccount.payer,
           ),
         })
         .signers([]);
@@ -278,7 +286,7 @@ export class Jobs extends SolanaManager {
 
     const depositAta =
       jobAccount.price > 0
-        ? await this.getNosATA(jobAccount.project)
+        ? await this.getNosATA(jobAccount.payer)
         : market.vault;
 
     // check if node ATA already exists, if not create it
@@ -295,7 +303,7 @@ export class Jobs extends SolanaManager {
             new PublicKey(this.config.nos_address),
           ),
         );
-      } catch (e) {}
+      } catch (e) { }
     }
 
     try {
@@ -824,9 +832,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       job.price > 0
         ? await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            job.project,
-          )
+          new PublicKey(this.config.nos_address),
+          job.payer,
+        )
         : market.vault;
 
     const preInstructions: TransactionInstruction[] = [];
@@ -845,7 +853,7 @@ export class Jobs extends SolanaManager {
             new PublicKey(this.config.nos_address),
           ),
         );
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const tx = await this.jobs!.methods.finish(result)
@@ -855,10 +863,10 @@ export class Jobs extends SolanaManager {
         run: run.publicKey,
         vault: market.vault,
         user: nodeAta,
-        payer: run.account.payer,
+        payerJob: job.payer,
+        payerRun: run.account.payer,
         // @ts-ignore
         deposit: depositAta,
-        project: job.project,
         market: marketAddress ? marketAddress : market.address,
       })
       .preInstructions(preInstructions)
