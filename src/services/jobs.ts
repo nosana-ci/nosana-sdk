@@ -195,7 +195,7 @@ export class Jobs extends SolanaManager {
 
     const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
     const payerKey = payer ? payer.publicKey : this.accounts!.payer;
-    if (payerKey !== jobAccount.payer) {
+    if (payerKey.toString() !== jobAccount.payer.toString()) {
       throw new Error('payer does not match job payer');
     }
     if (jobAccount.state != 0) {
