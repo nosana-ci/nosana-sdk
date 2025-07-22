@@ -2,39 +2,7 @@ import type {
   SolanaConfig,
   IPFSConfig,
   SecretsConfig,
-  ClientConfig,
 } from './types/index.js';
-
-export class Config {
-  static _instance: Config;
-  public readonly secertConfig!: SecretsConfig;
-  public readonly solanaConfig!: SolanaConfig;
-  public readonly ifpsConfig!: IPFSConfig;
-
-  constructor(
-    readonly environment: 'devnet' | 'mainnet' = 'devnet',
-    config?: Partial<ClientConfig>,
-  ) {
-    if (Config._instance) {
-      return Config._instance;
-    }
-
-    Config._instance = this;
-
-    this.secertConfig = Object.assign(
-      secretsConfigPreset[this.environment],
-      config?.secrets,
-    );
-    this.solanaConfig = Object.assign(
-      solanaConfigPreset[this.environment],
-      config?.solana,
-    );
-    this.ifpsConfig = Object.assign(
-      IPFSConfigPreset[this.environment],
-      config?.ipfs,
-    );
-  }
-}
 
 const solanaConfigPreset: { [key: string]: SolanaConfig } = {
   mainnet: {

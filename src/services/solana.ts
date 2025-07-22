@@ -59,11 +59,12 @@ import {
 import { fromWeb3JsKeypair } from '@metaplex-foundation/umi-web3js-adapters';
 import { percentAmount, publicKey, some } from '@metaplex-foundation/umi';
 
-import { Config, SOURCE_MINTS } from '../config.js';
+import { solanaConfigPreset, SOURCE_MINTS } from '../config.js';
 import type {
   NosanaJobs,
   NosanaNodes,
   NosanaStake,
+  SolanaConfig,
   Wallet,
 } from '../types/index.js';
 import { KeyWallet, getWallet, pda, sleep } from '../utils.js';
@@ -77,7 +78,7 @@ const { decodeUTF8 } = tweetnaclutil;
  * with the use of Anchor.
  */
 export class SolanaManager {
-  config: Config['solanaConfig'];
+  config: SolanaConfig;
   provider: AnchorProvider | undefined;
   jobs: Program<NosanaJobs> | undefined;
   nodes: Program<NosanaNodes> | undefined;
@@ -98,8 +99,13 @@ export class SolanaManager {
   wallet: AnchorWallet;
   feePayer?: Signer;
   connection: Connection | undefined;
-  constructor(wallet: Wallet) {
-    this.config = new Config().solanaConfig;
+  constructor(environment: string = 'devnet',
+    wallet: Wallet,
+    config?: Partial<SolanaConfig>,
+  ) {
+    this.config = solanaConfigPreset[environment];
+    Object.assign(this.config, config);
+
     this.wallet = getWallet(wallet);
     this.feePayer = this.config.feePayer;
 

@@ -24,10 +24,6 @@ export type SolanaConfig = {
   feePayer?: Signer;
 };
 
-export type SecretsConfig = {
-  manager: string;
-};
-
 export type IPFSConfig = {
   api: string;
   gateway: string;
@@ -37,5 +33,4 @@ export type IPFSConfig = {
 export type ClientConfig = {
   solana?: Partial<SolanaConfig>;
   ipfs?: Partial<IPFSConfig>;
-  secrets?: Partial<SecretsConfig>;
 };
