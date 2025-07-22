@@ -47,29 +47,26 @@ export class Jobs extends SolanaManager {
     market: string | PublicKey,
     node?: string | PublicKey,
     instructionOnly?: boolean,
-    project?: Keypair,
-    payer?: PublicKey,
+    payer?: Keypair,
   ) {
     if (typeof market === 'string') market = new PublicKey(market);
 
     await this.loadNosanaJobs();
     await this.setAccounts();
     const mint = new PublicKey(this.config.nos_address);
-    if (!payer) {
-      payer = this.accounts!.payer;
-    }
     const jobKey = Keypair.generate();
     const runKey = Keypair.generate();
+    const payerKey = payer ? payer.publicKey : this.accounts!.payer;
 
     try {
       const accounts = {
         ...this.accounts,
         job: jobKey.publicKey,
         run: runKey.publicKey,
-        user: await getAssociatedTokenAddress(mint, payer),
-        payer: payer,
+        user: await getAssociatedTokenAddress(mint, payerKey),
+        payer: payer ? payer.publicKey : this.accounts!.payer,
         market: market,
-        authority: project?.publicKey || this.provider!.wallet.publicKey,
+        authority: this.provider!.wallet.publicKey,
         vault: pda(
           [
             market.toBuffer(),
@@ -86,11 +83,10 @@ export class Jobs extends SolanaManager {
           new BN(jobTimeout),
         )
           .accounts({ ...accounts, node })
-          .signers([jobKey, runKey])
-          .rpc();
+          .signers(payer ? [jobKey, runKey, payer] : [jobKey, runKey]);
 
         return {
-          tx,
+          tx: await this.sendAndConfirm(tx),
           job: jobKey.publicKey.toBase58(),
           run: runKey.publicKey.toBase58(),
         };
@@ -100,13 +96,13 @@ export class Jobs extends SolanaManager {
         new BN(jobTimeout),
       )
         .accounts(accounts)
-        .signers(project ? [jobKey, runKey, project] : [jobKey, runKey]);
+        .signers(payer ? [jobKey, runKey, payer] : [jobKey, runKey]);
 
       if (instructionOnly) {
         return await tx.instruction();
       } else {
         return {
-          tx: await tx.rpc(),
+          tx: await this.sendAndConfirm(tx),
           job: jobKey.publicKey.toBase58(),
           run: runKey.publicKey.toBase58(),
         };
@@ -164,7 +160,7 @@ export class Jobs extends SolanaManager {
         return await tx.instruction();
       } else {
         return {
-          tx: await tx.rpc(),
+          tx: await this.sendAndConfirm(tx),
           job: jobAddress.toBase58(),
         };
       }
@@ -191,12 +187,17 @@ export class Jobs extends SolanaManager {
     job: PublicKey | string,
     jobTimeout: number,
     instructionOnly?: boolean,
+    payer?: Keypair,
   ) {
     if (typeof job === 'string') job = new PublicKey(job);
     await this.loadNosanaJobs();
     await this.setAccounts();
 
     const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
+    const payerKey = payer ? payer.publicKey : this.accounts!.payer;
+    if (payerKey !== jobAccount.payer) {
+      throw new Error('payer does not match job payer');
+    }
     if (jobAccount.state != 0) {
       throw new Error('job cannot be extended when finished or stopped');
     }
@@ -221,13 +222,13 @@ export class Jobs extends SolanaManager {
             jobAccount.payer,
           ),
         })
-        .signers([]);
+        .signers(payer ? [payer] : []);
 
       if (instructionOnly) {
         return await tx.instruction();
       } else {
         return {
-          tx: await tx.rpc(),
+          tx: await this.sendAndConfirm(tx),
           job: job.toBase58(),
         };
       }
@@ -325,7 +326,7 @@ export class Jobs extends SolanaManager {
       }
 
       return {
-        tx: await methodBuilder.preInstructions(preInstructions).rpc(),
+        tx: await this.sendAndConfirm(await methodBuilder.preInstructions(preInstructions)),
         job: job.toBase58(),
       };
     } catch (e: any) {

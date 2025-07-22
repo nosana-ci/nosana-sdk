@@ -28,6 +28,8 @@ import {
   GetVersionedTransactionConfig,
   ParsedAccountData,
   TokenAmount,
+  Keypair,
+  Signer,
 } from '@solana/web3.js';
 import { associatedAddress } from '@coral-xyz/anchor/dist/cjs/utils/token.js';
 import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
@@ -66,6 +68,7 @@ import type {
 } from '../types/index.js';
 import { KeyWallet, getWallet, pda, sleep } from '../utils.js';
 import { NosanaProgram } from '../classes/nosanaProgram/index.js';
+import { MethodsBuilder } from '@coral-xyz/anchor/dist/cjs/program/namespace/methods.js';
 
 const { decodeUTF8 } = tweetnaclutil;
 
@@ -80,23 +83,25 @@ export class SolanaManager {
   nodes: Program<NosanaNodes> | undefined;
   stake:
     | {
-        program: Program<NosanaStake> | null;
-        poolsProgram: any;
-        rewardsProgram: any;
-      }
+      program: Program<NosanaStake> | null;
+      poolsProgram: any;
+      rewardsProgram: any;
+    }
     | undefined = {
-    program: null,
-    poolsProgram: null,
-    rewardsProgram: null,
-  };
+      program: null,
+      poolsProgram: null,
+      rewardsProgram: null,
+    };
   accounts: { [key: string]: PublicKey } | undefined;
   stakeAccounts: { [key: string]: any } | undefined;
   poolAccounts: { [key: string]: any } | undefined;
   wallet: AnchorWallet;
+  feePayer?: Signer;
   connection: Connection | undefined;
   constructor(wallet: Wallet) {
     this.config = new Config().solanaConfig;
     this.wallet = getWallet(wallet);
+    this.feePayer = this.config.feePayer;
 
     if (typeof process !== 'undefined' && process.env?.ANCHOR_PROVIDER_URL) {
       // TODO: figure out if we want to support this or not
@@ -113,6 +118,16 @@ export class SolanaManager {
       this.provider = new AnchorProvider(this.connection, this.wallet, {});
     }
     setProvider(this.provider);
+  }
+
+  async sendAndConfirm(txBuilder: MethodsBuilder<any, any>) {
+    const tx = await txBuilder.transaction();
+    if (this.feePayer) {
+      txBuilder.signers([this.feePayer]);
+      tx.feePayer = this.feePayer.publicKey;
+    }
+    const { signers } = await txBuilder.prepare();
+    return this.provider!.sendAndConfirm(tx, signers);
   }
 
   async requestAirdrop(
