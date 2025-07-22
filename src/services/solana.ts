@@ -472,7 +472,7 @@ export class SolanaManager {
         throw new Error("Couldn't fetch IDL for Jobs program");
       }
 
-      this.jobs = new NosanaProgram<NosanaJobs>(idl, programId);
+      this.jobs = new NosanaProgram<NosanaJobs>(this.config, idl, programId);
     }
   }
 

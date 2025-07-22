@@ -2,17 +2,18 @@ import { ConfirmOptions } from '@solana/web3.js';
 import { Idl, MethodsNamespace, Program } from '@coral-xyz/anchor';
 
 import { getPriorityFeePreInstruction } from './priorityFees/getPriorityFeePreInstruction.js';
+import { SolanaConfig } from '../../client.js';
 
 export class NosanaProgram<IDL extends Idl = Idl> extends Program<IDL> {
   // TODO: Some how correct the type to add the new optional args to methods RPC Fnc
   public methods!: MethodsNamespace<Idl>;
 
-  constructor(...args: ConstructorParameters<typeof Program<IDL>>) {
+  constructor(config: SolanaConfig, ...args: ConstructorParameters<typeof Program<IDL>>) {
     super(...args);
-    this.prioFeeProxyMethods();
+    this.prioFeeProxyMethods(config);
   }
 
-  private prioFeeProxyMethods() {
+  private prioFeeProxyMethods(config: SolanaConfig) {
     this.methods = new Proxy(this.methods, {
       get(target, prop) {
         const value = target[prop as keyof typeof target];
@@ -29,7 +30,7 @@ export class NosanaProgram<IDL extends Idl = Idl> extends Program<IDL> {
                   ) {
                     if (options?.disablePrioFees !== false) {
                       const preInstruction =
-                        await getPriorityFeePreInstruction();
+                        await getPriorityFeePreInstruction(config);
                       target['preInstructions'](preInstruction);
                     }
                     return await target[prop](options);
