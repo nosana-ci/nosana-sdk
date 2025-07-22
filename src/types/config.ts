@@ -1,3 +1,5 @@
+import { Signer } from "@solana/web3.js";
+
 export type SolanaConfig = {
   network: string;
   jobs_address: string;
@@ -12,13 +14,14 @@ export type SolanaConfig = {
   maximumPriorityFee?: number;
   dynamicPriorityFee?: boolean;
   priorityFeeStrategy?:
-    | 'min'
-    | 'low'
-    | 'medium'
-    | 'high'
-    | 'veryHigh'
-    | 'unsafeMax';
+  | 'min'
+  | 'low'
+  | 'medium'
+  | 'high'
+  | 'veryHigh'
+  | 'unsafeMax';
   priorityFeeAccounts?: string[];
+  feePayer?: Signer;
 };
 
 export type SecretsConfig = {
