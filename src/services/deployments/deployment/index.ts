@@ -76,6 +76,24 @@ export class Deployment extends AutoDestructurable {
     this.status = 'STARTING';
   }
 
+  async updateReplicaCount(replicas: number): Promise<void> {
+    const { data, error } = await this.client.PATCH(
+      `/deployment/${this.id}/update-replica-count`,
+      {
+        body: {
+          replicas,
+        },
+      },
+    );
+
+    if (error) {
+      errorFormatter('Error updating deployment', error);
+    }
+
+    this.replicas = data.replicas;
+    this.updated_at = data.updated_at;
+  }
+
   async updateTimeout(timeout: number): Promise<void> {
     const { data, error } = await this.client.PATCH(
       `/deployment/${this.id}/update-timeout`,
@@ -87,7 +105,7 @@ export class Deployment extends AutoDestructurable {
     );
 
     if (error) {
-      errorFormatter('Error creating deployment', error);
+      errorFormatter('Error updating deployment', error);
     }
 
     this.timeout = data.timeout;
