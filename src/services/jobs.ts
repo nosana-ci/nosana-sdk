@@ -5,10 +5,15 @@ import {
   Keypair,
   PublicKey,
   SendTransactionError,
+  Signer,
   TransactionInstruction,
   TransactionSignature,
 } from '@solana/web3.js';
-import { getAssociatedTokenAddress } from '@solana/spl-token';
+import {
+  createAssociatedTokenAccountInstruction,
+  getAccount,
+  getAssociatedTokenAddress,
+} from '@solana/spl-token';
 
 import {
   validateJobDefinition,
@@ -23,8 +28,7 @@ import { IPFS } from '../services/ipfs.js';
 const { BN } = anchor.default ? anchor.default : anchor;
 
 // local imports
-import { jobStateMapping, mapJob, excludedJobs } from '../utils.js';
-import type { Wallet } from '../types/index.js';
+import { jobStateMapping, mapJob, excludedJobs, KeyWallet } from '../utils.js';
 
 const emptyResults =
   '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0';
@@ -68,6 +72,7 @@ export class Jobs extends SolanaManager {
     market: string | PublicKey,
     node?: string | PublicKey,
     instructionOnly?: boolean,
+    project?: Keypair,
   ) {
     const ipfsHash =
       typeof jobDefinition === 'object'
@@ -80,12 +85,14 @@ export class Jobs extends SolanaManager {
     await this.setAccounts();
     const jobKey = Keypair.generate();
     const runKey = Keypair.generate();
+
     try {
       const accounts = {
         ...this.accounts,
         job: jobKey.publicKey,
         run: runKey.publicKey,
         market: market,
+        authority: project?.publicKey || this.provider!.wallet.publicKey,
         vault: pda(
           [
             market.toBuffer(),
@@ -116,7 +123,7 @@ export class Jobs extends SolanaManager {
         new BN(jobTimeout),
       )
         .accounts(accounts)
-        .signers([jobKey, runKey]);
+        .signers(project ? [jobKey, runKey, project] : [jobKey, runKey]);
 
       if (instructionOnly) {
         return await tx.instruction();
@@ -297,40 +304,52 @@ export class Jobs extends SolanaManager {
     }
 
     const market = await this.getMarket(jobAccount.market);
+    const preInstructions: TransactionInstruction[] = [];
 
     const depositAta =
       jobAccount.price > 0
-        ? await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            jobAccount.project,
-          )
+        ? await this.getNosATA(jobAccount.project)
         : market.vault;
 
+    // check if node ATA already exists, if not create it
+    const nodeAta = await this.getNosATA(runAccount.account.node);
     try {
-      const tx = await this.jobs!.methods.end()
+      await getAccount(this.connection!, nodeAta);
+    } catch (error) {
+      try {
+        preInstructions.push(
+          createAssociatedTokenAccountInstruction(
+            (this.provider?.wallet as KeyWallet).payer.publicKey,
+            nodeAta,
+            new PublicKey(runAccount.account.node),
+            new PublicKey(this.config.nos_address),
+          ),
+        );
+      } catch (e) {}
+    }
+
+    try {
+      const methodBuilder = this.jobs!.methods.end()
         .accounts({
           ...this.accounts,
           job: job,
           market: market.address,
           vault: market.vault,
           run: runAccount.publicKey,
-          user: await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            runAccount.account.node,
-          ),
-          payer: jobAccount.payer,
+          user: nodeAta,
+          payer: runAccount.account.payer,
           deposit: depositAta,
         })
         .signers([]);
 
       if (instructionOnly) {
-        return await tx.instruction();
-      } else {
-        return {
-          tx: await tx.rpc(),
-          job: job.toBase58(),
-        };
+        return [...preInstructions, await methodBuilder.instruction()];
       }
+
+      return {
+        tx: await methodBuilder.preInstructions(preInstructions).rpc(),
+        job: job.toBase58(),
+      };
     } catch (e: any) {
       if (e instanceof SendTransactionError) {
         if (
@@ -839,22 +858,40 @@ export class Jobs extends SolanaManager {
             job.project,
           )
         : market.vault;
+
+    const preInstructions: TransactionInstruction[] = [];
+
+    // check if node ATA already exists, if not create it
+    const nodeAta = await this.getNosATA(this.provider!.wallet.publicKey);
+    try {
+      await getAccount(this.connection!, nodeAta);
+    } catch (error) {
+      try {
+        preInstructions.push(
+          createAssociatedTokenAccountInstruction(
+            (this.provider?.wallet as KeyWallet).payer.publicKey,
+            nodeAta,
+            this.provider!.wallet.publicKey,
+            new PublicKey(this.config.nos_address),
+          ),
+        );
+      } catch (e) {}
+    }
+
     const tx = await this.jobs!.methods.finish(result)
       .accounts({
         ...this.accounts,
         job: run.account.job,
         run: run.publicKey,
         vault: market.vault,
-        user: await getAssociatedTokenAddress(
-          new PublicKey(this.config.nos_address),
-          this.provider!.wallet.publicKey,
-        ),
+        user: nodeAta,
         payer: run.account.payer,
         // @ts-ignore
         deposit: depositAta,
         project: job.project,
         market: marketAddress ? marketAddress : market.address,
       })
+      .preInstructions(preInstructions)
       .rpc();
     return tx;
   }

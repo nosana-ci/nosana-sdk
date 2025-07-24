@@ -38,11 +38,15 @@ export type HttpHealthCheck = {
   path: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   expected_status: number;
+  headers?: Record<string, string>;
+  body?: any;
+  continuous: boolean;
 };
 
 export type WebSocketHealthCheck = {
   type: WebSocketHealthCheckType;
   expected_response: string;
+  continuous: boolean;
 };
 
 // Union type for health checks
@@ -97,6 +101,7 @@ export type JobDefinition = {
   version: string;
   type: JobType;
   logistics?: JobLogistics;
+  deployment_id ?: string;
   meta?: {
     trigger?: string;
     system_resources?: {
