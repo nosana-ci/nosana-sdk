@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
-import { IValidation } from 'typia';
+import { type IValidation } from 'typia';
 import typia from 'typia';
 import { Resource } from './resources.js';
 

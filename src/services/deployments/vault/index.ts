@@ -1,31 +1,51 @@
 import {
+  Cluster,
+  clusterApiUrl,
+  Connection,
   LAMPORTS_PER_SOL,
   PublicKey,
   VersionedTransaction,
 } from '@solana/web3.js';
 import { Wallet } from '@coral-xyz/anchor';
 
-import { clientSelector } from '../client';
-import { TokenManager } from '../../../classes/tokenManager';
-import { ConnectionSelector } from '../../../classes/connection/selector';
-import { getNosTokenAddressForAccount } from '../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount';
-import { errorFormatter } from '../../../utils/errorFormatter';
+import { clientSelector } from '../client/index.js';
+import { errorFormatter } from '../errors.js';
+import { TokenManager } from '../../../tokenManager/index.js';
+import { getNosTokenAddressForAccount } from '../../../tokenManager/helpers/NOS/getNosTokenAddressForAccount.js';
 
 export class Vault {
   public publicKey: PublicKey;
   private wallet: Wallet;
+  private connection: Connection;
+  private nos_address: string;
 
-  constructor(publicKey: PublicKey, wallet: Wallet) {
+  constructor(
+    publicKey: PublicKey,
+    wallet: Wallet,
+    rpc_network: string,
+    nos_address: string,
+  ) {
     this.publicKey = publicKey;
     this.wallet = wallet;
+    this.nos_address = nos_address;
+
+    let node = rpc_network;
+    if (!node.includes('http')) {
+      node = clusterApiUrl(node as Cluster);
+    }
+
+    this.connection = new Connection(node, {
+      commitment: 'confirmed',
+      confirmTransactionInitialTimeout: 60 * 1000,
+    });
   }
 
   async getBalance(): Promise<{ SOL: number; NOS: number }> {
-    const connection = ConnectionSelector();
-    const solBalance = await connection.getBalance(this.publicKey);
+    const solBalance = await this.connection.getBalance(this.publicKey);
     const { balance } = await getNosTokenAddressForAccount(
       this.publicKey,
-      connection,
+      this.nos_address,
+      this.connection,
     );
 
     return {
@@ -47,6 +67,8 @@ export class Vault {
       this.wallet.publicKey,
       this.publicKey,
       'SOURCE',
+      this.nos_address,
+      this.connection,
     );
 
     try {
@@ -60,15 +82,15 @@ export class Vault {
 
       await manager.transfer([this.wallet.payer]);
     } catch (e) {
-      errorFormatter('Failed to topup vault.', e);
+      errorFormatter('Failed to topup vault.', { error: (e as Error).message });
     }
   }
 
   async withdraw() {
-    const connection = ConnectionSelector();
     const client = clientSelector(this.wallet);
 
     const { data, error } = await client.POST(
+      // @ts-ignore
       `/vault/${this.publicKey.toString()}/withdraw`,
       {},
     );
@@ -78,15 +100,16 @@ export class Vault {
     }
 
     const transaction = VersionedTransaction.deserialize(
-      Buffer.from(data.transaction, 'base64'),
+      // @ts-ignore
+      new Uint8Array(Buffer.from(data.transaction, 'base64')),
     );
     transaction.sign([this.wallet.payer]);
 
     try {
-      const signature = await connection.sendTransaction(transaction);
-      const latestBlockHash = await connection.getLatestBlockhash();
+      const signature = await this.connection.sendTransaction(transaction);
+      const latestBlockHash = await this.connection.getLatestBlockhash();
 
-      await connection.confirmTransaction({
+      await this.connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature,

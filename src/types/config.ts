@@ -35,10 +35,10 @@ export type ClientConfig = {
   solana?: Partial<SolanaConfig>;
   ipfs?: Partial<IPFSConfig>;
   secrets?: Partial<SecretsConfig>;
-  deplyoments?: Partial<DeplpoymentsConfig>;
+  deployments?: Partial<DeploymentsConfig>;
 };
 
-export type DeplpoymentsConfig = {
+export type DeploymentsConfig = {
   backend_url: string;
   tasks_batch_size: number;
 };

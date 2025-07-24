@@ -3,7 +3,7 @@ import type {
   IPFSConfig,
   SecretsConfig,
   ClientConfig,
-  DeplpoymentsConfig,
+  DeploymentsConfig,
 } from './types/index.js';
 
 export class Config {
@@ -11,7 +11,7 @@ export class Config {
   public readonly secertConfig!: SecretsConfig;
   public readonly solanaConfig!: SolanaConfig;
   public readonly ifpsConfig!: IPFSConfig;
-  public readonly deploymentsConfig!: DeplpoymentsConfig;
+  public readonly deploymentsConfig!: DeploymentsConfig;
 
   constructor(
     readonly environment: 'devnet' | 'mainnet' = 'devnet',
@@ -37,12 +37,12 @@ export class Config {
     );
     this.deploymentsConfig = Object.assign(
       deploymentsConfigPreset[this.environment],
-      config?.deplyoments,
+      config?.deployments,
     );
   }
 }
 
-const deploymentsConfigPreset: { [key: string]: DeplpoymentsConfig } = {
+const deploymentsConfigPreset: { [key: string]: DeploymentsConfig } = {
   mainnet: {
     backend_url: 'http://localhost:3000',
     tasks_batch_size: 10,

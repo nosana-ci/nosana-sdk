@@ -2,32 +2,29 @@ import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
 
 import { clientSelector, QueryClient } from './client/index.js';
 import { Deployment } from './deployment/index.js';
-import { startDeploymentManager } from './manager/index.js';
 import { getWallet } from '../../utils.js';
 import { errorFormatter } from '../../utils/errorFormatter.js';
 
 import type { Wallet } from '../../types/index.js';
-import type {
-  DeploymentCreateRequest,
-  DeploymentCreateSuccessResponse,
-} from './manager/routes/routes/post/deployments/create/deploymentCreate.types.js';
+import { Config } from '../../config.js';
 
 export class Deployments {
-  public manager: {
-    start: () => Promise<void>;
-  };
   private client: QueryClient;
   private wallet: AnchorWallet;
+  private solana_network: string;
+  private nos_address: string;
 
   constructor(wallet: Wallet) {
     this.wallet = getWallet(wallet);
-    this.manager = {
-      start: async () => await startDeploymentManager(),
-    };
     this.client = clientSelector(wallet);
+
+    // TODO: swap to prop drilling
+    const config = new Config();
+    this.solana_network = config.solanaConfig.network;
+    this.nos_address = config.solanaConfig.nos_address;
   }
 
-  async create(deploymentBody: DeploymentCreateRequest): Promise<Deployment> {
+  async create(deploymentBody: {}): Promise<Deployment> {
     const { data, error } = await this.client.POST('/deployment/create', {
       body: {
         ...deploymentBody,
@@ -38,7 +35,12 @@ export class Deployments {
       errorFormatter('Error creating deployment', error);
     }
 
-    return new Deployment(this.wallet, data as DeploymentCreateSuccessResponse);
+    return new Deployment(
+      this.wallet,
+      data,
+      this.solana_network,
+      this.nos_address,
+    );
   }
 
   async get(deployment: string): Promise<Deployment> {
@@ -54,7 +56,12 @@ export class Deployments {
       errorFormatter('Error getting deployment', error);
     }
 
-    return new Deployment(this.wallet, data as DeploymentCreateSuccessResponse);
+    return new Deployment(
+      this.wallet,
+      data,
+      this.solana_network,
+      this.nos_address,
+    );
   }
 
   async list(): Promise<Deployment[]> {
@@ -65,8 +72,13 @@ export class Deployments {
     }
 
     return data.map(
-      (deployment: DeploymentCreateSuccessResponse) =>
-        new Deployment(this.wallet, deployment),
+      (deployment: {}) =>
+        new Deployment(
+          this.wallet,
+          deployment,
+          this.solana_network,
+          this.nos_address,
+        ),
     );
   }
 

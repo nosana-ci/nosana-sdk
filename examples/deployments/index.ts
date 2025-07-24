@@ -1,5 +1,5 @@
 import { Deployment } from '../../src/services/deployments/deployment';
-import { createTestClient } from '../utils/createTestClient';
+import { createTestClient } from './utils/createTestClient';
 import { createDeployment } from './create_deployment';
 
 const client = createTestClient();
@@ -17,27 +17,27 @@ async function command() {
       return await client.deployments.get(args[1]);
     case 'start':
       deployment = await client.deployments.get(args[1]);
-      await deployment.start();
+      await deployment!.start();
       return deployment;
     case 'stop':
       deployment = await client.deployments.get(args[1]);
-      await deployment.stop();
+      await deployment!.stop();
       return deployment;
     case 'archive':
       deployment = await client.deployments.get(args[1]);
-      await deployment.archive();
+      await deployment!.archive();
       return deployment;
     case 'balance':
       deployment = await client.deployments.get(args[1]);
-      return await deployment.vault.getBalance();
+      return await deployment!.vault.getBalance();
     case 'topup':
       deployment = await client.deployments.get(args[1]);
-      await deployment.vault.topup({ SOL: 0.05, NOS: 0.05 });
-      return await deployment.vault.getBalance();
+      await deployment!.vault.topup({ SOL: 0.05, NOS: 0.05 });
+      return await deployment!.vault.getBalance();
     case 'withdraw':
       deployment = await client.deployments.get(args[1]);
-      await deployment.vault.withdraw();
-      return await deployment.vault.getBalance();
+      await deployment!.vault.withdraw();
+      return await deployment!.vault.getBalance();
     case 'withdraw-all':
       const deployments = await client.deployments.list();
       for (const deployment of deployments) {

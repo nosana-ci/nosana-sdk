@@ -2,8 +2,6 @@ import { Client } from '../../src';
 
 import { NGINX_JOB, HELLO_JOB } from './jobs';
 
-import { DeploymentStrategy } from '../../src/services/deployments/manager/types';
-
 export async function createDeployment(client: Client) {
   const ipfs_definition_hash = await client.jobs.pinJobDefinition(NGINX_JOB);
 
@@ -12,7 +10,7 @@ export async function createDeployment(client: Client) {
     market: '7AtiXMSH6R1jjBxrcYjehCkkSF7zvYWte63gwEDBcGHq',
     replicas: 1,
     timeout: 60,
-    strategy: DeploymentStrategy['SIMPLE-EXTEND'],
+    strategy: 'SIMPLE-EXTEND',
     ipfs_definition_hash,
   });
 

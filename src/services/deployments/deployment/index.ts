@@ -6,20 +6,14 @@ import { clientSelector, QueryClient } from '../client';
 import { errorFormatter } from '../../../utils/errorFormatter';
 import { AutoDestructurable } from '../../../classes/autoDestructurable';
 
-import {
-  DeploymentDocument,
-  DeploymentStatus,
-  DeploymentStrategy,
-} from '../manager/types';
-
 export class Deployment extends AutoDestructurable {
   public readonly id!: string;
   public readonly market!: PublicKey;
   public readonly owner!: PublicKey;
   public readonly name!: string;
-  public readonly strategy!: DeploymentStrategy;
+  public readonly strategy!: string;
   // TODO: Project against outside updates and fix type issues forcing !
-  public status!: DeploymentStatus;
+  public status!: string;
   public replicas!: number;
   public timeout!: number;
   public ipfs_definition_hash!: string;
@@ -31,7 +25,12 @@ export class Deployment extends AutoDestructurable {
 
   private readonly client: QueryClient;
 
-  constructor(wallet: Wallet, deployment: DeploymentDocument) {
+  constructor(
+    wallet: Wallet,
+    deployment: {},
+    solana_network: string,
+    nos_address: string,
+  ) {
     super(
       (name) =>
         `Cannot call ${name}, deployment is archived and cannot be modified.`,
@@ -48,7 +47,13 @@ export class Deployment extends AutoDestructurable {
     }
 
     this.client = clientSelector(wallet);
-    this.vault = new Vault(new PublicKey(deployment.vault), wallet);
+    this.vault = new Vault(
+      // @ts-ignore
+      new PublicKey(deployment.vault),
+      wallet,
+      solana_network,
+      nos_address,
+    );
 
     if (this.status === 'ARCHIVED') {
       super.freeze();
@@ -56,14 +61,7 @@ export class Deployment extends AutoDestructurable {
   }
 
   async start() {
-    if (
-      (
-        [
-          DeploymentStatus.STARTING,
-          DeploymentStatus.RUNNING,
-        ] as DeploymentStatus[]
-      ).includes(this.status)
-    ) {
+    if (['STARTING', 'RUNNING'].includes(this.status)) {
       errorFormatter('Cannot start a deployment that is already running.', {});
     }
     const { error } = await this.client.POST(
@@ -75,7 +73,7 @@ export class Deployment extends AutoDestructurable {
       errorFormatter('Error starting deployment', error);
     }
 
-    this.status = DeploymentStatus.STARTING;
+    this.status = 'STARTING';
   }
 
   async updateTimeout(timeout: number): Promise<void> {
@@ -106,7 +104,7 @@ export class Deployment extends AutoDestructurable {
       errorFormatter(`Error stopping deployment`, error);
     }
 
-    this.status = DeploymentStatus.STOPPING;
+    this.status = 'STOPPING';
     this.updated_at = data.updated_at;
   }
 
@@ -120,7 +118,7 @@ export class Deployment extends AutoDestructurable {
       errorFormatter('Error deleting deployment', error);
     }
 
-    this.status = DeploymentStatus.ARCHIVED;
+    this.status = 'ARCHIVED';
     super.freeze();
   }
 }
