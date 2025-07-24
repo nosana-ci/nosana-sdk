@@ -40,5 +40,4 @@ export type ClientConfig = {
 
 export type DeploymentsConfig = {
   backend_url: string;
-  tasks_batch_size: number;
 };

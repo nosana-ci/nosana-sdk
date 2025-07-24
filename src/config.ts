@@ -44,12 +44,10 @@ export class Config {
 
 const deploymentsConfigPreset: { [key: string]: DeploymentsConfig } = {
   mainnet: {
-    backend_url: 'http://localhost:3000',
-    tasks_batch_size: 10,
+    backend_url: 'https://deployment-manager.k8s.prd.nos.ci',
   },
   devnet: {
-    backend_url: 'http://localhost:3000',
-    tasks_batch_size: 10,
+    backend_url: 'https://deployment-manager.k8s.dev.nos.ci',
   },
 };
 
