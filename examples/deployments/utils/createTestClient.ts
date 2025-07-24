@@ -8,7 +8,7 @@ export const createTestClient = () => {
     'mainnet',
     fs.readFileSync(os.homedir() + '/.nosana/nosana_key.json', 'utf8'),
     {
-      deplyoments: {
+      deployments: {
         backend_url: 'https://deployment-manager.k8s.dev.nos.ci',
       },
     },
