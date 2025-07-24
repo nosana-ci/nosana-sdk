@@ -1,15 +1,17 @@
-import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
-
-import { ConnectionSelector } from '../../../connection/selector';
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+} from '@solana/web3.js';
 
 export async function createTransferSOLInstruction(
   amount: number,
   source: PublicKey,
   destination: PublicKey,
   transaction: Transaction,
+  connection: Connection,
 ) {
-  const connection = ConnectionSelector();
-
   const balance = await connection.getBalance(source);
 
   if (balance < amount) {

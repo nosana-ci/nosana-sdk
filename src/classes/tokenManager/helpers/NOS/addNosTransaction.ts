@@ -6,8 +6,6 @@ import {
 } from '@solana/spl-token';
 import { PublicKey, Transaction } from '@solana/web3.js';
 
-import { Config } from '../../../../config';
-
 export async function addNosToTransaction(
   amount: number,
   source: {
@@ -19,16 +17,17 @@ export async function addNosToTransaction(
     tokenAccount: PublicKey;
   },
   payer: PublicKey,
-  createDesinationNosATA: boolean,
+  createDestinationNosATA: boolean,
   transaction: Transaction,
+  nos_address: string,
 ) {
-  if (createDesinationNosATA) {
+  if (createDestinationNosATA) {
     transaction.add(
       createAssociatedTokenAccountInstruction(
         payer,
         destination.tokenAccount,
         destination.account,
-        new PublicKey(new Config().solanaConfig.nos_address),
+        new PublicKey(nos_address),
         TOKEN_PROGRAM_ID,
         ASSOCIATED_TOKEN_PROGRAM_ID,
       ),

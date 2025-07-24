@@ -10,8 +10,8 @@ import { Wallet } from '@coral-xyz/anchor';
 
 import { clientSelector } from '../client/index.js';
 import { errorFormatter } from '../errors.js';
-import { TokenManager } from '../../../tokenManager/index.js';
-import { getNosTokenAddressForAccount } from '../../../tokenManager/helpers/NOS/getNosTokenAddressForAccount.js';
+import { TokenManager } from '../../../classes/tokenManager/index.js';
+import { getNosTokenAddressForAccount } from '../../../classes/tokenManager/helpers/NOS/getNosTokenAddressForAccount.js';
 
 export class Vault {
   public publicKey: PublicKey;

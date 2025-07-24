@@ -1,24 +1,28 @@
 import {
+  Connection,
   PublicKey,
   sendAndConfirmTransaction,
   Signer,
   Transaction,
 } from '@solana/web3.js';
 
-import { ConnectionSelector } from '../connection/selector';
-import { createTransferNOSInstruction } from './helpers/NOS/createTransferNOSInstruction';
-import { createTransferSOLInstruction } from './helpers/SOL/createTransferSOLInstruction';
+import { createTransferNOSInstruction } from './helpers/NOS/createTransferNOSInstruction.js';
+import { createTransferSOLInstruction } from './helpers/SOL/createTransferSOLInstruction.js';
 
 export class TokenManager {
   public transaction: Transaction;
   public sourceWallet: PublicKey;
   public destinationWallet: PublicKey;
   public payer: 'SOURCE' | 'DESTINATION';
+  private connection: Connection;
+  private nos_address: string;
 
   constructor(
     sourceWallet: PublicKey | string,
     destinationWallet: PublicKey | string,
     payer: 'SOURCE' | 'DESTINATION',
+    nos_address: string,
+    connection: Connection,
   ) {
     this.payer = payer;
     this.transaction = new Transaction();
@@ -33,6 +37,9 @@ export class TokenManager {
 
     this.transaction.feePayer =
       payer === 'SOURCE' ? this.sourceWallet : this.destinationWallet;
+
+    this.nos_address = nos_address;
+    this.connection = connection;
   }
 
   public async addNOS(amount?: number) {
@@ -42,6 +49,8 @@ export class TokenManager {
       this.destinationWallet,
       this.payer === 'SOURCE' ? this.sourceWallet : this.destinationWallet,
       this.transaction,
+      this.nos_address,
+      this.connection,
     );
   }
 
@@ -51,12 +60,12 @@ export class TokenManager {
       this.sourceWallet,
       this.destinationWallet,
       this.transaction,
+      this.connection,
     );
   }
 
   public async signAndSerialize(signer: Signer): Promise<string> {
-    const connection = ConnectionSelector();
-    let blockhash = (await connection.getLatestBlockhash('finalized'))
+    let blockhash = (await this.connection.getLatestBlockhash('finalized'))
       .blockhash;
     this.transaction.recentBlockhash = blockhash;
     this.transaction.sign(signer);
@@ -66,7 +75,6 @@ export class TokenManager {
   }
 
   public async transfer(signers: Signer[]) {
-    const connection = ConnectionSelector();
-    await sendAndConfirmTransaction(connection, this.transaction, signers);
+    await sendAndConfirmTransaction(this.connection, this.transaction, signers);
   }
 }
