@@ -17,6 +17,7 @@ import {
 
 import {
   validateJobDefinition,
+  Wallet,
   type Job,
   type JobDefinition,
   type Market,

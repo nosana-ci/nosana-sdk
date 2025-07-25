@@ -4,7 +4,7 @@ export const NGINX_JOB: JobDefinition = {
   version: '0.1',
   type: 'container',
   meta: {
-    trigger: 'cli',
+    trigger: 'deployment-manager',
   },
   ops: [
     {
@@ -23,7 +23,7 @@ export const HELLO_JOB: JobDefinition = {
   version: '0.1',
   type: 'container',
   meta: {
-    trigger: 'cli',
+    trigger: 'deployment-manager',
   },
   ops: [
     {
