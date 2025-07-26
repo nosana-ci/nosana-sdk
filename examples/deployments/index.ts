@@ -16,6 +16,10 @@ async function command() {
       return await client.deployments.list();
     case 'get':
       return await client.deployments.get(args[1]);
+    case 'tasks':
+      const dep = await client.deployments.get(args[1]);
+      console.log(await dep.getTasks());
+      break;
     case 'start':
       deployment = await client.deployments.get(args[1]);
       await deployment!.start();
@@ -33,7 +37,7 @@ async function command() {
       return await deployment!.vault.getBalance();
     case 'topup':
       deployment = await client.deployments.get(args[1]);
-      await deployment!.vault.topup({ SOL: 0.05, NOS: 0.05 });
+      await deployment!.vault.topup({ SOL: 1, NOS: 100 });
       return await deployment!.vault.getBalance();
     case 'withdraw':
       deployment = await client.deployments.get(args[1]);
@@ -59,6 +63,7 @@ async function command() {
       await sleep(5);
       console.log(`Withdrawing all tokens from vault`);
       await deployment.vault.withdraw();
+      return deployment;
   }
 }
 

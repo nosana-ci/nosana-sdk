@@ -76,6 +76,19 @@ export class Deployment extends AutoDestructurable {
     this.status = 'STARTING';
   }
 
+  async getTasks() {
+    const { data, error } = await this.client.GET(
+      `/deployment/${this.id}/tasks`,
+      {},
+    );
+
+    if (error) {
+      errorFormatter('Error fetch deployment tasks', error);
+    }
+
+    return data;
+  }
+
   async updateReplicaCount(replicas: number): Promise<void> {
     const { data, error } = await this.client.PATCH(
       `/deployment/${this.id}/update-replica-count`,
