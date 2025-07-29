@@ -87,35 +87,30 @@ export class Vault {
   }
 
   async withdraw() {
-    const client = clientSelector(this.wallet);
-
-    const { data, error } = await client.POST(
-      // @ts-ignore
-      `/vault/${this.publicKey.toString()}/withdraw`,
-      {},
-    );
-
-    if (error) {
-      errorFormatter('Failed to withdraw from vault', error);
-    }
-
-    const transaction = VersionedTransaction.deserialize(
-      // @ts-ignore
-      new Uint8Array(Buffer.from(data.transaction, 'base64')),
-    );
-    transaction.sign([this.wallet.payer]);
-
-    try {
-      const signature = await this.connection.sendTransaction(transaction);
-      const latestBlockHash = await this.connection.getLatestBlockhash();
-
-      await this.connection.confirmTransaction({
-        blockhash: latestBlockHash.blockhash,
-        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-        signature,
-      });
-    } catch {
-      errorFormatter('Vault withdrawal transaction failed.', error);
-    }
+    // const client = clientSelector(this.wallet);
+    // const { data, error } = await client.POST(
+    //   // @ts-ignore
+    //   `/vault/${this.publicKey.toString()}/withdraw`,
+    //   {},
+    // );
+    // if (error) {
+    //   errorFormatter('Failed to withdraw from vault', error);
+    // }
+    // const transaction = VersionedTransaction.deserialize(
+    //   // @ts-ignore
+    //   new Uint8Array(Buffer.from(data.transaction, 'base64')),
+    // );
+    // transaction.sign([this.wallet.payer]);
+    // try {
+    //   const signature = await this.connection.sendTransaction(transaction);
+    //   const latestBlockHash = await this.connection.getLatestBlockhash();
+    //   await this.connection.confirmTransaction({
+    //     blockhash: latestBlockHash.blockhash,
+    //     lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+    //     signature,
+    //   });
+    // } catch {
+    //   errorFormatter('Vault withdrawal transaction failed.', error);
+    // }
   }
 }

@@ -1,12 +1,14 @@
 import createClient, { Middleware } from 'openapi-fetch';
 
 import { Config } from '../../../config';
-import { Wallet } from '../../../types';
-
 import { getWallet } from '../../../utils';
 import { AuthorizationManager } from '../../authorization';
 
-export type QueryClient = ReturnType<typeof createClient<any, any | undefined>>;
+import { Wallet } from '../../../types';
+
+import { paths } from './schema';
+
+export type QueryClient = ReturnType<typeof createClient<paths>>;
 
 export const clientSelector = (wallet: Wallet): QueryClient => {
   let instance: QueryClient | undefined = undefined;
@@ -28,7 +30,7 @@ export const clientSelector = (wallet: Wallet): QueryClient => {
     };
 
     instance = createClient({
-      baseUrl: `${new Config().deploymentsConfig.backend_url}/api`,
+      baseUrl: `${new Config().deploymentsConfig.backend_url}`,
       headers: {
         'Content-Type': 'application/json',
       },

@@ -24,72 +24,69 @@ export class Deployments {
     this.nos_address = config.solanaConfig.nos_address;
   }
 
-  async create(deploymentBody: {}): Promise<Deployment> {
-    const { data, error } = await this.client.POST('/deployment/create', {
-      body: {
-        ...deploymentBody,
-      },
-    });
-
-    if (error) {
-      errorFormatter('Error creating deployment', error);
-    }
-
-    return new Deployment(
-      this.wallet,
-      data,
-      this.solana_network,
-      this.nos_address,
-    );
+  async create(deploymentBody: {}) {
+    // const { data, error } = await this.client.POST('/deployment/create', {
+    //   body: {
+    //     ...deploymentBody,
+    //   },
+    // });
+    // if (error) {
+    //   errorFormatter('Error creating deployment', error);
+    // }
+    // return new Deployment(
+    //   this.wallet,
+    //   data,
+    //   this.solana_network,
+    //   this.nos_address,
+    // );
   }
 
-  async get(deployment: string): Promise<Deployment> {
-    const { data, error } = await this.client.GET(`/deployment/{id}`, {
-      params: {
-        path: {
-          id: deployment,
-        },
-      },
-    });
-
-    if (error) {
-      errorFormatter('Error getting deployment', error);
-    }
-
-    return new Deployment(
-      this.wallet,
-      data,
-      this.solana_network,
-      this.nos_address,
-    );
+  async get(deployment: string) {
+    // const { data, error } = await this.client.GET(`/deployment/{id}`, {
+    //   params: {
+    //     path: {
+    //       id: deployment,
+    //     },
+    //   },
+    // });
+    // if (error) {
+    //   errorFormatter('Error getting deployment', error);
+    // }
+    // return new Deployment(
+    //   this.wallet,
+    //   data,
+    //   this.solana_network,
+    //   this.nos_address,
+    // );
   }
 
-  async list(): Promise<Deployment[]> {
-    const { data, error } = await this.client.GET('/deployments', {});
+  async list() {
+    const { data, error } = await this.client.GET('/api/deployments', {});
 
     if (error) {
       errorFormatter('Error listing deployments', error);
     }
 
-    return data.map(
-      (deployment: {}) =>
-        new Deployment(
-          this.wallet,
-          deployment,
-          this.solana_network,
-          this.nos_address,
-        ),
-    );
+    console.log(data);
+
+    // return data.map(
+    //   (deployment: {}) =>
+    //     new Deployment(
+    //       this.wallet,
+    //       deployment,
+    //       this.solana_network,
+    //       this.nos_address,
+    //     ),
+    // );
   }
 
   async archive(deployment: string) {
-    const { error } = await this.client.DELETE(
-      `/deployment/${deployment}/archive`,
-      {},
-    );
-
-    if (error) {
-      errorFormatter('Error archiving deployment', error);
-    }
+    // const { error } = await this.client.DELETE(
+    //   `/deployment/${deployment}/archive`,
+    //   {},
+    // );
+    // if (error) {
+    //   errorFormatter('Error archiving deployment', error);
+    // }
   }
 }

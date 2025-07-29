@@ -64,92 +64,82 @@ export class Deployment extends AutoDestructurable {
     if (['STARTING', 'RUNNING'].includes(this.status)) {
       errorFormatter('Cannot start a deployment that is already running.', {});
     }
-    const { error } = await this.client.POST(
-      `/deployment/${this.id}/start`,
-      {},
-    );
+    // const { error } = await this.client.POST(
+    //   `/deployment/${this.id}/start`,
+    //   {},
+    // );
 
-    if (error) {
-      errorFormatter('Error starting deployment', error);
-    }
+    // if (error) {
+    //   errorFormatter('Error starting deployment', error);
+    // }
 
-    this.status = 'STARTING';
+    // this.status = 'STARTING';
   }
 
   async getTasks() {
-    const { data, error } = await this.client.GET(
-      `/deployment/${this.id}/tasks`,
-      {},
-    );
-
-    if (error) {
-      errorFormatter('Error fetch deployment tasks', error);
-    }
-
-    return data;
+    // const { data, error } = await this.client.GET(
+    //   `/deployment/${this.id}/tasks`,
+    //   {},
+    // );
+    // if (error) {
+    //   errorFormatter('Error fetch deployment tasks', error);
+    // }
+    // return data;
   }
 
   async updateReplicaCount(replicas: number): Promise<void> {
-    const { data, error } = await this.client.PATCH(
-      `/deployment/${this.id}/update-replica-count`,
-      {
-        body: {
-          replicas,
-        },
-      },
-    );
-
-    if (error) {
-      errorFormatter('Error updating deployment', error);
-    }
-
-    this.replicas = data.replicas;
-    this.updated_at = data.updated_at;
+    // const { data, error } = await this.client.PATCH(
+    //   `/deployment/${this.id}/update-replica-count`,
+    //   {
+    //     body: {
+    //       replicas,
+    //     },
+    //   },
+    // );
+    // if (error) {
+    //   errorFormatter('Error updating deployment', error);
+    // }
+    // this.replicas = data.replicas;
+    // this.updated_at = data.updated_at;
   }
 
   async updateTimeout(timeout: number): Promise<void> {
-    const { data, error } = await this.client.PATCH(
-      `/deployment/${this.id}/update-timeout`,
-      {
-        body: {
-          timeout,
-        },
-      },
-    );
-
-    if (error) {
-      errorFormatter('Error updating deployment', error);
-    }
-
-    this.timeout = data.timeout;
-    this.updated_at = data.updated_at;
+    // const { data, error } = await this.client.PATCH(
+    //   `/deployment/${this.id}/update-timeout`,
+    //   {
+    //     body: {
+    //       timeout,
+    //     },
+    //   },
+    // );
+    // if (error) {
+    //   errorFormatter('Error updating deployment', error);
+    // }
+    // this.timeout = data.timeout;
+    // this.updated_at = data.updated_at;
   }
 
   async stop() {
-    const { data, error } = await this.client.POST(
-      `/deployment/${this.id}/stop`,
-      {},
-    );
-
-    if (error) {
-      errorFormatter(`Error stopping deployment`, error);
-    }
-
-    this.status = 'STOPPING';
-    this.updated_at = data.updated_at;
+    // const { data, error } = await this.client.POST(
+    //   `/deployment/${this.id}/stop`,
+    //   {},
+    // );
+    // if (error) {
+    //   errorFormatter(`Error stopping deployment`, error);
+    // }
+    // this.status = 'STOPPING';
+    // this.updated_at = data.updated_at;
   }
 
   async archive() {
-    const { error } = await this.client.PATCH(
-      `/deployment/${this.id}/archive`,
-      {},
-    );
-
-    if (error) {
-      errorFormatter('Error deleting deployment', error);
-    }
-
-    this.status = 'ARCHIVED';
-    super.freeze();
+    // const { error } = await this.client.PATCH(
+    //   `/deployment/${this.id}/archive`,
+    //   {},
+    // );
+    // if (error) {
+    //   errorFormatter('Error deleting deployment', error);
+    // }
+    // this.status = 'ARCHIVED';
+    // super.freeze();
   }
 }
