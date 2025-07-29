@@ -471,6 +471,11 @@ export type NosanaJobs = {
           isSigner: true;
         },
         {
+          name: 'payer';
+          isMut: false;
+          isSigner: true;
+        },
+        {
           name: 'rewardsProgram';
           isMut: false;
           isSigner: false;
@@ -726,7 +731,12 @@ export type NosanaJobs = {
           isSigner: false;
         },
         {
-          name: 'payer';
+          name: 'payerJob';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payerRun';
           isMut: true;
           isSigner: false;
         },

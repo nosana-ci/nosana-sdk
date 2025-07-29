@@ -1,42 +1,9 @@
 import type {
   SolanaConfig,
   IPFSConfig,
-  SecretsConfig,
-  ClientConfig,
 } from './types/index.js';
 
-export class Config {
-  static _instance: Config;
-  public readonly secertConfig!: SecretsConfig;
-  public readonly solanaConfig!: SolanaConfig;
-  public readonly ifpsConfig!: IPFSConfig;
-
-  constructor(
-    readonly environment: 'devnet' | 'mainnet' = 'devnet',
-    config?: Partial<ClientConfig>,
-  ) {
-    if (Config._instance) {
-      return Config._instance;
-    }
-
-    Config._instance = this;
-
-    this.secertConfig = Object.assign(
-      secretsConfigPreset[this.environment],
-      config?.secrets,
-    );
-    this.solanaConfig = Object.assign(
-      solanaConfigPreset[this.environment],
-      config?.solana,
-    );
-    this.ifpsConfig = Object.assign(
-      IPFSConfigPreset[this.environment],
-      config?.ipfs,
-    );
-  }
-}
-
-const solanaConfigPreset: { [key: string]: SolanaConfig } = {
+export const solanaConfigPreset: { [key: string]: SolanaConfig } = {
   mainnet: {
     network:
       'https://rpc.ironforge.network/mainnet?apiKey=01J4RYMAWZC65B6CND9DTZZ5BK',
@@ -69,16 +36,7 @@ const solanaConfigPreset: { [key: string]: SolanaConfig } = {
   } as SolanaConfig,
 };
 
-const secretsConfigPreset: { [key: string]: SecretsConfig } = {
-  mainnet: {
-    manager: 'https://secrets.k8s.prd.nos.ci/',
-  },
-  devnet: {
-    manager: 'https://secrets.k8s.dev.nos.ci/',
-  },
-};
-
-const IPFSConfigPreset: { [key: string]: IPFSConfig } = {
+export const IPFSConfigPreset: { [key: string]: IPFSConfig } = {
   mainnet: {
     api: 'https://api.pinata.cloud',
     jwt: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJmZDUwODE1NS1jZDJhLTRlMzYtYWI4MC0wNmMxNjRmZWY1MTkiLCJlbWFpbCI6Implc3NlQG5vc2FuYS5pbyIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImlkIjoiRlJBMSIsImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxfV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI1YzVhNWM2N2RlYWU2YzNhNzEwOCIsInNjb3BlZEtleVNlY3JldCI6ImYxOWFjZDUyZDk4ZTczNjU5MmEyY2IzZjQwYWUxNGE2ZmYyYTkxNDJjZTRiN2EzZGQ5OTYyOTliMmJkN2IzYzEiLCJpYXQiOjE2ODY3NzE5Nzl9.r4_pWCCT79Jis6L3eegjdBdAt5MpVd1ymDkBuNE25g8',
