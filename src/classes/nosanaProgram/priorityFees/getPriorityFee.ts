@@ -1,15 +1,15 @@
-import { Config } from '../../../config.js';
+import { SolanaConfig } from '../../../client.js';
 import { getFeePrecentiles } from './getPercentileFee.js';
 import { getRecentPrioritizationFees } from './getRecentPrioritizationFees.js';
 
-export const getPriorityFee = async (): Promise<number> => {
+export const getPriorityFee = async (solanaConfig: SolanaConfig): Promise<number> => {
   const {
     network: NETWORK,
     priority_fee: MINIMUM_PRIORITY_FEE = 0,
     priorityFeeStrategy: PRIORITY_FEE_STRATEGY = 'medium',
     maximumPriorityFee: MAXIMUM_PRIORITY_FEE = 50000000,
     dynamicPriorityFee: DYNAMIC_PRIORITY_FEE = false,
-  } = new Config().solanaConfig;
+  } = solanaConfig;
 
   if (MAXIMUM_PRIORITY_FEE < MINIMUM_PRIORITY_FEE) {
     throw new Error('Maximum priority fee cannot be less than priority fee');

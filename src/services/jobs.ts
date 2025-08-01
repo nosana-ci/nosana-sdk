@@ -73,7 +73,7 @@ export class Jobs extends SolanaManager {
     market: string | PublicKey,
     node?: string | PublicKey,
     instructionOnly?: boolean,
-    project?: Keypair,
+    payer?: Keypair,
   ) {
     const ipfsHash =
       typeof jobDefinition === 'object'
@@ -84,20 +84,24 @@ export class Jobs extends SolanaManager {
 
     await this.loadNosanaJobs();
     await this.setAccounts();
+    const mint = new PublicKey(this.config.nos_address);
     const jobKey = Keypair.generate();
     const runKey = Keypair.generate();
+    const payerKey = payer ? payer.publicKey : this.accounts!.payer;
 
     try {
       const accounts = {
         ...this.accounts,
         job: jobKey.publicKey,
         run: runKey.publicKey,
+        user: await getAssociatedTokenAddress(mint, payerKey),
+        payer: payer ? payer.publicKey : this.accounts!.payer,
         market: market,
-        authority: project?.publicKey || this.provider!.wallet.publicKey,
+        authority: this.provider!.wallet.publicKey,
         vault: pda(
           [
             market.toBuffer(),
-            new PublicKey(this.config.nos_address).toBuffer(),
+            mint.toBuffer(),
           ],
           this.jobs!.programId,
         ),
@@ -110,11 +114,10 @@ export class Jobs extends SolanaManager {
           new BN(jobTimeout),
         )
           .accounts({ ...accounts, node })
-          .signers([jobKey, runKey])
-          .rpc();
+          .signers(payer ? [jobKey, runKey, payer] : [jobKey, runKey]);
 
         return {
-          tx,
+          tx: await this.sendAndConfirm(tx),
           job: jobKey.publicKey.toBase58(),
           run: runKey.publicKey.toBase58(),
         };
@@ -124,13 +127,13 @@ export class Jobs extends SolanaManager {
         new BN(jobTimeout),
       )
         .accounts(accounts)
-        .signers(project ? [jobKey, runKey, project] : [jobKey, runKey]);
+        .signers(payer ? [jobKey, runKey, payer] : [jobKey, runKey]);
 
       if (instructionOnly) {
         return await tx.instruction();
       } else {
         return {
-          tx: await tx.rpc(),
+          tx: await this.sendAndConfirm(tx),
           job: jobKey.publicKey.toBase58(),
           run: runKey.publicKey.toBase58(),
         };
@@ -168,9 +171,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       jobAccount.price > 0
         ? await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            jobAccount.project,
-          )
+          new PublicKey(this.config.nos_address),
+          jobAccount.payer,
+        )
         : market.vault;
 
     try {
@@ -188,7 +191,7 @@ export class Jobs extends SolanaManager {
         return await tx.instruction();
       } else {
         return {
-          tx: await tx.rpc(),
+          tx: await this.sendAndConfirm(tx),
           job: jobAddress.toBase58(),
         };
       }
@@ -215,12 +218,17 @@ export class Jobs extends SolanaManager {
     job: PublicKey | string,
     jobTimeout: number,
     instructionOnly?: boolean,
+    payer?: Keypair,
   ) {
     if (typeof job === 'string') job = new PublicKey(job);
     await this.loadNosanaJobs();
     await this.setAccounts();
 
     const jobAccount = await this.jobs!.account.jobAccount.fetch(job);
+    const payerKey = payer ? payer.publicKey : this.accounts!.payer;
+    if (payerKey.toString() !== jobAccount.payer.toString()) {
+      throw new Error('payer does not match job payer');
+    }
     if (jobAccount.state != 0) {
       throw new Error('job cannot be extended when finished or stopped');
     }
@@ -239,18 +247,19 @@ export class Jobs extends SolanaManager {
           job: job,
           market: market.address,
           vault: market.vault,
+          payer: jobAccount.payer,
           user: await getAssociatedTokenAddress(
             new PublicKey(this.config.nos_address),
-            this.provider!.wallet.publicKey,
+            jobAccount.payer,
           ),
         })
-        .signers([]);
+        .signers(payer ? [payer] : []);
 
       if (instructionOnly) {
         return await tx.instruction();
       } else {
         return {
-          tx: await tx.rpc(),
+          tx: await this.sendAndConfirm(tx),
           job: job.toBase58(),
         };
       }
@@ -309,7 +318,7 @@ export class Jobs extends SolanaManager {
 
     const depositAta =
       jobAccount.price > 0
-        ? await this.getNosATA(jobAccount.project)
+        ? await this.getNosATA(jobAccount.payer)
         : market.vault;
 
     // check if node ATA already exists, if not create it
@@ -326,7 +335,7 @@ export class Jobs extends SolanaManager {
             new PublicKey(this.config.nos_address),
           ),
         );
-      } catch (e) {}
+      } catch (e) { }
     }
 
     try {
@@ -348,7 +357,7 @@ export class Jobs extends SolanaManager {
       }
 
       return {
-        tx: await methodBuilder.preInstructions(preInstructions).rpc(),
+        tx: await this.sendAndConfirm(await methodBuilder.preInstructions(preInstructions)),
         job: job.toBase58(),
       };
     } catch (e: any) {
@@ -855,9 +864,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       job.price > 0
         ? await getAssociatedTokenAddress(
-            new PublicKey(this.config.nos_address),
-            job.project,
-          )
+          new PublicKey(this.config.nos_address),
+          job.payer,
+        )
         : market.vault;
 
     const preInstructions: TransactionInstruction[] = [];
@@ -876,7 +885,7 @@ export class Jobs extends SolanaManager {
             new PublicKey(this.config.nos_address),
           ),
         );
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const tx = await this.jobs!.methods.finish(result)
@@ -886,10 +895,10 @@ export class Jobs extends SolanaManager {
         run: run.publicKey,
         vault: market.vault,
         user: nodeAta,
-        payer: run.account.payer,
+        payerJob: job.payer,
+        payerRun: run.account.payer,
         // @ts-ignore
         deposit: depositAta,
-        project: job.project,
         market: marketAddress ? marketAddress : market.address,
       })
       .preInstructions(preInstructions)

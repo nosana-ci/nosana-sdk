@@ -1,3 +1,5 @@
+import { Signer } from '@solana/web3.js';
+
 export type SolanaConfig = {
   network: string;
   jobs_address: string;
@@ -19,10 +21,7 @@ export type SolanaConfig = {
     | 'veryHigh'
     | 'unsafeMax';
   priorityFeeAccounts?: string[];
-};
-
-export type SecretsConfig = {
-  manager: string;
+  feePayer?: Signer;
 };
 
 export type IPFSConfig = {
@@ -34,7 +33,6 @@ export type IPFSConfig = {
 export type ClientConfig = {
   solana?: Partial<SolanaConfig>;
   ipfs?: Partial<IPFSConfig>;
-  secrets?: Partial<SecretsConfig>;
   deployments?: Partial<DeploymentsConfig>;
 };
 

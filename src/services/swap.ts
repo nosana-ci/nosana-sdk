@@ -41,12 +41,13 @@ export class Swap extends SolanaManager {
 
     const quoteResponse = await (
       await fetch(
-        `https://api.jup.ag/swap/v1/quote?${new URLSearchParams({
+        `https://lite-api.jup.ag/swap/v1/quote?${new URLSearchParams({
           inputMint,
           outputMint, // NOS mint
           swapMode: 'ExactOut', // we want exactly `nosNeeded`
           amount: nosAmountRaw.toString(),
           slippageBps: '50', // example slippage
+          restrictIntermediateTokens: 'true', // Helps reduce exposure to high slippage routes
         }).toString()}`,
       )
     ).json();
@@ -76,7 +77,7 @@ export class Swap extends SolanaManager {
     } = this.config;
 
     const swapResponse = await (
-      await fetch('https://api.jup.ag/swap/v1/swap', {
+      await fetch('https://lite-api.jup.ag/swap/v1/swap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

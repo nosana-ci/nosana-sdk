@@ -5,13 +5,11 @@ import {
   AuthorizationManager,
   Deployments,
   SolanaManager,
-  SecretManager,
   Jobs,
   Nodes,
   Stake,
   Swap,
 } from './services/index.js';
-import { Config } from './config.js';
 import { KeyWallet, polyfill } from './utils.js';
 
 import type { ClientConfig, Wallet } from './types/index.js';
@@ -26,7 +24,6 @@ export class Client {
   deployments: Deployments;
   solana: SolanaManager;
   ipfs: IPFS;
-  secrets: SecretManager;
   jobs: Jobs;
   nodes: Nodes;
   stake: Stake;
@@ -41,16 +38,12 @@ export class Client {
       wallet = process?.env?.SOLANA_WALLET || new KeyWallet(Keypair.generate());
     }
 
-    new Config(environment, config);
-
     this.authorization = new AuthorizationManager(wallet);
-    this.deployments = new Deployments(wallet);
-    this.solana = new SolanaManager(wallet);
-    this.ipfs = new IPFS();
-    this.secrets = new SecretManager(wallet);
-    this.jobs = new Jobs(wallet, this.ipfs);
-    this.nodes = new Nodes(wallet);
-    this.stake = new Stake(wallet);
-    this.swap = new Swap(wallet);
+    this.solana = new SolanaManager(environment, wallet, config?.solana);
+    this.ipfs = new IPFS(environment, config?.ipfs);
+    this.jobs = new Jobs(environment, wallet, config?.solana);
+    this.nodes = new Nodes(environment, wallet, config?.solana);
+    this.stake = new Stake(environment, wallet, config?.solana);
+    this.swap = new Swap(environment, wallet, config?.solana);
   }
 }
