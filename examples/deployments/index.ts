@@ -14,8 +14,8 @@ async function command() {
       return await createDeployment(client);
     case 'list':
       return await client.deployments.list();
-    // case 'get':
-    //   return await client.deployments.get(args[1]);
+    case 'get':
+      return await client.deployments.get(args[1]);
     // case 'tasks':
     //   const dep = await client.deployments.get(args[1]);
     //   console.log(await dep.getTasks());

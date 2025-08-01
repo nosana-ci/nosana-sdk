@@ -5,10 +5,9 @@ import { getWallet } from '../../../utils';
 import { AuthorizationManager } from '../../authorization';
 
 import { Wallet } from '../../../types';
+import { AuthenticatedPaths, AuthenticatedClient } from './types';
 
-import { paths } from './schema';
-
-export type QueryClient = ReturnType<typeof createClient<paths>>;
+export type QueryClient = AuthenticatedClient;
 
 export const clientSelector = (wallet: Wallet): QueryClient => {
   let instance: QueryClient | undefined = undefined;
@@ -29,14 +28,16 @@ export const clientSelector = (wallet: Wallet): QueryClient => {
       },
     };
 
-    instance = createClient({
+    const baseClient = createClient<AuthenticatedPaths>({
       baseUrl: `${new Config().deploymentsConfig.backend_url}`,
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
-    instance.use(authMiddleware);
+    baseClient.use(authMiddleware);
+
+    instance = baseClient as unknown as QueryClient;
   }
 
   return instance;

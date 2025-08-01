@@ -7,6 +7,7 @@ import { errorFormatter } from '../../utils/errorFormatter.js';
 
 import type { Wallet } from '../../types/index.js';
 import { Config } from '../../config.js';
+import { components } from './client/schema.js';
 
 export class Deployments {
   private client: QueryClient;
@@ -24,15 +25,18 @@ export class Deployments {
     this.nos_address = config.solanaConfig.nos_address;
   }
 
-  async create(deploymentBody: {}) {
-    // const { data, error } = await this.client.POST('/deployment/create', {
-    //   body: {
-    //     ...deploymentBody,
-    //   },
-    // });
-    // if (error) {
-    //   errorFormatter('Error creating deployment', error);
-    // }
+  async create(deploymentBody: components['schemas']['DeploymentCreateBody']) {
+    const { data, error } = await this.client.POST('/api/deployment/create', {
+      body: deploymentBody,
+    });
+
+    if (error || !data) {
+      errorFormatter('Error creating deployment', error);
+      return;
+    }
+
+    console.log(data);
+
     // return new Deployment(
     //   this.wallet,
     //   data,
@@ -42,16 +46,24 @@ export class Deployments {
   }
 
   async get(deployment: string) {
-    // const { data, error } = await this.client.GET(`/deployment/{id}`, {
-    //   params: {
-    //     path: {
-    //       id: deployment,
-    //     },
-    //   },
-    // });
-    // if (error) {
-    //   errorFormatter('Error getting deployment', error);
-    // }
+    const { data, error } = await this.client.GET(
+      '/api/deployment/{deployment}',
+      {
+        params: {
+          path: {
+            deployment,
+          },
+        },
+      },
+    );
+
+    if (error || !data) {
+      errorFormatter('Error getting deployment', error);
+      return;
+    }
+
+    console.log(data);
+
     // return new Deployment(
     //   this.wallet,
     //   data,
@@ -63,14 +75,15 @@ export class Deployments {
   async list() {
     const { data, error } = await this.client.GET('/api/deployments', {});
 
-    if (error) {
+    if (error || !data) {
       errorFormatter('Error listing deployments', error);
+      return;
     }
 
     console.log(data);
 
     // return data.map(
-    //   (deployment: {}) =>
+    //   (deployment: any) =>
     //     new Deployment(
     //       this.wallet,
     //       deployment,
@@ -78,15 +91,5 @@ export class Deployments {
     //       this.nos_address,
     //     ),
     // );
-  }
-
-  async archive(deployment: string) {
-    // const { error } = await this.client.DELETE(
-    //   `/deployment/${deployment}/archive`,
-    //   {},
-    // );
-    // if (error) {
-    //   errorFormatter('Error archiving deployment', error);
-    // }
   }
 }
