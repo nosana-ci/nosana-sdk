@@ -9,6 +9,7 @@ import {
   Nodes,
   Stake,
   Swap,
+  createDeployments,
 } from './services/index.js';
 import { KeyWallet, polyfill } from './utils.js';
 
@@ -16,6 +17,11 @@ import type { ClientConfig, Wallet } from './types/index.js';
 
 export * from './types/index.js';
 export * from './utils.js';
+export {
+  DeploymentStrategy,
+  DeploymentStatus,
+} from './services/deployments/types.js';
+export { type Deployment } from './services/deployments/deployment/createDeployment.js';
 
 polyfill();
 
@@ -45,5 +51,11 @@ export class Client {
     this.nodes = new Nodes(environment, wallet, config?.solana);
     this.stake = new Stake(environment, wallet, config?.solana);
     this.swap = new Swap(environment, wallet, config?.solana);
+    this.deployments = createDeployments(
+      environment,
+      wallet,
+      config?.solana,
+      config?.deployments,
+    );
   }
 }

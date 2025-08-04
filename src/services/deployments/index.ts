@@ -1,95 +1,102 @@
-import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
-
-import { clientSelector, QueryClient } from './client/index.js';
-import { Deployment } from './deployment/index.js';
 import { getWallet } from '../../utils.js';
-import { errorFormatter } from '../../utils/errorFormatter.js';
-
-import type { Wallet } from '../../types/index.js';
-import { Config } from '../../config.js';
 import { components } from './client/schema.js';
+import { clientSelector } from './client/index.js';
+import { errorFormatter } from '../../utils/errorFormatter.js';
+import { deploymentsConfigPreset, solanaConfigPreset } from '../../config.js';
+import {
+  createDeployment,
+  type Deployment,
+} from './deployment/createDeployment.js';
 
-export class Deployments {
-  private client: QueryClient;
-  private wallet: AnchorWallet;
-  private solana_network: string;
-  private nos_address: string;
+import type {
+  DeploymentsConfig,
+  SolanaConfig,
+  Wallet,
+} from '../../types/index.js';
 
-  constructor(wallet: Wallet) {
-    this.wallet = getWallet(wallet);
-    this.client = clientSelector(wallet);
+export interface Deployments {
+  create: (
+    deploymentBody: components['schemas']['DeploymentCreateBody'],
+  ) => Promise<Deployment>;
+  get: (deployment: string) => Promise<Deployment>;
+  list: () => Promise<Deployment[]>;
+}
 
-    // TODO: swap to prop drilling
-    const config = new Config();
-    this.solana_network = config.solanaConfig.network;
-    this.nos_address = config.solanaConfig.nos_address;
+export function createDeployments(
+  environment: 'devnet' | 'mainnet',
+  wallet: Wallet,
+  solanaConfig: Partial<SolanaConfig> | undefined,
+  deploymentsConfig: Partial<DeploymentsConfig> | undefined,
+) {
+  const solanaPreset = solanaConfigPreset[environment];
+  const deploymentsPreset = deploymentsConfigPreset[environment];
+  Object.assign(solanaPreset, solanaConfig);
+  Object.assign(deploymentsPreset, deploymentsConfig);
+
+  const anchorWallet = getWallet(wallet);
+  const client = clientSelector(wallet, deploymentsPreset);
+
+  if (!wallet) {
+    throw new Error('Wallet is required to create deployments');
   }
 
-  async create(deploymentBody: components['schemas']['DeploymentCreateBody']) {
-    const { data, error } = await this.client.POST('/api/deployment/create', {
+  const create = async (
+    deploymentBody: components['schemas']['DeploymentCreateBody'],
+  ): Promise<Deployment> => {
+    const { data, error } = await client.POST('/api/deployment/create', {
       body: deploymentBody,
     });
 
     if (error || !data) {
-      errorFormatter('Error creating deployment', error);
-      return;
+      throw errorFormatter('Error creating deployment', error);
     }
 
-    console.log(data);
+    return createDeployment(data, {
+      client,
+      wallet: anchorWallet,
+      solanaConfig: solanaPreset,
+    });
+  };
 
-    // return new Deployment(
-    //   this.wallet,
-    //   data,
-    //   this.solana_network,
-    //   this.nos_address,
-    // );
-  }
-
-  async get(deployment: string) {
-    const { data, error } = await this.client.GET(
-      '/api/deployment/{deployment}',
-      {
-        params: {
-          path: {
-            deployment,
-          },
+  const get = async (deployment: string): Promise<Deployment> => {
+    const { data, error } = await client.GET('/api/deployment/{deployment}', {
+      params: {
+        path: {
+          deployment,
         },
       },
-    );
+    });
 
     if (error || !data) {
-      errorFormatter('Error getting deployment', error);
-      return;
+      throw errorFormatter('Error getting deployment', error);
     }
 
-    console.log(data);
+    return createDeployment(data, {
+      client,
+      wallet: anchorWallet,
+      solanaConfig: solanaPreset,
+    });
+  };
 
-    // return new Deployment(
-    //   this.wallet,
-    //   data,
-    //   this.solana_network,
-    //   this.nos_address,
-    // );
-  }
-
-  async list() {
-    const { data, error } = await this.client.GET('/api/deployments', {});
+  const list = async (): Promise<Deployment[]> => {
+    const { data, error } = await client.GET('/api/deployments', {});
 
     if (error || !data) {
-      errorFormatter('Error listing deployments', error);
-      return;
+      throw errorFormatter('Error listing deployments', error);
     }
 
-    console.log(data);
+    return data.map((deployment: components['schemas']['Deployment']) => {
+      return createDeployment(deployment, {
+        client,
+        wallet: anchorWallet,
+        solanaConfig: solanaPreset,
+      });
+    });
+  };
 
-    // return data.map(
-    //   (deployment: any) =>
-    //     new Deployment(
-    //       this.wallet,
-    //       deployment,
-    //       this.solana_network,
-    //       this.nos_address,
-    //     ),
-    // );
-  }
+  return {
+    create,
+    get,
+    list,
+  };
 }

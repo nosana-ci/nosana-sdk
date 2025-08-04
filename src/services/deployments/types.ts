@@ -1,6 +1,48 @@
+import { PublicKey } from '@solana/web3.js';
 import type createClient from 'openapi-fetch';
 
-import { paths } from './schema';
+import { paths, components } from './client/index.js';
+
+export type DeploymentState = {
+  id: string;
+  name: string;
+  market: PublicKey;
+  owner: PublicKey;
+  timeout: number;
+  replicas: number;
+  strategy: DeploymentStrategy;
+  status: DeploymentStatus;
+  ipfs_definition_hash: string;
+  events: components['schemas']['Events'][];
+  jobs: components['schemas']['Jobs'][];
+  updated_at: Date;
+  created_at: Date;
+};
+
+export const DeploymentStatus: {
+  [key in components['schemas']['DeploymentStatus']]: components['schemas']['DeploymentStatus'];
+} = {
+  DRAFT: 'DRAFT',
+  ERROR: 'ERROR',
+  STARTING: 'STARTING',
+  RUNNING: 'RUNNING',
+  STOPPING: 'STOPPING',
+  STOPPED: 'STOPPED',
+  INSUFFICIENT_FUNDS: 'INSUFFICIENT_FUNDS',
+  ARCHIVED: 'ARCHIVED',
+} as const;
+
+export const DeploymentStrategy: {
+  [key in components['schemas']['DeploymentStrategy']]: components['schemas']['DeploymentStrategy'];
+} = {
+  SIMPLE: 'SIMPLE',
+  'SIMPLE-EXTEND': 'SIMPLE-EXTEND',
+  SCHEDULED: 'SCHEDULED',
+  INFINITE: 'INFINITE',
+} as const;
+
+export type DeploymentStatus = components['schemas']['DeploymentStatus'];
+export type DeploymentStrategy = components['schemas']['DeploymentStrategy'];
 
 /**
  * Utility type to remove header requirements from OpenAPI parameters

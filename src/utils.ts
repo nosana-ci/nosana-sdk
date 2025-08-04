@@ -1,5 +1,8 @@
 import * as buffer from 'buffer';
 import {
+  Cluster,
+  clusterApiUrl,
+  Connection,
   Keypair,
   PublicKey,
   Transaction,
@@ -127,6 +130,22 @@ const pda = (
   programId: PublicKey,
 ): PublicKey => PublicKey.findProgramAddressSync(seeds, programId)[0];
 
+/**
+ * Creates a connection to the Solana network.
+ * @param rpc_network - The RPC network URL or cluster name (e.g., 'devnet', 'mainnet-beta').
+ * @returns A Solana Connection object.
+ */
+function createConnection(rpc_network: string): Connection {
+  let node = rpc_network;
+  if (!node.includes('http')) {
+    node = clusterApiUrl(node as Cluster);
+  }
+  return new Connection(node, {
+    commitment: 'confirmed',
+    confirmTransactionInitialTimeout: 60 * 1000,
+  });
+}
+
 export {
   now,
   sleep,
@@ -137,4 +156,5 @@ export {
   excludedJobs,
   polyfill,
   getWallet,
+  createConnection,
 };

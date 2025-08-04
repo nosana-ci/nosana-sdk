@@ -338,6 +338,8 @@ export interface paths {
                         "application/json": {
                             /** @enum {string} */
                             status: "STARTING";
+                            /** Format: date-time */
+                            updated_at: string;
                         };
                     };
                 };
@@ -385,7 +387,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Create a new deployment. */
+        /** @description Stop a deployment */
         post: {
             parameters: {
                 query?: never;
@@ -395,32 +397,24 @@ export interface paths {
                     authorization: string;
                 };
                 path: {
-                    deployment: string;
+                    deployment: components["schemas"]["PublicKey"];
                 };
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["DeploymentCreateBody"];
-                };
-            };
+            requestBody?: never;
             responses: {
-                /** @description Deployment created successfully. */
+                /** @description Deployment stopped successfully. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Deployment"];
-                    };
-                };
-                /** @description Invalid request body. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
+                        "application/json": {
+                            /** @enum {string} */
+                            status: "STOPPING";
+                            /** Format: date-time */
+                            updated_at: string;
+                        };
                     };
                 };
                 /** @description Unauthorized. Invalid or missing authentication. */
@@ -430,6 +424,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": "Unauthorized";
+                    };
+                };
+                /** @description Deployment not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
                     };
                 };
                 /** @description Internal Server Error. */

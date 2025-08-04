@@ -2,7 +2,6 @@ import type {
   SolanaConfig,
   IPFSConfig,
   DeploymentsConfig,
-  ClientConfig,
 } from './types/index.js';
 
 export const deploymentsConfigPreset: { [key: string]: DeploymentsConfig } = {

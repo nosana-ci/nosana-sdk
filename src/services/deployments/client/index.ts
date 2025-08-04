@@ -1,15 +1,18 @@
 import createClient, { Middleware } from 'openapi-fetch';
 
-import { Config } from '../../../config';
-import { getWallet } from '../../../utils';
-import { AuthorizationManager } from '../../authorization';
+import { getWallet } from '../../../utils.js';
+import { AuthorizationManager } from '../../authorization.js';
 
-import { Wallet } from '../../../types';
-import { AuthenticatedPaths, AuthenticatedClient } from './types';
+import { DeploymentsConfig, Wallet } from '../../../types/index.js';
+import { AuthenticatedPaths, AuthenticatedClient } from '../types.js';
 
+export * from './schema.js';
 export type QueryClient = AuthenticatedClient;
 
-export const clientSelector = (wallet: Wallet): QueryClient => {
+export const clientSelector = (
+  wallet: Wallet,
+  deploymentsConfig: DeploymentsConfig,
+): QueryClient => {
   let instance: QueryClient | undefined = undefined;
 
   if (!instance) {
@@ -29,7 +32,7 @@ export const clientSelector = (wallet: Wallet): QueryClient => {
     };
 
     const baseClient = createClient<AuthenticatedPaths>({
-      baseUrl: `${new Config().deploymentsConfig.backend_url}`,
+      baseUrl: deploymentsConfig.backend_url,
       headers: {
         'Content-Type': 'application/json',
       },
