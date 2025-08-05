@@ -13,11 +13,7 @@ import {
   deploymentUpdateTimeout,
 } from './actions/index.js';
 
-import {
-  DeploymentState,
-  DeploymentStatus,
-  DeploymentStrategy,
-} from '../types.js';
+import { DeploymentState } from '../types.js';
 
 export type Deployment = ReturnType<typeof createDeployment>;
 
@@ -117,8 +113,7 @@ export function createDeployment(
     await deploymentUpdateTimeout(timeout, client, state);
   };
 
-  return Object.freeze({
-    ...state,
+  return Object.assign(state, {
     vault: createVault(new PublicKey(deployment.vault), {
       client,
       wallet,

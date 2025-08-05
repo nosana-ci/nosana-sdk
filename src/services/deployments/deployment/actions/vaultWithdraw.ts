@@ -10,41 +10,41 @@ interface VaultWithdrawOptions {
 }
 
 /**
-   * @throws Error if there is an error withdrawing from the vault
-   * @returns Promise<void>
-   * @description Withdraws all tokens from the vault.
-   * It sends a transaction to withdraw the SOL and NOS from the vault.
-   */
+ * @throws Error if there is an error withdrawing from the vault
+ * @returns Promise<void>
+ * @description Withdraws all tokens from the vault.
+ * It sends a transaction to withdraw the SOL and NOS from the vault.
+ */
 export async function vaultWithdraw(
   publicKey: PublicKey,
-  wallet: Wallet
+  wallet: Wallet,
   { client, connection }: VaultWithdrawOptions,
 ) {
   const { data, error } = await client.POST('/api/vault/{vault}/withdraw', {
-      params: {
-        path: { vault: publicKey.toString() },
-      },
-      body: {
-        SOL: undefined,
-        NOS: undefined,
-      },
+    params: {
+      path: { vault: publicKey.toString() },
+    },
+    body: {
+      SOL: undefined,
+      NOS: undefined,
+    },
+  });
+  if (error || !data) {
+    throw errorFormatter('Failed to withdraw from vault');
+  }
+  const transaction = VersionedTransaction.deserialize(
+    new Uint8Array(Buffer.from(data.transaction, 'base64')),
+  );
+  transaction.sign([wallet.payer]);
+  try {
+    const signature = await connection.sendTransaction(transaction);
+    const latestBlockHash = await connection.getLatestBlockhash();
+    await connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature,
     });
-    if (error || !data) {
-      throw errorFormatter('Failed to withdraw from vault');
-    }
-    const transaction = VersionedTransaction.deserialize(
-      new Uint8Array(Buffer.from(data.transaction, 'base64')),
-    );
-    transaction.sign([wallet.payer]);
-    try {
-      const signature = await connection.sendTransaction(transaction);
-      const latestBlockHash = await connection.getLatestBlockhash();
-      await connection.confirmTransaction({
-        blockhash: latestBlockHash.blockhash,
-        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-        signature,
-      });
-    } catch (error) {
-      errorFormatter('Vault withdrawal transaction failed.', error);
-    }
+  } catch (error) {
+    errorFormatter('Vault withdrawal transaction failed.', error);
+  }
 }

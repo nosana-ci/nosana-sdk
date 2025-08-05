@@ -6,7 +6,7 @@ import { AuthorizationManager } from '../../authorization.js';
 import { DeploymentsConfig, Wallet } from '../../../types/index.js';
 import { AuthenticatedPaths, AuthenticatedClient } from '../types.js';
 
-export * from './schema.js';
+export type * from './schema.d.ts';
 export type QueryClient = AuthenticatedClient;
 
 export const clientSelector = (
@@ -33,9 +33,9 @@ export const clientSelector = (
 
     const baseClient = createClient<AuthenticatedPaths>({
       baseUrl: deploymentsConfig.backend_url,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      // headers: {
+      //   'Content-Type': 'application/json',
+      // },
     });
 
     baseClient.use(authMiddleware);

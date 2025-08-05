@@ -16,6 +16,7 @@ import {
 } from '@solana/spl-token';
 
 import {
+  SolanaConfig,
   validateJobDefinition,
   Wallet,
   type Job,
@@ -48,8 +49,13 @@ type IPFS_HASH = string;
 
 export class Jobs extends SolanaManager {
   private ipfs: IPFS;
-  constructor(wallet: Wallet, ipfs: IPFS) {
-    super(wallet);
+  constructor(
+    environment: 'devnet' | 'mainnet',
+    wallet: Wallet,
+    solana: Partial<SolanaConfig> | undefined,
+    ipfs: IPFS,
+  ) {
+    super(environment, wallet, solana);
 
     this.ipfs = ipfs;
   }
@@ -98,13 +104,7 @@ export class Jobs extends SolanaManager {
         payer: payer ? payer.publicKey : this.accounts!.payer,
         market: market,
         authority: this.provider!.wallet.publicKey,
-        vault: pda(
-          [
-            market.toBuffer(),
-            mint.toBuffer(),
-          ],
-          this.jobs!.programId,
-        ),
+        vault: pda([market.toBuffer(), mint.toBuffer()], this.jobs!.programId),
       };
 
       if (node) {
@@ -171,9 +171,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       jobAccount.price > 0
         ? await getAssociatedTokenAddress(
-          new PublicKey(this.config.nos_address),
-          jobAccount.payer,
-        )
+            new PublicKey(this.config.nos_address),
+            jobAccount.payer,
+          )
         : market.vault;
 
     try {
@@ -335,7 +335,7 @@ export class Jobs extends SolanaManager {
             new PublicKey(this.config.nos_address),
           ),
         );
-      } catch (e) { }
+      } catch (e) {}
     }
 
     try {
@@ -357,7 +357,9 @@ export class Jobs extends SolanaManager {
       }
 
       return {
-        tx: await this.sendAndConfirm(await methodBuilder.preInstructions(preInstructions)),
+        tx: await this.sendAndConfirm(
+          await methodBuilder.preInstructions(preInstructions),
+        ),
         job: job.toBase58(),
       };
     } catch (e: any) {
@@ -864,9 +866,9 @@ export class Jobs extends SolanaManager {
     const depositAta =
       job.price > 0
         ? await getAssociatedTokenAddress(
-          new PublicKey(this.config.nos_address),
-          job.payer,
-        )
+            new PublicKey(this.config.nos_address),
+            job.payer,
+          )
         : market.vault;
 
     const preInstructions: TransactionInstruction[] = [];
@@ -885,7 +887,7 @@ export class Jobs extends SolanaManager {
             new PublicKey(this.config.nos_address),
           ),
         );
-      } catch (e) { }
+      } catch (e) {}
     }
 
     const tx = await this.jobs!.methods.finish(result)

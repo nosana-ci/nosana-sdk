@@ -37,7 +37,7 @@ async function command() {
       return await deployment.vault.getBalance();
     case 'topup':
       deployment = await client.deployments.get(args[1]);
-      await deployment!.vault.topup({ SOL: 1, NOS: 100 });
+      await deployment.vault.topup({ SOL: 0.015, NOS: 0.5 });
       return await deployment.vault.getBalance();
     case 'withdraw':
       deployment = await client.deployments.get(args[1]);

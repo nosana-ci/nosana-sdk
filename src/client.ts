@@ -47,7 +47,7 @@ export class Client {
     this.authorization = new AuthorizationManager(wallet);
     this.solana = new SolanaManager(environment, wallet, config?.solana);
     this.ipfs = new IPFS(environment, config?.ipfs);
-    this.jobs = new Jobs(environment, wallet, config?.solana);
+    this.jobs = new Jobs(environment, wallet, config?.solana, this.ipfs);
     this.nodes = new Nodes(environment, wallet, config?.solana);
     this.stake = new Stake(environment, wallet, config?.solana);
     this.swap = new Swap(environment, wallet, config?.solana);
