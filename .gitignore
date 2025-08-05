@@ -7,3 +7,4 @@ node_modules
 yarn-error.log
 dist
 
+src/services/deployments/client/schema.d.ts

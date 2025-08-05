@@ -1,7 +1,17 @@
 import type {
   SolanaConfig,
   IPFSConfig,
+  DeploymentsConfig,
 } from './types/index.js';
+
+export const deploymentsConfigPreset: { [key: string]: DeploymentsConfig } = {
+  mainnet: {
+    backend_url: 'https://deployment-manager.k8s.prd.nos.ci',
+  },
+  devnet: {
+    backend_url: 'https://deployment-manager.k8s.dev.nos.ci',
+  },
+};
 
 export const solanaConfigPreset: { [key: string]: SolanaConfig } = {
   mainnet: {

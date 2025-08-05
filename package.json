@@ -1,6 +1,6 @@
 {
   "name": "@nosana/sdk",
-  "version": "0.4.10",
+  "version": "0.4.11",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,12 +9,13 @@
   "module": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "npm run prepare && tsc",
+    "build": "npm run generate && npm run prepare && tsc",
     "watch": "tsc --watch",
     "build:browser": "npm run prepare && rollup -c",
     "prepare": "ts-patch install && typia patch",
     "test": "jest --watch",
     "example": "npx ts-node --esm examples/example.ts",
+    "generate": "openapi-typescript https://deployment-manager.k8s.prd.nos.ci/documentation/json -o ./src/services/deployments/client/schema.d.ts",
     "publish:public": "npm version patch && npm run build && npm run build:browser && npm publish --access public"
   },
   "keywords": [],
@@ -40,6 +41,7 @@
     "eslint-plugin-n": "^15.0.0",
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-promise": "^6.0.0",
+    "openapi-typescript": "^7.8.0",
     "prettier": "^2.8.8",
     "rollup": "^3.26.3",
     "rollup-plugin-polyfill-node": "^0.12.0",
@@ -61,6 +63,7 @@
     "bs58": "^5.0.0",
     "buffer": "^6.0.3",
     "form-data": "^4.0.0",
+    "openapi-fetch": "^0.14.0",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",
     "typia": "^7.6.4",
