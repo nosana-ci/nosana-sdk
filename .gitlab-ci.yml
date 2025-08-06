@@ -6,11 +6,12 @@
 image: node:20.11.1
 
 stages:
+  - test
   - deploy
 
 test:
   image: node:20.11.1
-  stage: pre
+  stage: test
   script:
     - npm ci
     - npm run build
