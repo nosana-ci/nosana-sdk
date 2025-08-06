@@ -10,7 +10,7 @@ stages:
 
 test:
   image: node:20.11.1
-  stage: test
+  stage: pre
   script:
     - npm ci
     - npm run build
