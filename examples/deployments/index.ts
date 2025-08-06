@@ -2,6 +2,7 @@ import { Deployment } from '../../src/services/deployments/deployment';
 import { createTestClient } from './utils/createTestClient';
 import { createDeployment } from './create_deployment';
 import { sleep } from '../../src';
+import { HELLO_JOB } from './jobs';
 
 const client = createTestClient();
 
@@ -50,20 +51,35 @@ async function command() {
       }
       return;
     case 'createAndDeploy':
-      deployment = await createDeployment(client);
-      console.log(`Successfully created deployment with id: ${deployment.id}`);
-      console.log(`Topping up vault: ${deployment.vault.publicKey}`);
-      await deployment.vault.topup({ SOL: 0.05, NOS: 0.05 });
-      console.log('Starting deployment');
-      await deployment.start();
-      console.log('Waiting 30seconds for job to be deployed');
-      await sleep(30);
-      deployment = await client.deployments.get(deployment.id);
-      console.log(deployment);
-      await sleep(5);
-      console.log(`Withdrawing all tokens from vault`);
-      await deployment.vault.withdraw();
-      return deployment;
+      return await client.deployments.pipe(
+        {
+          name: 'my first deployment',
+          market: '7AtiXMSH6R1jjBxrcYjehCkkSF7zvYWte63gwEDBcGHq',
+          replicas: 1,
+          timeout: 60,
+          strategy: 'SIMPLE',
+          ipfs_definition_hash: await client.jobs.pinJobDefinition(HELLO_JOB),
+        },
+        async (deployment) => {
+          console.log(`Successfully created deployment ${deployment.id}`);
+          console.log('Topping up deployment vault');
+          await deployment.vault.topup({ SOL: 0.015, NOS: 0.5 });
+        },
+        async (deployment) => {
+          console.log('Starting deployment');
+          await deployment.start();
+        },
+        async (deployment) => {
+          console.log('Waiting 30 seconds for job to be deployed');
+          await sleep(30);
+          deployment = await client.deployments.get(deployment.id);
+        },
+        async (deployment) => {
+          await sleep(5);
+          console.log(`Withdrawing all tokens from vault`);
+          await deployment.vault.withdraw();
+        },
+      );
   }
 }
 

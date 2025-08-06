@@ -1,6 +1,6 @@
 # Deployments Service
 
-The Deployments service provides functionality to create, manage, and interact with containerized application deployments on the Nosana network. It allows you to deploy applications with configurable replicas, timeouts, and strategies.
+The Deployments service provides functionality to create, manage, and interact with deployments on the Nosana network. It allows you to deploy applications with configurable replicas, timeouts, and strategies.
 
 ## Overview
 
@@ -51,6 +51,24 @@ const deployment = await client.deployments.create({
 });
 ```
 
+### Deployment Strategies
+
+- **SIMPLE**: Runs the specified number of replicas once. Stops when all instances complete.
+- **SIMPLE-EXTEND**: Similar to SIMPLE but can be extended with additional replicas after completion.
+- **SCHEDULED**: Runs deployments on a predefined schedule.
+- **INFINITE**: **NOT YET IMPLEMENTED** Continuously maintains the specified number of replicas, restarting instances as they complete.
+
+### Deployment Status
+
+- **DRAFT**: Initial state, not yet started
+- **STARTING**: Deployment is initializing
+- **RUNNING**: Active and processing jobs
+- **STOPPING**: Gracefully shutting down
+- **STOPPED**: Stopped but can be restarted
+- **ARCHIVED**: Permanently archived (cannot be restarted)
+- **ERROR**: Encountered an error
+- **INSUFFICIENT_FUNDS**: Not enough funds in vault to continue
+
 ### Listing Deployments
 
 ```typescript
@@ -95,11 +113,6 @@ await deployment.updateTimeout(600);
 ```typescript
 // Get current tasks
 const tasks = await deployment.getTasks();
-
-// Access deployment state
-console.log(deployment.state.status); // Current status
-console.log(deployment.state.events); // Event history
-console.log(deployment.state.jobs); // Associated jobs
 ```
 
 ### Vault Management
@@ -111,42 +124,52 @@ Deployments include a vault for managing funds:
 const balance = await deployment.vault.getBalance();
 
 // Top up the vault
-await deployment.vault.topup(1000000); // Amount in lamports
+await deployment.vault.topup({ SOL, 1, NOS: 10 });
 
 // Withdraw from vault
-await deployment.vault.withdraw(500000);
+await deployment.vault.withdraw();
 ```
 
-## Deployment Strategies
+### Using the Pipe Function
 
-### SIMPLE
+The `pipe` function allows you to chain multiple actions on a deployment in a functional programming style. It can either create a new deployment or operate on an existing one.
 
-Runs the specified number of replicas once. Stops when all instances complete.
+```typescript
+// Create and execute multiple actions in sequence
+const deployment = await client.deployments.pipe(
+  {
+    name: 'My Application',
+    market: '7AtiXMSH6R1jjBxrcYjehCkkSF7zvYWte63gwEDBcGHq',
+    replicas: 3,
+    timeout: 300,
+    strategy: 'SIMPLE',
+    ipfs_definition_hash: ipfsHash,
+  },
+  async (deployment) => {
+    console.log('Topping up vault');
+    await deployment.vault.topup({ SOL: 0.01, NOS: 1 });
+  },
+  async (deployment) => {
+    console.log('Starting deployment');
+    await deployment.start();
+  },
+  async (deployment) => {
+    console.log('Updating replicas');
+    await deployment.updateReplicas(5);
+  },
+);
 
-### SIMPLE-EXTEND
-
-Similar to SIMPLE but can be extended with additional replicas after completion.
-
-### SCHEDULED
-
-Runs deployments on a predefined schedule.
-
-### INFINITE
-
-Continuously maintains the specified number of replicas, restarting instances as they complete.
-
-## Deployment Status
-
-Deployments progress through various states:
-
-- **DRAFT**: Initial state, not yet started
-- **STARTING**: Deployment is initializing
-- **RUNNING**: Active and processing jobs
-- **STOPPING**: Gracefully shutting down
-- **STOPPED**: Stopped but can be restarted
-- **ARCHIVED**: Permanently archived (cannot be restarted)
-- **ERROR**: Encountered an error
-- **INSUFFICIENT_FUNDS**: Not enough funds in vault to continue
+// Or operate on an existing deployment
+const deployment = await client.deployments.pipe(
+  'existing-deployment-id',
+  async (deployment) => {
+    await deployment.stop();
+  },
+  async (deployment) => {
+    await deployment.vault.withdraw();
+  },
+);
+```
 
 ## Error Handling
 

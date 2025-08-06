@@ -20,6 +20,12 @@ export interface Deployments {
   ) => Promise<Deployment>;
   get: (deployment: string) => Promise<Deployment>;
   list: () => Promise<Deployment[]>;
+  pipe: (
+    deploymentIDorCreateObject:
+      | string
+      | components['schemas']['DeploymentCreateBody'],
+    ...actions: Array<(deployment: Deployment) => Promise<any> | any>
+  ) => Promise<Deployment>;
 }
 
 export function createDeployments(
@@ -94,9 +100,35 @@ export function createDeployments(
     });
   };
 
+  const pipe = async (
+    deploymentIDorCreateObject:
+      | string
+      | components['schemas']['DeploymentCreateBody'],
+    ...actions: Array<(deployment: Deployment) => Promise<any> | any>
+  ): Promise<Deployment> => {
+    let deployment: Deployment;
+
+    if (typeof deploymentIDorCreateObject === 'string') {
+      deployment = await get(deploymentIDorCreateObject);
+    } else {
+      deployment = await create(deploymentIDorCreateObject);
+    }
+
+    if (!deployment) {
+      throw new Error('Deployment not found or created');
+    }
+
+    for (const action of actions) {
+      await action(deployment);
+    }
+
+    return deployment;
+  };
+
   return {
     create,
     get,
     list,
+    pipe,
   };
 }

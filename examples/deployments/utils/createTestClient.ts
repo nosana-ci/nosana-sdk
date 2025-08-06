@@ -1,7 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 
-import { Client } from '../../../src';
+import { Client } from '../../../src/index.js';
 
 export const createTestClient = () => {
   return new Client(
