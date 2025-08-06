@@ -18,10 +18,13 @@ import type { ClientConfig, Wallet } from './types/index.js';
 export * from './types/index.js';
 export * from './utils.js';
 export {
+  Deployment,
+  Vault,
+  TopupVaultOptions,
+  CreateDeployment,
   DeploymentStrategy,
   DeploymentStatus,
 } from './services/deployments/types.js';
-export { type Deployment } from './services/deployments/deployment/createDeployment.js';
 
 polyfill();
 

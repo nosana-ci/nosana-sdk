@@ -13,9 +13,7 @@ import {
   deploymentUpdateTimeout,
 } from './actions/index.js';
 
-import { DeploymentState } from '../types.js';
-
-export type Deployment = ReturnType<typeof createDeployment>;
+import { Deployment, DeploymentState } from '../types.js';
 
 export interface CreateDeploymentOptions {
   client: QueryClient;
@@ -26,7 +24,7 @@ export interface CreateDeploymentOptions {
 export function createDeployment(
   deployment: components['schemas']['Deployment'],
   { client, wallet, solanaConfig }: CreateDeploymentOptions,
-) {
+): Deployment {
   const state: DeploymentState = {
     id: deployment.id,
     market: new PublicKey(deployment.market),

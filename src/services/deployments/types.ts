@@ -19,6 +19,31 @@ export type DeploymentState = {
   created_at: Date;
 };
 
+export type CreateDeployment = components['schemas']['DeploymentCreateBody'];
+
+export interface TopupVaultOptions {
+  SOL?: number;
+  NOS?: number;
+  lamports?: boolean;
+}
+
+export interface Vault {
+  publicKey: PublicKey;
+  getBalance: () => Promise<{ SOL: number; NOS: number }>;
+  topup: (options: TopupVaultOptions) => Promise<void>;
+  withdraw: () => Promise<void>;
+}
+
+export interface Deployment extends DeploymentState {
+  vault: Vault;
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
+  archive: () => Promise<void>;
+  getTasks: () => Promise<components['schemas']['Task'][]>;
+  updateReplicaCount: (replicas: number) => Promise<void>;
+  updateTimeout: (timeout: number) => Promise<void>;
+}
+
 export const DeploymentStatus: {
   [key in components['schemas']['DeploymentStatus']]: components['schemas']['DeploymentStatus'];
 } = {

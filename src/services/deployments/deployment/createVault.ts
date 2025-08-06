@@ -7,23 +7,12 @@ import { createConnection } from '../../../utils.js';
 import { vaultTopup } from './actions/vaultTopup.js';
 import { vaultGetBalance, vaultWithdraw } from './actions/index.js';
 
-export interface Vault {
-  publicKey: PublicKey;
-  getBalance: () => Promise<{ SOL: number; NOS: number }>;
-  topup: (options: TopupVaultOptions) => Promise<void>;
-  withdraw: () => Promise<void>;
-}
+import { TopupVaultOptions, Vault } from '../types.js';
 
 interface CreateVaultOptions {
   wallet: Wallet;
   client: QueryClient;
   solanaConfig: SolanaConfig;
-}
-
-export interface TopupVaultOptions {
-  SOL?: number;
-  NOS?: number;
-  lamports?: boolean;
 }
 
 export function createVault(

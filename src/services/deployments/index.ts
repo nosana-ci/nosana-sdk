@@ -1,29 +1,23 @@
 import { getWallet } from '../../utils.js';
-import { components } from './client/schema.js';
+import type { components } from './client/schema.js';
 import { clientSelector } from './client/index.js';
 import { errorFormatter } from '../../utils/errorFormatter.js';
 import { deploymentsConfigPreset, solanaConfigPreset } from '../../config.js';
-import {
-  createDeployment,
-  type Deployment,
-} from './deployment/createDeployment.js';
+import { createDeployment } from './deployment/createDeployment.js';
 
 import type {
   DeploymentsConfig,
   SolanaConfig,
   Wallet,
 } from '../../types/index.js';
+import type { CreateDeployment, Deployment } from './types.js';
 
 export interface Deployments {
-  create: (
-    deploymentBody: components['schemas']['DeploymentCreateBody'],
-  ) => Promise<Deployment>;
+  create: (deploymentBody: CreateDeployment) => Promise<Deployment>;
   get: (deployment: string) => Promise<Deployment>;
   list: () => Promise<Deployment[]>;
   pipe: (
-    deploymentIDorCreateObject:
-      | string
-      | components['schemas']['DeploymentCreateBody'],
+    deploymentIDorCreateObject: string | CreateDeployment,
     ...actions: Array<(deployment: Deployment) => Promise<any> | any>
   ) => Promise<Deployment>;
 }
@@ -47,7 +41,7 @@ export function createDeployments(
   }
 
   const create = async (
-    deploymentBody: components['schemas']['DeploymentCreateBody'],
+    deploymentBody: CreateDeployment,
   ): Promise<Deployment> => {
     const { data, error } = await client.POST('/api/deployment/create', {
       body: deploymentBody,

@@ -1,9 +1,10 @@
 import { Wallet } from '@coral-xyz/anchor';
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 
-import { TopupVaultOptions } from '../createVault.js';
 import { errorFormatter } from '../../../../utils/errorFormatter.js';
 import { TokenManager } from '../../../../classes/tokenManager/index.js';
+
+import type { TopupVaultOptions } from '../../types.js';
 
 interface VaultTopupOptions {
   nos_address: string;

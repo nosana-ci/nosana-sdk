@@ -1,6 +1,6 @@
 {
   "name": "@nosana/sdk",
-  "version": "0.4.12",
+  "version": "0.4.13",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,13 +9,14 @@
   "module": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "npm run generate && npm run prepare && tsc",
     "watch": "tsc --watch",
-    "build:browser": "npm run prepare && rollup -c",
-    "prepare": "ts-patch install && typia patch",
     "test": "jest --watch",
     "example": "npx ts-node --esm examples/example.ts",
+    "build": "npm run generate && npm run prepare && tsc && npm run build:generate",
+    "build:browser": "npm run prepare && rollup -c",
+    "build:generate": "openapi-typescript https://deployment-manager.k8s.prd.nos.ci/documentation/json -o ./dist/services/deployments/client/schema.d.ts",
     "generate": "openapi-typescript https://deployment-manager.k8s.prd.nos.ci/documentation/json -o ./src/services/deployments/client/schema.d.ts",
+    "prepare": "ts-patch install && typia patch",
     "publish:public": "npm version patch && npm run build && npm run build:browser && npm publish --access public"
   },
   "keywords": [],
