@@ -6,14 +6,26 @@
 image: node:20.11.1
 
 stages:
+  - test
   - deploy
+
+test:
+  image: node:20.11.1
+  stage: test
+  script:
+    - npm ci
+    - npm run build
+    - npm run build:browser
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 deploy:
   stage: deploy
   only:
     - main
   script:
-    - yarn
+    - npm ci
     - git config --global user.email "dev@nosana.io"
     - git config --global user.name "Nosana"
     - npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
