@@ -127,7 +127,14 @@ export type Operation<T extends OperationType> = {
   id: string;
   args: OperationArgsMap[T];
   results?: OperationResults;
+  execution?: Execution;
 };
+
+export type Execution = {
+    group?: string,
+    depends_on?: string[]
+}
+
 export interface OperationArgsMap {
   'container/run': {
     image: string;
