@@ -10,14 +10,22 @@ export type DeploymentState = {
   owner: PublicKey;
   timeout: number;
   replicas: number;
-  strategy: DeploymentStrategy;
   status: DeploymentStatus;
   ipfs_definition_hash: string;
   events: components['schemas']['Events'][];
   jobs: components['schemas']['Jobs'][];
   updated_at: Date;
   created_at: Date;
-};
+} & (
+  | {
+      strategy: 'SCHEDULED';
+      schedule: string;
+    }
+  | {
+      strategy: Exclude<DeploymentStrategy, 'SCHEDULED'>;
+      schedule?: never;
+    }
+);
 
 export type CreateDeployment = components['schemas']['DeploymentCreateBody'];
 
@@ -34,7 +42,7 @@ export interface Vault {
   withdraw: () => Promise<void>;
 }
 
-export interface Deployment extends DeploymentState {
+export type Deployment = DeploymentState & {
   vault: Vault;
   start: () => Promise<void>;
   stop: () => Promise<void>;
@@ -42,7 +50,7 @@ export interface Deployment extends DeploymentState {
   getTasks: () => Promise<components['schemas']['Task'][]>;
   updateReplicaCount: (replicas: number) => Promise<void>;
   updateTimeout: (timeout: number) => Promise<void>;
-}
+};
 
 export const DeploymentStatus: {
   [key in components['schemas']['DeploymentStatus']]: components['schemas']['DeploymentStatus'];

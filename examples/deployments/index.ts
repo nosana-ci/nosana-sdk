@@ -1,4 +1,4 @@
-import { Deployment } from '../../src/services/deployments/deployment';
+import { Deployment } from '../../src';
 import { createTestClient } from './utils/createTestClient';
 import { createDeployment } from './create_deployment';
 import { sleep } from '../../src';

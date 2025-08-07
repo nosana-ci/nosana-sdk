@@ -18,10 +18,10 @@ import type { ClientConfig, Wallet } from './types/index.js';
 export * from './types/index.js';
 export * from './utils.js';
 export {
-  Deployment,
-  Vault,
-  TopupVaultOptions,
-  CreateDeployment,
+  type Deployment,
+  type Vault,
+  type TopupVaultOptions,
+  type CreateDeployment,
   DeploymentStrategy,
   DeploymentStatus,
 } from './services/deployments/types.js';

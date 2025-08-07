@@ -30,7 +30,6 @@ export function createDeployment(
     market: new PublicKey(deployment.market),
     owner: new PublicKey(deployment.owner),
     name: deployment.name,
-    strategy: deployment.strategy,
     status: deployment.status,
     replicas: deployment.replicas,
     timeout: deployment.timeout,
@@ -39,6 +38,14 @@ export function createDeployment(
     jobs: deployment.jobs,
     updated_at: new Date(deployment.updated_at),
     created_at: new Date(deployment.created_at),
+    ...(deployment.strategy === 'SCHEDULED'
+      ? {
+          strategy: deployment.strategy,
+          schedule: deployment.schedule,
+        }
+      : {
+          strategy: deployment.strategy,
+        }),
   };
 
   /**
