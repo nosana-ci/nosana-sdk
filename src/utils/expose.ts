@@ -55,11 +55,11 @@ const isOpExposed = (op: Operation<'container/run'>): boolean => {
 
 const getExposeIdHash = (
   flowId: string,
-  opIndex: number,
+  op: number | string,
   port: number,
 ): string => {
   const idLength = 44;
-  const inputString = `${opIndex}:${port}:${flowId}`;
+  const inputString = `${op}:${port}:${flowId}`;
   return createHash(inputString, idLength);
 };
 
