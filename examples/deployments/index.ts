@@ -29,6 +29,11 @@ async function command() {
       deployment = await client.deployments.get(args[1]);
       await deployment.stop();
       return deployment;
+    case 'updateTimeout':
+      deployment = await client.deployments.pipe(args[1], (deployment) =>
+        deployment.updateTimeout(60 * 10),
+      );
+      return deployment;
     case 'archive':
       deployment = await client.deployments.get(args[1]);
       await deployment.archive();

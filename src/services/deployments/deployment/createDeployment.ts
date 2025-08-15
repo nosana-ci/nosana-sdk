@@ -34,6 +34,7 @@ export function createDeployment(
     replicas: deployment.replicas,
     timeout: deployment.timeout,
     ipfs_definition_hash: deployment.ipfs_definition_hash,
+    endpoints: deployment.endpoints,
     events: deployment.events,
     jobs: deployment.jobs,
     updated_at: new Date(deployment.updated_at),
