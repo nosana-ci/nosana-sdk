@@ -12,6 +12,7 @@ export type DeploymentState = {
   replicas: number;
   status: DeploymentStatus;
   ipfs_definition_hash: string;
+  endpoints: components['schemas']['Endpoint'][];
   events: components['schemas']['Events'][];
   jobs: components['schemas']['Jobs'][];
   updated_at: Date;

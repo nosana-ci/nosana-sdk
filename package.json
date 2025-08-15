@@ -1,6 +1,6 @@
 {
   "name": "@nosana/sdk",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,6 +16,8 @@
     "build:browser": "npm run prepare && rollup -c",
     "build:generate": "openapi-typescript https://deployment-manager.k8s.prd.nos.ci/documentation/json -o ./dist/services/deployments/client/schema.d.ts",
     "generate": "openapi-typescript https://deployment-manager.k8s.prd.nos.ci/documentation/json -o ./src/services/deployments/client/schema.d.ts",
+    "generate:dev": "openapi-typescript https://deployment-manager.k8s.dev.nos.ci/documentation/json -o ./src/services/deployments/client/schema.d.ts",
+    "generate:local": "openapi-typescript http://localhost:3000/documentation/json -o ./src/services/deployments/client/schema.d.ts",
     "prepare": "ts-patch install && typia patch",
     "publish:public": "npm version patch && npm run build && npm run build:browser && npm publish --access public"
   },
