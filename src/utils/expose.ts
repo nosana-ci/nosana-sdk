@@ -41,7 +41,7 @@ const getExposePorts = (op: Operation<'container/run'>): ExposedPort[] => {
 
   if (Array.isArray(expose)) {
     return expose.map((e) =>
-      typeof e === 'number' ? { port: e, type: 'none' } : e,
+      typeof e === 'object' ? e : { port: e, type: 'none' },
     );
   }
 
