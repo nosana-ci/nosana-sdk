@@ -56,7 +56,7 @@ const isOpExposed = (op: Operation<'container/run'>): boolean => {
 const getExposeIdHash = (
   flowId: string,
   op: number | string,
-  port: number,
+  port: number | string,
 ): string => {
   const idLength = 44;
   const inputString = `${op}:${port}:${flowId}`;
@@ -67,7 +67,7 @@ export type ExposedService = {
   hash: string;
   opIndex: number;
   opId: string;
-  port: number;
+  port: number | string;
   hasHealthCheck: boolean;
 };
 
