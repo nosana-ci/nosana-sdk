@@ -60,7 +60,7 @@ type PortRangeString = string &
     validate: `
     typeof $input === "string" &&
     (() => {
-      const match = /^([0-9]+):([0-9]+)$/.exec($input);
+      const match = /^([0-9]+)-([0-9]+)$/.exec($input);
       if (!match) return false;
       const a = Number(match[1]), b = Number(match[2]);
       return a < b;
@@ -93,7 +93,7 @@ export type UniqueExposedPorts = Array<number | string | ExposedPort> &
             if (numbers.has(port)) return false;
             numbers.add(port);
           } else if (typeof port === "string") {
-            const match = /^([0-9]+):([0-9]+)$/.exec(port);
+            const match = /^([0-9]+)-([0-9]+)$/.exec(port);
             if (!match) return false;
             const start = Number(match[1]), end = Number(match[2]);
             for (const [rStart, rEnd] of ranges) {
@@ -199,7 +199,7 @@ export interface OperationArgsMap {
         dest: string;
       },
     ];
-    expose?: number | string | UniqueExposedPorts;
+    expose?: number | PortRangeString | UniqueExposedPorts;
     private?: boolean;
     gpu?: boolean;
     work_dir?: string;
