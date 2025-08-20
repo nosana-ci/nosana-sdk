@@ -24,7 +24,8 @@ const isPrivate = (job: JobDefinition): boolean => {
 
     const isExposed =
       (Array.isArray(expose) && expose.length > 0) ||
-      typeof expose === 'number';
+      typeof expose === 'number' ||
+      typeof expose === 'string';
 
     return isExposed && args.private === true;
   });
@@ -35,7 +36,7 @@ const getExposePorts = (op: Operation<'container/run'>): ExposedPort[] => {
 
   if (!expose) return [];
 
-  if (typeof expose === 'number') {
+  if (typeof expose === 'number' || typeof expose === 'string') {
     return [{ port: expose, type: 'none' }];
   }
 
