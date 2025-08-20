@@ -77,7 +77,7 @@ export type ExposedPort = {
 };
 
 // Custom tag for unique exposed ports validation
-export type UniqueExposedPorts = Array<number | string | ExposedPort> &
+export type UniqueExposedPorts = Array<number | PortRangeString | ExposedPort> &
   tags.TagBase<{
     kind: 'uniqueExposedPorts';
     target: 'array';
