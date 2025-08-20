@@ -52,12 +52,66 @@ export type WebSocketHealthCheck = {
 // Union type for health checks
 export type HealthCheck = HttpHealthCheck | WebSocketHealthCheck;
 
+type PortRangeString = string &
+  tags.TagBase<{
+    kind: 'portRange';
+    target: 'string';
+    value: 'portRange';
+    validate: `
+    typeof $input === "string" &&
+    (() => {
+      const match = /^([0-9]+):([0-9]+)$/.exec($input);
+      if (!match) return false;
+      const a = Number(match[1]), b = Number(match[2]);
+      return a < b;
+    })()
+  `;
+    message: "Port range must be in the format 'start:end' with start < end";
+  }>;
+
 // Define the structure for exposed ports
 export type ExposedPort = {
-  port: number;
+  port: number | PortRangeString;
   type?: ServiceType;
   health_checks?: HealthCheck[];
 };
+
+// Custom tag for unique exposed ports validation
+export type UniqueExposedPorts = ExposedPort[] &
+  tags.TagBase<{
+    kind: 'uniqueExposedPorts';
+    target: 'array';
+    value: 'uniqueExposedPorts';
+    validate: `
+      (() => {
+       if (!Array.isArray($input)) return true;
+        const numbers = new Set();
+        const ranges = [];
+        for (const portObj of $input) {
+          let port = typeof portObj === "object" ? portObj.port : portObj;
+          if (typeof port === "number") {
+            if (numbers.has(port)) return false;
+            numbers.add(port);
+          } else if (typeof port === "string") {
+            const match = /^([0-9]+):([0-9]+)$/.exec(port);
+            if (!match) return false;
+            const start = Number(match[1]), end = Number(match[2]);
+            for (const [rStart, rEnd] of ranges) {
+              if (start <= rEnd && end >= rStart) return false;
+            }
+            ranges.push([start, end]);
+          }
+        }
+        for (const port of numbers) {
+          for (const [start, end] of ranges) {
+            if (port >= start && port <= end) return false;
+          }
+        }
+        return true;
+      })()
+    `;
+    message: 'Exposed ports must be unique, number ports must not fall within any defined port range, and port ranges must not overlap or be adjacent.';
+  }>;
 
 export interface JobLogistics {
   send?: SendJobDefinationLogicstics;
@@ -101,7 +155,7 @@ export type JobDefinition = {
   version: string;
   type: JobType;
   logistics?: JobLogistics;
-  deployment_id ?: string;
+  deployment_id?: string;
   meta?: {
     trigger?: string;
     system_resources?: {
@@ -131,9 +185,9 @@ export type Operation<T extends OperationType> = {
 };
 
 export type Execution = {
-    group?: string,
-    depends_on?: string[]
-}
+  group?: string;
+  depends_on?: string[];
+};
 
 export interface OperationArgsMap {
   'container/run': {
@@ -145,7 +199,7 @@ export interface OperationArgsMap {
         dest: string;
       },
     ];
-    expose?: number | (number | ExposedPort)[];
+    expose?: number | string | UniqueExposedPorts;
     private?: boolean;
     gpu?: boolean;
     work_dir?: string;
@@ -164,6 +218,7 @@ export interface OperationArgsMap {
     name: string;
   };
 }
+
 export type OperationType = keyof OperationArgsMap;
 
 export type StdOptions = 'stdin' | 'stdout' | 'stderr' | 'nodeerr';
@@ -215,9 +270,9 @@ export type OpState = {
 };
 
 type UniqueById = tags.TagBase<{
-  kind: "uniqueBy";
-  target: "array";
-  value: "id";
+  kind: 'uniqueBy';
+  target: 'array';
+  value: 'id';
   validate: `
     Array.isArray($input) && (()=>{
       const seen = new Set();
@@ -229,11 +284,11 @@ type UniqueById = tags.TagBase<{
       return true;
     })()
   `;
-  message: "ops[*].id must be unique";
+  message: 'ops[*].id must be unique';
 }>;
 
-type JobDefinitionWithRule = Omit<JobDefinition, "ops"> & {
-  ops: JobDefinition["ops"] & UniqueById;
+type JobDefinitionWithRule = Omit<JobDefinition, 'ops'> & {
+  ops: JobDefinition['ops'] & UniqueById;
 };
 
 export const validateJobDefinition =
