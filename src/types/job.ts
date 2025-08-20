@@ -1,6 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
 import { type IValidation } from 'typia';
-import typia from 'typia';
+import typia, { tags } from 'typia';
 import { Resource } from './resources.js';
 
 export { IValidation };
@@ -214,8 +214,30 @@ export type OpState = {
   };
 };
 
+type UniqueById = tags.TagBase<{
+  kind: "uniqueBy";
+  target: "array";
+  value: "id";
+  validate: `
+    Array.isArray($input) && (()=>{
+      const seen = new Set();
+      for (const it of $input) {
+        if (typeof it?.id !== "string") return false;
+        if (seen.has(it.id)) return false;
+        seen.add(it.id);
+      }
+      return true;
+    })()
+  `;
+  message: "ops[*].id must be unique";
+}>;
+
+type JobDefinitionWithRule = Omit<JobDefinition, "ops"> & {
+  ops: JobDefinition["ops"] & UniqueById;
+};
+
 export const validateJobDefinition =
-  typia.createValidateEquals<JobDefinition>();
+  typia.createValidateEquals<JobDefinitionWithRule>();
 
 export type Job = {
   ipfsJob: string;
