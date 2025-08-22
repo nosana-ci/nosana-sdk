@@ -6,10 +6,10 @@ import type {
 
 export const deploymentsConfigPreset: { [key: string]: DeploymentsConfig } = {
   mainnet: {
-    backend_url: 'https://deployment-manager.k8s.prd.nos.ci',
+    backend_url: 'http://localhost:3000',
   },
   devnet: {
-    backend_url: 'https://deployment-manager.k8s.dev.nos.ci',
+    backend_url: 'http://localhost:3000',
   },
 };
 

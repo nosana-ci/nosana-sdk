@@ -34,16 +34,16 @@ describe('AuthorizationManager', () => {
   });
 
   describe('generateHeader', () => {
-    it('should generate authorization header', () => {
-      const header = authorizationManager.generateHeader('headerMessage');
+    it('should generate authorization header', async () => {
+      const header = await authorizationManager.generateHeader('headerMessage');
 
       expect(header.get('Authorization')).toBe(
         'headerMessage:2k4iSPKEdeKqWPuqhEt4miM17MjPxEDsjpqmE21EVuKM2oo8HwbrtX2UybLJv18FLYWyg9vumxwjzHx6p88Y5nRE',
       );
     });
 
-    test('when includeTime is true and key is set, should generate headers with string and time', () => {
-      const header = authorizationManager.generateHeader(
+    test('when includeTime is true and key is set, should generate headers with string and time', async () => {
+      const header = await authorizationManager.generateHeader(
         'headerMessageWithTime',
         {
           key: 'X-Session-Id',

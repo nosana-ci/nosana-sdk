@@ -32,23 +32,62 @@ export class AuthorizationManager {
     this.wallet = getWallet(wallet);
   }
 
-  public generate(message: string, options?: Partial<GenerateOptions>): string {
+  public async generate(message: string, options?: Partial<GenerateOptions>): Promise<string> {
     const { includeTime, seperator }: GenerateOptions = {
       includeTime: false,
       seperator: ':',
       ...options,
     };
 
-    const messageBytes = naclUtil.decodeUTF8(message);
+    console.log('AuthorizationManager.generate - Wallet detection:', {
+      isWindow: typeof window !== 'undefined',
+      hasAdapter: !!(this.wallet as any).adapter,
+      hasSignMessage: typeof (this.wallet as any).adapter?.signMessage === 'function',
+      hasPayerSecretKey: !!(this.wallet as any).payer?.secretKey,
+      walletKeys: Object.keys(this.wallet),
+      wallet: this.wallet,
+      hasSignMessageDirect: typeof (this.wallet as any).signMessage === 'function'
+    });
 
-    const signature = nacl.sign.detached(
-      messageBytes,
-      this.wallet.payer.secretKey,
-    );
+    if (typeof window !== 'undefined' && 
+        (this.wallet as any).adapter && 
+        typeof (this.wallet as any).adapter.signMessage === 'function') {
+      console.log('Using browser wallet signMessage');
+      const encodedMessage = new TextEncoder().encode(message);
+      const signedMessage = await (this.wallet as any).adapter.signMessage(encodedMessage);
+      const signature = base58.encode(signedMessage);
+      
+      return `${message}${seperator}${signature}${
+        includeTime ? seperator + new Date().getTime() : ''
+      }`;
+    }
 
-    return `${message}${seperator}${base58.encode(signature)}${
-      includeTime ? seperator + new Date().getTime() : ''
-    }`;
+    if (typeof window !== 'undefined' && (window as any).phantom?.solana?.signMessage) {
+      console.log('Using Phantom directly');
+      const encodedMessage = new TextEncoder().encode(message);
+      const response = await (window as any).phantom.solana.signMessage(encodedMessage, 'utf8');
+      const signature = base58.encode(response.signature);
+      
+      return `${message}${seperator}${signature}${
+        includeTime ? seperator + new Date().getTime() : ''
+      }`;
+    }
+
+    if (this.wallet.payer?.secretKey) {
+      console.log('Using secret key wallet');
+      const messageBytes = naclUtil.decodeUTF8(message);
+      const signature = nacl.sign.detached(
+        messageBytes,
+        this.wallet.payer.secretKey,
+      );
+
+      return `${message}${seperator}${base58.encode(signature)}${
+        includeTime ? seperator + new Date().getTime() : ''
+      }`;
+    }
+
+    console.log('No supported signing method found');
+    throw new Error('Wallet does not support message signing');
   }
 
   public validate(
@@ -84,10 +123,10 @@ export class AuthorizationManager {
     );
   }
 
-  public generateHeader(
+  public async generateHeader(
     message: string,
     options?: Partial<Omit<AuthorizationOptions, 'expiresInMinutes'>>,
-  ): Headers {
+  ): Promise<Headers> {
     const { key, includeTime } = {
       key: 'Authorization',
       includeTime: false,
@@ -95,7 +134,7 @@ export class AuthorizationManager {
     };
 
     const headers = new Headers();
-    const authorizationString = this.generate(message, { includeTime });
+    const authorizationString = await this.generate(message, { includeTime });
 
     headers.append(key, authorizationString);
 
