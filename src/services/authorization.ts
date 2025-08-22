@@ -42,7 +42,7 @@ export class AuthorizationManager {
       ...options,
     };
 
-    let signature: Uint8Array<ArrayBufferLike> | undefined = undefined;
+    let signature: Uint8Array | undefined = undefined;
 
     if (typeof window !== undefined) {
       const encodedMessage = new TextEncoder().encode(message);
