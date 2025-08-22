@@ -39,20 +39,10 @@ export class AuthorizationManager {
       ...options,
     };
 
-    console.log('AuthorizationManager.generate - Wallet detection:', {
-      isWindow: typeof window !== 'undefined',
-      hasAdapter: !!(this.wallet as any).adapter,
-      hasSignMessage: typeof (this.wallet as any).adapter?.signMessage === 'function',
-      hasPayerSecretKey: !!(this.wallet as any).payer?.secretKey,
-      walletKeys: Object.keys(this.wallet),
-      wallet: this.wallet,
-      hasSignMessageDirect: typeof (this.wallet as any).signMessage === 'function'
-    });
 
     if (typeof window !== 'undefined' && 
         (this.wallet as any).adapter && 
         typeof (this.wallet as any).adapter.signMessage === 'function') {
-      console.log('Using browser wallet signMessage');
       const encodedMessage = new TextEncoder().encode(message);
       const signedMessage = await (this.wallet as any).adapter.signMessage(encodedMessage);
       const signature = base58.encode(signedMessage);
@@ -63,7 +53,6 @@ export class AuthorizationManager {
     }
 
     if (typeof window !== 'undefined' && (window as any).phantom?.solana?.signMessage) {
-      console.log('Using Phantom directly');
       const encodedMessage = new TextEncoder().encode(message);
       const response = await (window as any).phantom.solana.signMessage(encodedMessage, 'utf8');
       const signature = base58.encode(response.signature);
@@ -74,7 +63,6 @@ export class AuthorizationManager {
     }
 
     if (this.wallet.payer?.secretKey) {
-      console.log('Using secret key wallet');
       const messageBytes = naclUtil.decodeUTF8(message);
       const signature = nacl.sign.detached(
         messageBytes,
@@ -86,7 +74,6 @@ export class AuthorizationManager {
       }`;
     }
 
-    console.log('No supported signing method found');
     throw new Error('Wallet does not support message signing');
   }
 
