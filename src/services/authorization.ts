@@ -42,7 +42,7 @@ export class AuthorizationManager {
       ...options,
     };
 
-    let signature: Uint8Array<ArrayBufferLike> | number[];
+    let signature: Uint8Array<ArrayBufferLike> | undefined = undefined;
 
     if (typeof window !== undefined) {
       const encodedMessage = new TextEncoder().encode(message);
@@ -60,10 +60,13 @@ export class AuthorizationManager {
           encodedMessage,
         );
       }
-      throw new Error('Wallet does not support message signing');
-    } else {
+    } else if (this.wallet.payer.secretKey) {
       const messageBytes = naclUtil.decodeUTF8(message);
       signature = nacl.sign.detached(messageBytes, this.wallet.payer.secretKey);
+    }
+
+    if (!signature) {
+      throw new Error('Wallet does not support message signing');
     }
 
     return `${message}${seperator}${base58.encode(signature)}${
