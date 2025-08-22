@@ -32,49 +32,43 @@ export class AuthorizationManager {
     this.wallet = getWallet(wallet);
   }
 
-  public async generate(message: string, options?: Partial<GenerateOptions>): Promise<string> {
+  public async generate(
+    message: string,
+    options?: Partial<GenerateOptions>,
+  ): Promise<string> {
     const { includeTime, seperator }: GenerateOptions = {
       includeTime: false,
       seperator: ':',
       ...options,
     };
 
+    let signature: Uint8Array<ArrayBufferLike> | number[];
 
-    if (typeof window !== 'undefined' && 
-        (this.wallet as any).adapter && 
-        typeof (this.wallet as any).adapter.signMessage === 'function') {
+    if (typeof window !== undefined) {
       const encodedMessage = new TextEncoder().encode(message);
-      const signedMessage = await (this.wallet as any).adapter.signMessage(encodedMessage);
-      const signature = base58.encode(signedMessage);
-      
-      return `${message}${seperator}${signature}${
-        includeTime ? seperator + new Date().getTime() : ''
-      }`;
-    }
 
-    if (typeof window !== 'undefined' && (window as any).phantom?.solana?.signMessage) {
-      const encodedMessage = new TextEncoder().encode(message);
-      const response = await (window as any).phantom.solana.signMessage(encodedMessage, 'utf8');
-      const signature = base58.encode(response.signature);
-      
-      return `${message}${seperator}${signature}${
-        includeTime ? seperator + new Date().getTime() : ''
-      }`;
-    }
-
-    if (this.wallet.payer?.secretKey) {
+      if ((window as any).phantom?.solana?.signMessage) {
+        signature = await (window as any).phantom.solana.signMessage(
+          encodedMessage,
+          'utf8',
+        );
+      } else if (
+        (this.wallet as any).adapter &&
+        typeof (this.wallet as any).adapter.signMessage === 'function'
+      ) {
+        signature = await (this.wallet as any).adapter.signMessage(
+          encodedMessage,
+        );
+      }
+      throw new Error('Wallet does not support message signing');
+    } else {
       const messageBytes = naclUtil.decodeUTF8(message);
-      const signature = nacl.sign.detached(
-        messageBytes,
-        this.wallet.payer.secretKey,
-      );
-
-      return `${message}${seperator}${base58.encode(signature)}${
-        includeTime ? seperator + new Date().getTime() : ''
-      }`;
+      signature = nacl.sign.detached(messageBytes, this.wallet.payer.secretKey);
     }
 
-    throw new Error('Wallet does not support message signing');
+    return `${message}${seperator}${base58.encode(signature)}${
+      includeTime ? seperator + new Date().getTime() : ''
+    }`;
   }
 
   public validate(
