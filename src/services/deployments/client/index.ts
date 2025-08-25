@@ -20,14 +20,14 @@ export const clientSelector = (
     const authorizationManager = new AuthorizationManager(wallet);
 
     const authMiddleware: Middleware = {
-      onRequest({ request }) {
+      async onRequest({ request }) {
         request.headers.set('x-user-id', userId);
-        request.headers.set(
-          'Authorization',
-          authorizationManager.generate('DeploymentsAuthorization', {
-            includeTime: true,
-          }),
-        );
+        
+        const authHeader = await authorizationManager.generate('DeploymentsAuthorization', {
+          includeTime: true,
+        });
+        
+        request.headers.set('Authorization', authHeader);
       },
     };
 

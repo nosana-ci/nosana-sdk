@@ -32,19 +32,42 @@ export class AuthorizationManager {
     this.wallet = getWallet(wallet);
   }
 
-  public generate(message: string, options?: Partial<GenerateOptions>): string {
+  public async generate(
+    message: string,
+    options?: Partial<GenerateOptions>,
+  ): Promise<string> {
     const { includeTime, seperator }: GenerateOptions = {
       includeTime: false,
       seperator: ':',
       ...options,
     };
 
-    const messageBytes = naclUtil.decodeUTF8(message);
+    let signature: Uint8Array | undefined = undefined;
 
-    const signature = nacl.sign.detached(
-      messageBytes,
-      this.wallet.payer.secretKey,
-    );
+    if (typeof window !== undefined) {
+      const encodedMessage = new TextEncoder().encode(message);
+
+      if ((window as any).phantom?.solana?.signMessage) {
+        signature = await (window as any).phantom.solana.signMessage(
+          encodedMessage,
+          'utf8',
+        );
+      } else if (
+        (this.wallet as any).adapter &&
+        typeof (this.wallet as any).adapter.signMessage === 'function'
+      ) {
+        signature = await (this.wallet as any).adapter.signMessage(
+          encodedMessage,
+        );
+      }
+    } else if (this.wallet.payer.secretKey) {
+      const messageBytes = naclUtil.decodeUTF8(message);
+      signature = nacl.sign.detached(messageBytes, this.wallet.payer.secretKey);
+    }
+
+    if (!signature) {
+      throw new Error('Wallet does not support message signing');
+    }
 
     return `${message}${seperator}${base58.encode(signature)}${
       includeTime ? seperator + new Date().getTime() : ''
@@ -84,10 +107,10 @@ export class AuthorizationManager {
     );
   }
 
-  public generateHeader(
+  public async generateHeader(
     message: string,
     options?: Partial<Omit<AuthorizationOptions, 'expiresInMinutes'>>,
-  ): Headers {
+  ): Promise<Headers> {
     const { key, includeTime } = {
       key: 'Authorization',
       includeTime: false,
@@ -95,7 +118,7 @@ export class AuthorizationManager {
     };
 
     const headers = new Headers();
-    const authorizationString = this.generate(message, { includeTime });
+    const authorizationString = await this.generate(message, { includeTime });
 
     headers.append(key, authorizationString);
 
