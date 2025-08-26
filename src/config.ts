@@ -59,6 +59,17 @@ export const IPFSConfigPreset: { [key: string]: IPFSConfig } = {
   },
 };
 
+export const sourceMintPreset: { [key: string]: { USDC: string; USDT: string } } = {
+  mainnet: {
+    USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    USDT: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+  },
+  devnet: {
+    USDC: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+    USDT: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+  },
+};
+
 export const SOURCE_MINTS = {
   SOL: 'So11111111111111111111111111111111111111112',
   USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
