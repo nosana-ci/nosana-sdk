@@ -14,22 +14,9 @@ export class Swap extends SolanaManager {
    * @returns Object containing the transaction signature
    */
   public async swapToNos(amount: number, source: SourceToken): Promise<string> {
-    let inputMint: string;
-    
-    if (source === 'SOL') {
-      inputMint = this.sourceMints.SOL;
-    } else if (source === 'USDC') {
-      if (!this.sourceMints.USDC) {
-        throw new Error(`USDC is not available on ${this.environment}`);
-      }
-      inputMint = this.sourceMints.USDC;
-    } else if (source === 'USDT') {
-      if (!this.sourceMints.USDT) {
-        throw new Error(`USDT is not available on ${this.environment}`);
-      }
-      inputMint = this.sourceMints.USDT;
-    } else {
-      throw new Error(`Unsupported source token: ${source}`);
+    let inputMint = this.sourceMints[source];
+    if (!inputMint) {
+      throw new Error(`${source} is not available on ${this.config.network}`);
     }
 
     const quote = await this.requestQuote(amount, inputMint);

@@ -99,13 +99,11 @@ export class SolanaManager {
   wallet: AnchorWallet;
   feePayer?: Signer;
   connection: Connection | undefined;
-  environment: string;
   sourceMints: { SOL: string; USDC?: string; USDT?: string };
   constructor(environment: string = 'devnet',
     wallet: Wallet,
     config?: Partial<SolanaConfig>,
   ) {
-    this.environment = environment;
     this.config = solanaConfigPreset[environment];
     this.sourceMints = sourceMintPreset[environment];
     Object.assign(this.config, config);
