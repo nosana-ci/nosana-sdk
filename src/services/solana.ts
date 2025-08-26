@@ -100,7 +100,7 @@ export class SolanaManager {
   feePayer?: Signer;
   connection: Connection | undefined;
   environment: string;
-  sourceMints: { USDC: string; USDT: string };
+  sourceMints: { SOL: string; USDC?: string; USDT?: string };
   constructor(environment: string = 'devnet',
     wallet: Wallet,
     config?: Partial<SolanaConfig>,
@@ -189,6 +189,9 @@ export class SolanaManager {
   async getUsdcBalance(
     address?: string | PublicKey,
   ): Promise<TokenAmount | undefined> {
+    if (!this.sourceMints.USDC) {
+      return undefined;
+    }
     return this.getTokenBalance(this.sourceMints.USDC, address);
   }
 
@@ -200,6 +203,9 @@ export class SolanaManager {
   async getUsdtBalance(
     address?: string | PublicKey,
   ): Promise<TokenAmount | undefined> {
+    if (!this.sourceMints.USDT) {
+      return undefined;
+    }
     return this.getTokenBalance(this.sourceMints.USDT, address);
   }
 

@@ -1,6 +1,5 @@
 import { VersionedTransaction } from '@solana/web3.js';
 
-import { SOURCE_MINTS } from '../config.js';
 import { SolanaManager } from './solana.js';
 import { QuoteResponse, SwapResponse } from '../types/swap.js';
 
@@ -15,9 +14,21 @@ export class Swap extends SolanaManager {
    * @returns Object containing the transaction signature
    */
   public async swapToNos(amount: number, source: SourceToken): Promise<string> {
-    const inputMint = SOURCE_MINTS[source];
-
-    if (!inputMint) {
+    let inputMint: string;
+    
+    if (source === 'SOL') {
+      inputMint = this.sourceMints.SOL;
+    } else if (source === 'USDC') {
+      if (!this.sourceMints.USDC) {
+        throw new Error(`USDC is not available on ${this.environment}`);
+      }
+      inputMint = this.sourceMints.USDC;
+    } else if (source === 'USDT') {
+      if (!this.sourceMints.USDT) {
+        throw new Error(`USDT is not available on ${this.environment}`);
+      }
+      inputMint = this.sourceMints.USDT;
+    } else {
       throw new Error(`Unsupported source token: ${source}`);
     }
 
