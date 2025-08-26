@@ -48,10 +48,11 @@ export class AuthorizationManager {
       const encodedMessage = new TextEncoder().encode(message);
 
       if ((window as any).phantom?.solana?.signMessage) {
-        signature = await (window as any).phantom.solana.signMessage(
+        const response = await (window as any).phantom.solana.signMessage(
           encodedMessage,
           'utf8',
         );
+        signature = response.signature;
       } else if (
         (this.wallet as any).adapter &&
         typeof (this.wallet as any).adapter.signMessage === 'function'

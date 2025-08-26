@@ -59,7 +59,7 @@ import {
 import { fromWeb3JsKeypair } from '@metaplex-foundation/umi-web3js-adapters';
 import { percentAmount, publicKey, some } from '@metaplex-foundation/umi';
 
-import { solanaConfigPreset, SOURCE_MINTS } from '../config.js';
+import { solanaConfigPreset, sourceMintPreset } from '../config.js';
 import type {
   NosanaJobs,
   NosanaNodes,
@@ -99,11 +99,13 @@ export class SolanaManager {
   wallet: AnchorWallet;
   feePayer?: Signer;
   connection: Connection | undefined;
+  sourceMints: { SOL: string; USDC?: string; USDT?: string };
   constructor(environment: string = 'devnet',
     wallet: Wallet,
     config?: Partial<SolanaConfig>,
   ) {
     this.config = solanaConfigPreset[environment];
+    this.sourceMints = sourceMintPreset[environment];
     Object.assign(this.config, config);
 
     this.wallet = getWallet(wallet);
@@ -185,7 +187,10 @@ export class SolanaManager {
   async getUsdcBalance(
     address?: string | PublicKey,
   ): Promise<TokenAmount | undefined> {
-    return this.getTokenBalance(SOURCE_MINTS.USDC, address);
+    if (!this.sourceMints.USDC) {
+      return undefined;
+    }
+    return this.getTokenBalance(this.sourceMints.USDC, address);
   }
 
   /**
@@ -196,7 +201,10 @@ export class SolanaManager {
   async getUsdtBalance(
     address?: string | PublicKey,
   ): Promise<TokenAmount | undefined> {
-    return this.getTokenBalance(SOURCE_MINTS.USDT, address);
+    if (!this.sourceMints.USDT) {
+      return undefined;
+    }
+    return this.getTokenBalance(this.sourceMints.USDT, address);
   }
 
   /**

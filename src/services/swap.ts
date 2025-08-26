@@ -1,6 +1,5 @@
 import { VersionedTransaction } from '@solana/web3.js';
 
-import { SOURCE_MINTS } from '../config.js';
 import { SolanaManager } from './solana.js';
 import { QuoteResponse, SwapResponse } from '../types/swap.js';
 
@@ -15,10 +14,9 @@ export class Swap extends SolanaManager {
    * @returns Object containing the transaction signature
    */
   public async swapToNos(amount: number, source: SourceToken): Promise<string> {
-    const inputMint = SOURCE_MINTS[source];
-
+    let inputMint = this.sourceMints[source];
     if (!inputMint) {
-      throw new Error(`Unsupported source token: ${source}`);
+      throw new Error(`${source} is not available on ${this.config.network}`);
     }
 
     const quote = await this.requestQuote(amount, inputMint);
