@@ -192,6 +192,7 @@ export type Execution = {
 export interface OperationArgsMap {
   'container/run': {
     image: string;
+    aliases?: string | string[];
     cmd?: string[] | string;
     volumes?: [
       {
