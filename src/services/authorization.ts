@@ -44,7 +44,7 @@ export class AuthorizationManager {
 
     let signature: Uint8Array | undefined = undefined;
 
-    if (typeof window !== undefined) {
+    if (typeof window !== "undefined") {
       const encodedMessage = new TextEncoder().encode(message);
 
       if ((window as any).phantom?.solana?.signMessage) {
@@ -70,9 +70,8 @@ export class AuthorizationManager {
       throw new Error('Wallet does not support message signing');
     }
 
-    return `${message}${seperator}${base58.encode(signature)}${
-      includeTime ? seperator + new Date().getTime() : ''
-    }`;
+    return `${message}${seperator}${base58.encode(signature)}${includeTime ? seperator + new Date().getTime() : ''
+      }`;
   }
 
   public validate(
