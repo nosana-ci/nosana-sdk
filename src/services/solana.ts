@@ -125,7 +125,6 @@ export class SolanaManager {
       });
       this.provider = new AnchorProvider(this.connection, this.wallet, {});
     }
-    setProvider(this.provider);
   }
 
   async sendAndConfirm(txBuilder: MethodsBuilder<any, any>) {
@@ -474,13 +473,13 @@ export class SolanaManager {
   async loadNosanaJobs() {
     if (!this.jobs) {
       const programId = new PublicKey(this.config.jobs_address);
-      const idl = await Program.fetchIdl<NosanaJobs>(programId.toString());
+      const idl = await Program.fetchIdl<NosanaJobs>(programId.toString(), this.provider);
 
       if (!idl) {
         throw new Error("Couldn't fetch IDL for Jobs program");
       }
 
-      this.jobs = new NosanaProgram<NosanaJobs>(this.config, idl, programId);
+      this.jobs = new NosanaProgram<NosanaJobs>(this.config, idl, programId, this.provider);
     }
   }
 
@@ -491,10 +490,11 @@ export class SolanaManager {
   async loadNosanaNodes() {
     if (!this.nodes) {
       const programId = new PublicKey(this.config.nodes_address);
-      const idl = (await Program.fetchIdl(programId.toString())) as Idl;
+      const idl = (await Program.fetchIdl(programId.toString(), this.provider)) as Idl;
       this.nodes = new Program(
         idl,
         programId,
+        this.provider,
       ) as unknown as Program<NosanaNodes>;
     }
   }
@@ -508,18 +508,20 @@ export class SolanaManager {
       const programId = new PublicKey(this.config.stake_address);
       const poolProgramId = new PublicKey(this.config.pools_address);
       const rewardsProgramId = new PublicKey(this.config.rewards_address);
-      const idl = (await Program.fetchIdl(programId.toString())) as Idl;
-      const poolIdl = (await Program.fetchIdl(poolProgramId.toString())) as Idl;
+      const idl = (await Program.fetchIdl(programId.toString(), this.provider)) as Idl;
+      const poolIdl = (await Program.fetchIdl(poolProgramId.toString(), this.provider)) as Idl;
       const rewardIdl = (await Program.fetchIdl(
         rewardsProgramId.toString(),
+        this.provider,
       )) as Idl;
 
       this.stake!.program = new Program(
         idl,
         programId,
+        this.provider,
       ) as unknown as Program<NosanaStake>;
-      this.stake!.poolsProgram = new Program(poolIdl, poolProgramId);
-      this.stake!.rewardsProgram = new Program(rewardIdl, rewardsProgramId);
+      this.stake!.poolsProgram = new Program(poolIdl, poolProgramId, this.provider);
+      this.stake!.rewardsProgram = new Program(rewardIdl, rewardsProgramId, this.provider);
     }
   }
 
