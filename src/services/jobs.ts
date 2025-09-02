@@ -980,13 +980,11 @@ export class Jobs extends SolanaManager {
     await this.setAccounts();
     if (typeof market === 'string') market = new PublicKey(market);
     if (typeof node === 'string') node = new PublicKey(node);
-    const tx = await this.jobs!.methods.stop()
-      .accounts({
-        ...this.accounts,
-        market,
-        node: node || this.wallet.publicKey,
-      })
-      .rpc();
-    return tx;
+    const tx = await this.jobs!.methods.stop().accounts({
+      ...this.accounts,
+      market,
+      node: node || this.wallet.publicKey,
+    });
+    return await this.sendAndConfirm(tx);
   }
 }
