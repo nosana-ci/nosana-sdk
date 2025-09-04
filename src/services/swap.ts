@@ -9,7 +9,7 @@ export class Swap extends SolanaManager {
   /**
    * Swap a chosen token (SOL, USDC, or USDT) to NOS (stand-alone method: does not list jobs)
    *
-   * @param amount The amount of NOS (in whole tokens) to acquire
+   * @param amount The amount of source token to spend (in whole tokens)
    * @param source One of 'SOL', 'USDC', or 'USDT'
    * @returns Object containing the transaction signature
    */
@@ -19,7 +19,7 @@ export class Swap extends SolanaManager {
       throw new Error(`${source} is not available on ${this.config.network}`);
     }
 
-    const quote = await this.requestQuote(amount, inputMint);
+    const quote = await this.requestQuote(amount, inputMint, source);
     const { lastValidBlockHeight, swapTransaction } =
       await this.requestTransaction(quote, source === 'SOL');
 
@@ -32,20 +32,22 @@ export class Swap extends SolanaManager {
   private async requestQuote(
     amount: number,
     inputMint: string,
+    source: SourceToken,
   ): Promise<QuoteResponse> {
     const { nos_address: outputMint } = this.config;
-    // Convert NOS needed to its atomic amount (e.g., 6 decimals)
-    const nosAmountRaw = Math.ceil(amount * 1_000_000).toString();
+    // Convert source amount to its atomic amount (SOL 9, USDC/USDT 6)
+    const decimals = source === 'SOL' ? 9 : 6;
+    const inputAmountRaw = Math.floor(amount * Math.pow(10, decimals)).toString();
 
     const quoteResponse = await (
       await fetch(
         `https://lite-api.jup.ag/swap/v1/quote?${new URLSearchParams({
           inputMint,
           outputMint, // NOS mint
-          swapMode: 'ExactOut', // we want exactly `nosNeeded`
-          amount: nosAmountRaw.toString(),
-          slippageBps: '50', // example slippage
-          restrictIntermediateTokens: 'true', // Helps reduce exposure to high slippage routes
+          swapMode: 'ExactIn',
+          amount: inputAmountRaw.toString(),
+          slippageBps: '50',
+          restrictIntermediateTokens: 'true',
         }).toString()}`,
       )
     ).json();
@@ -56,7 +58,7 @@ export class Swap extends SolanaManager {
     }
     if (!quoteResponse.outAmount) {
       throw new Error(
-        `No valid quote found. amount=${nosAmountRaw} inputMint=${inputMint} outputMint=${this.config.nos_address}`,
+        `No valid quote found. amount=${inputAmountRaw} inputMint=${inputMint} outputMint=${this.config.nos_address}`,
       );
     }
 
