@@ -76,8 +76,47 @@ export type ExposedPort = {
   health_checks?: HealthCheck[];
 };
 
+// Placeholder string for dynamic literals like %%ops.template.results.expose%%
+type PlaceholderString = string &
+  tags.TagBase<{
+    kind: 'placeholder';
+    target: 'string';
+    value: 'placeholder';
+    validate: `
+      typeof $input === "string" &&
+      /^%%(ops|globals)\.[^%]+%%$/.test($input)
+    `;
+    message: 'Must be a literal placeholder like %%ops.template.results.expose%%';
+  }>;
+
+// Spread marker to inject JSON (array/object) resolved from a placeholder at runtime
+type SpreadMarker<T = unknown> = {
+  __spread__: PlaceholderString;
+} &
+  tags.TagBase<{
+    kind: 'spreadMarker';
+    target: 'object';
+    value: 'spreadMarker';
+    validate: `
+      typeof $input === "object" &&
+      $input !== null &&
+      !Array.isArray($input) &&
+      Object.keys($input).length === 1 &&
+      typeof $input.__spread__ === "string" &&
+      /^%%(ops|globals)\.[^%]+%%$/.test($input.__spread__)
+    `;
+    message: '__spread__ must be a placeholder string';
+  }>;
+
+type ExposeArrayElement =
+  | number
+  | PortRangeString
+  | ExposedPort
+  | PlaceholderString
+  | SpreadMarker<ExposedPort[]>;
+
 // Custom tag for unique exposed ports validation
-export type UniqueExposedPorts = Array<number | PortRangeString | ExposedPort> &
+export type UniqueExposedPorts = Array<ExposeArrayElement> &
   tags.TagBase<{
     kind: 'uniqueExposedPorts';
     target: 'array';
@@ -87,12 +126,17 @@ export type UniqueExposedPorts = Array<number | PortRangeString | ExposedPort> &
        if (!Array.isArray($input)) return true;
         const numbers = new Set();
         const ranges = [];
-        for (const portObj of $input) {
-          let port = typeof portObj === "object" ? portObj.port : portObj;
+        for (const el of $input) {
+          // Skip dynamic placeholders and spread markers for uniqueness check
+          if (typeof el === "string" && /^%%(ops|globals)\.[^%]+%%$/.test(el)) continue;
+          if (el && typeof el === "object" && !Array.isArray(el) && el.__spread__) continue;
+
+          const port = typeof el === "object" ? el.port : el;
           if (typeof port === "number") {
             if (numbers.has(port)) return false;
             numbers.add(port);
           } else if (typeof port === "string") {
+            // Enforce range format for concrete range strings
             const match = /^([0-9]+)-([0-9]+)$/.exec(port);
             if (!match) return false;
             const start = Number(match[1]), end = Number(match[2]);
@@ -200,7 +244,12 @@ export interface OperationArgsMap {
         dest: string;
       },
     ];
-    expose?: number | PortRangeString | UniqueExposedPorts;
+    expose?:
+      | number
+      | PortRangeString
+      | PlaceholderString
+      | SpreadMarker<ExposedPort[]>
+      | UniqueExposedPorts;
     private?: boolean;
     gpu?: boolean;
     work_dir?: string;

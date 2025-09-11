@@ -36,14 +36,43 @@ const getExposePorts = (op: Operation<'container/run'>): ExposedPort[] => {
 
   if (!expose) return [];
 
-  if (typeof expose === 'number' || typeof expose === 'string') {
+  const isPlaceholder = (v: unknown): v is string =>
+    typeof v === 'string' && /^%%(ops|globals)\.[^%]+%%$/.test(v);
+
+  const isSpreadMarker = (v: unknown): boolean =>
+    !!v && typeof v === 'object' && !Array.isArray(v) && '__spread__' in (v as any);
+
+  if (typeof expose === 'number') {
+    return [{ port: expose, type: 'none' }];
+  }
+
+  if (typeof expose === 'string') {
+    // Skip dynamic placeholder strings; no concrete port to expose yet
+    if (isPlaceholder(expose)) return [];
+    // Treat as concrete string port/range
     return [{ port: expose, type: 'none' }];
   }
 
   if (Array.isArray(expose)) {
-    return expose.map((e) =>
-      typeof e === 'object' ? e : { port: e, type: 'none' },
-    );
+    const out: ExposedPort[] = [];
+    for (const e of expose) {
+      if (typeof e === 'number') {
+        out.push({ port: e, type: 'none' });
+        continue;
+      }
+      if (typeof e === 'string') {
+        if (isPlaceholder(e)) continue; // skip dynamic
+        out.push({ port: e, type: 'none' });
+        continue;
+      }
+      if (isSpreadMarker(e)) {
+        // dynamic spread marker; skip for concrete expose list
+        continue;
+      }
+      // assume ExposedPort shape; rely on typing for port union
+      out.push(e as ExposedPort);
+    }
+    return out;
   }
 
   return [];
