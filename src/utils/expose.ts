@@ -36,19 +36,19 @@ const getExposePorts = (op: Operation<'container/run'>): ExposedPort[] => {
 
   if (!expose) return [];
 
-  const isPlaceholder = (v: unknown): v is string =>
+  const isOperator = (v: string | number | object): v is string =>
     typeof v === 'string' && /^%%(ops|globals)\.[^%]+%%$/.test(v);
 
-  const isSpreadMarker = (v: unknown): boolean =>
-    !!v && typeof v === 'object' && !Array.isArray(v) && '__spread__' in (v as any);
+  const isSpreadMarker = (v: string | number | object): boolean =>
+    typeof v === 'object' && v !== null && !Array.isArray(v) && '__spread__' in v;
 
   if (typeof expose === 'number') {
     return [{ port: expose, type: 'none' }];
   }
 
   if (typeof expose === 'string') {
-    // Skip dynamic placeholder strings; no concrete port to expose yet
-    if (isPlaceholder(expose)) return [];
+    // Skip dynamic operator strings; no concrete port to expose yet
+    if (isOperator(expose)) return [];
     // Treat as concrete string port/range
     return [{ port: expose, type: 'none' }];
   }
@@ -61,7 +61,7 @@ const getExposePorts = (op: Operation<'container/run'>): ExposedPort[] => {
         continue;
       }
       if (typeof e === 'string') {
-        if (isPlaceholder(e)) continue; // skip dynamic
+        if (isOperator(e)) continue; // skip dynamic
         out.push({ port: e, type: 'none' });
         continue;
       }
@@ -163,6 +163,13 @@ const getJobExposedServices = (
 
   return hashes;
 };
+
+// Extract validation functions for reuse
+export const isOperator = (v: string | number | object): v is string =>
+  typeof v === 'string' && /^%%(ops|globals)\.[^%]+%%$/.test(v);
+
+export const isSpreadMarker = (v: string | number | object): boolean =>
+  typeof v === 'object' && v !== null && !Array.isArray(v) && '__spread__' in v;
 
 export {
   getJobExposedServices,
