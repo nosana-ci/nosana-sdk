@@ -231,7 +231,7 @@ export type Operation<T extends OperationType> = {
 export type Execution = {
   group?: string;
   depends_on?: string[];
-  stop_if_op_stops?: string[];
+  stop_if_dependent_stops?: boolean;
 };
 
 export interface OperationArgsMap {
