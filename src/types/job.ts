@@ -228,11 +228,18 @@ export type Operation<T extends OperationType> = {
   execution?: Execution;
 };
 
+type GroupDependencies = {
+  depends_on?: never
+  stop_if_dependent_stops?: never;
+}
+  | {
+    depends_on: string[];
+    stop_if_dependent_stops?: boolean;
+  };
+
 export type Execution = {
   group?: string;
-  depends_on?: string[];
-  stop_if_dependent_stops?: boolean;
-};
+} & GroupDependencies;
 
 export interface OperationArgsMap {
   'container/run': {
@@ -246,11 +253,11 @@ export interface OperationArgsMap {
       },
     ];
     expose?:
-      | number
-      | PortRangeString
-      | PlaceholderString
-      | SpreadMarker<ExposedPort[]>
-      | UniqueExposedPorts;
+    | number
+    | PortRangeString
+    | PlaceholderString
+    | SpreadMarker<ExposedPort[]>
+    | UniqueExposedPorts;
     private?: boolean;
     gpu?: boolean;
     work_dir?: string;
