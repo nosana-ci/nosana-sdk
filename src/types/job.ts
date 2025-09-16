@@ -77,21 +77,21 @@ export type ExposedPort = {
 };
 
 // Placeholder string for dynamic literals like %%ops.template.results.expose%%
-type PlaceholderString = string &
+type LiteralString = string &
   tags.TagBase<{
-    kind: 'placeholder';
+    kind: 'LiteralString';
     target: 'string';
-    value: 'placeholder';
+    value: 'LiteralString';
     validate: `
       typeof $input === "string" &&
       /^%%(ops|globals)\.[^%]+%%$/.test($input)
     `;
-    message: 'Must be a literal placeholder like %%ops.template.results.expose%%';
+    message: 'Must be a literal string like %%ops.template.results.expose%%';
   }>;
 
 // Spread marker to inject JSON (array/object) resolved from a placeholder at runtime
 type SpreadMarker<T = unknown> = {
-  __spread__: PlaceholderString;
+  __spread__: LiteralString;
 } &
   tags.TagBase<{
     kind: 'spreadMarker';
@@ -112,7 +112,7 @@ type ExposeArrayElement =
   | number
   | PortRangeString
   | ExposedPort
-  | PlaceholderString
+  | LiteralString
   | SpreadMarker<ExposedPort[]>;
 
 // Custom tag for unique exposed ports validation
@@ -255,7 +255,7 @@ export interface OperationArgsMap {
     expose?:
     | number
     | PortRangeString
-    | PlaceholderString
+    | LiteralString
     | SpreadMarker<ExposedPort[]>
     | UniqueExposedPorts;
     private?: boolean;
