@@ -79,9 +79,9 @@ export type ExposedPort = {
 // Placeholder string for dynamic literals like %%ops.template.results.expose%%
 type LiteralString = string &
   tags.TagBase<{
-    kind: 'LiteralString';
+    kind: 'literalString';
     target: 'string';
-    value: 'LiteralString';
+    value: 'literalString';
     validate: `
       typeof $input === "string" &&
       /^%%(ops|globals)\.[^%]+%%$/.test($input)
