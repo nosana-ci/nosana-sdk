@@ -2,6 +2,7 @@ import type {
   SolanaConfig,
   IPFSConfig,
   DeploymentsConfig,
+  ApiJobsConfig,
 } from './types/index.js';
 
 export const deploymentsConfigPreset: { [key: string]: DeploymentsConfig } = {
@@ -10,6 +11,15 @@ export const deploymentsConfigPreset: { [key: string]: DeploymentsConfig } = {
   },
   devnet: {
     backend_url: 'https://deployment-manager.k8s.dev.nos.ci',
+  },
+};
+
+export const apiJobsConfigPreset: { [key: string]: ApiJobsConfig } = {
+  mainnet: {
+    backend_url: 'https://dashboard.k8s.prd.nos.ci',
+  },
+  devnet: {
+    backend_url: 'https://dashboard.k8s.dev.nos.ci',
   },
 };
 

@@ -6,6 +6,7 @@ import {
   Deployments,
   SolanaManager,
   Jobs,
+  ApiJobs,
   Nodes,
   Stake,
   Swap,
@@ -34,6 +35,7 @@ export class Client {
   solana: SolanaManager;
   ipfs: IPFS;
   jobs: Jobs;
+  apiJobs?: ApiJobs;
   nodes: Nodes;
   stake: Stake;
   swap: Swap;
@@ -60,5 +62,9 @@ export class Client {
       config?.solana,
       config?.deployments,
     );
+
+    if (config?.apiKey) {
+      this.apiJobs = new ApiJobs(environment, config?.apiJobs, config.apiKey);
+    }
   }
 }
