@@ -31,7 +31,6 @@ export function createVault(
    */
   const getBalance = async (): Promise<{ SOL: number; NOS: number }> => {
     return await vaultGetBalance(publicKey, {
-      client,
       connection,
       nos_address,
     });

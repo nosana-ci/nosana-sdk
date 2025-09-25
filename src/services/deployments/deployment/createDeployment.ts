@@ -14,6 +14,7 @@ import {
 } from './actions/index.js';
 
 import { Deployment, DeploymentState } from '../types.js';
+import { deploymentGenerateAuthHeader } from './actions/deploymentGenerateAuthHeader.js';
 
 export interface CreateDeploymentOptions {
   client: QueryClient;
@@ -42,12 +43,12 @@ export function createDeployment(
     created_at: new Date(deployment.created_at),
     ...(deployment.strategy === 'SCHEDULED'
       ? {
-          strategy: deployment.strategy,
-          schedule: deployment.schedule,
-        }
+        strategy: deployment.strategy,
+        schedule: deployment.schedule,
+      }
       : {
-          strategy: deployment.strategy,
-        }),
+        strategy: deployment.strategy,
+      }),
   };
 
   /**
@@ -120,6 +121,16 @@ export function createDeployment(
     await deploymentUpdateTimeout(timeout, client, state);
   };
 
+  /**
+   * @throws Error if there is an error generating the auth header
+   * @returns Promise<void>
+   * @description Generates a new authentication header for the deployment.
+   * This is used for securing access to the deployment's resources.
+   */
+  const generateAuthHeader = async () => {
+    return await deploymentGenerateAuthHeader(client, state);
+  };
+
   return Object.assign(state, {
     vault: createVault(new PublicKey(deployment.vault), {
       client,
@@ -132,5 +143,6 @@ export function createDeployment(
     getTasks,
     updateReplicaCount,
     updateTimeout,
+    generateAuthHeader
   });
 }
