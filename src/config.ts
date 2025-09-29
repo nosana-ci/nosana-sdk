@@ -1,9 +1,4 @@
-import type {
-  SolanaConfig,
-  IPFSConfig,
-  DeploymentsConfig,
-  ApiJobsConfig,
-} from './types/index.js';
+import type { SolanaConfig, IPFSConfig, DeploymentsConfig, ApiConfig } from './types/index.js';
 
 export const deploymentsConfigPreset: { [key: string]: DeploymentsConfig } = {
   mainnet: {
@@ -14,7 +9,7 @@ export const deploymentsConfigPreset: { [key: string]: DeploymentsConfig } = {
   },
 };
 
-export const apiJobsConfigPreset: { [key: string]: ApiJobsConfig } = {
+export const apiConfigPreset: { [key: string]: ApiConfig } = {
   mainnet: {
     backend_url: 'https://dashboard.k8s.prd.nos.ci',
   },

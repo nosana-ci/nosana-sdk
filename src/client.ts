@@ -6,11 +6,11 @@ import {
   Deployments,
   SolanaManager,
   Jobs,
-  ApiJobs,
   Nodes,
   Stake,
   Swap,
   createDeployments,
+  Api,
 } from './services/index.js';
 import { KeyWallet, polyfill } from './utils.js';
 
@@ -35,10 +35,10 @@ export class Client {
   solana: SolanaManager;
   ipfs: IPFS;
   jobs: Jobs;
-  apiJobs?: ApiJobs;
   nodes: Nodes;
   stake: Stake;
   swap: Swap;
+  api: Api;
 
   constructor(
     environment: 'devnet' | 'mainnet' = 'devnet',
@@ -63,8 +63,6 @@ export class Client {
       config?.deployments,
     );
 
-    if (config?.apiKey) {
-      this.apiJobs = new ApiJobs(environment, config?.apiJobs, config.apiKey);
-    }
+    this.api = new Api(environment, config?.api, config?.apiKey);
   }
 }

@@ -34,7 +34,7 @@ export type ClientConfig = {
   solana?: Partial<SolanaConfig>;
   ipfs?: Partial<IPFSConfig>;
   deployments?: Partial<DeploymentsConfig>;
-  apiJobs?: Partial<ApiJobsConfig>;
+  api?: Partial<ApiConfig>;
   apiKey?: string;
 };
 
@@ -42,6 +42,6 @@ export type DeploymentsConfig = {
   backend_url: string;
 };
 
-export type ApiJobsConfig = {
+export type ApiConfig = {
   backend_url: string;
 };
