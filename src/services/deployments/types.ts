@@ -19,15 +19,15 @@ export type DeploymentState = {
   updated_at: Date;
   created_at: Date;
 } & (
-  | {
+    | {
       strategy: 'SCHEDULED';
       schedule: string;
     }
-  | {
+    | {
       strategy: Exclude<DeploymentStrategy, 'SCHEDULED'>;
       schedule?: never;
     }
-);
+  );
 
 export type CreateDeployment = components['schemas']['DeploymentCreateBody'];
 
@@ -52,6 +52,7 @@ export type Deployment = DeploymentState & {
   getTasks: () => Promise<components['schemas']['Task'][]>;
   updateReplicaCount: (replicas: number) => Promise<void>;
   updateTimeout: (timeout: number) => Promise<void>;
+  generateAuthHeader: () => Promise<string>;
 };
 
 export const DeploymentStatus: {
@@ -95,13 +96,13 @@ type OmitHeaders<T> = T extends {
   requestBody?: infer RequestBody;
 }
   ? {
-      parameters: {
-        header?: never;
-      } & (Path extends undefined ? {} : { path: Path }) &
-        (Query extends undefined ? {} : { query: Query }) &
-        (Cookie extends undefined ? {} : { cookie: Cookie });
-    } & (Responses extends undefined ? {} : { responses: Responses }) &
-      (RequestBody extends undefined ? {} : { requestBody: RequestBody })
+    parameters: {
+      header?: never;
+    } & (Path extends undefined ? {} : { path: Path }) &
+    (Query extends undefined ? {} : { query: Query }) &
+    (Cookie extends undefined ? {} : { cookie: Cookie });
+  } & (Responses extends undefined ? {} : { responses: Responses }) &
+  (RequestBody extends undefined ? {} : { requestBody: RequestBody })
   : T;
 
 /**

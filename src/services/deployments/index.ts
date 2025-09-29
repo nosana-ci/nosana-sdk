@@ -20,6 +20,10 @@ export interface Deployments {
     deploymentIDorCreateObject: string | CreateDeployment,
     ...actions: Array<(deployment: Deployment) => Promise<any> | any>
   ) => Promise<Deployment>;
+  vaults: {
+    create: () => Promise<components['schemas']['Vault']>;
+    list: () => Promise<components['schemas']['Vault'][]>;
+  }
 }
 
 export function createDeployments(
@@ -119,10 +123,34 @@ export function createDeployments(
     return deployment;
   };
 
+  const createVault = async () => {
+    const { data, error } = await client.POST('/api/vault/create', {});
+
+    if (error || !data) {
+      throw errorFormatter('Error creating vault', error);
+    }
+
+    return data;
+  }
+
+  const listVaults = async () => {
+    const { data, error } = await client.GET('/api/vaults', {});
+
+    if (error || !data) {
+      throw errorFormatter('Error listing vaults', error);
+    }
+
+    return data;
+  }
+
   return {
     create,
     get,
     list,
     pipe,
+    vaults: {
+      create: createVault,
+      list: listVaults
+    }
   };
 }

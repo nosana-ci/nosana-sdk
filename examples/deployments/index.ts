@@ -11,6 +11,10 @@ const args = process.argv.slice(2);
 async function command() {
   let deployment: Deployment | undefined = undefined;
   switch (args[0]) {
+    case 'listVaults':
+      return await client.deployments.vaults.list();
+    case 'createVault':
+      return await client.deployments.vaults.create();
     case 'create':
       return await createDeployment(client);
     case 'list':
@@ -45,6 +49,10 @@ async function command() {
       deployment = await client.deployments.get(args[1]);
       await deployment.vault.topup({ SOL: 0.015, NOS: 0.5 });
       return await deployment.vault.getBalance();
+    case 'header':
+      deployment = await client.deployments.get(args[1]);
+      console.log(await deployment.generateAuthHeader());
+      return;
     case 'withdraw':
       deployment = await client.deployments.get(args[1]);
       await deployment.vault.withdraw();
@@ -52,7 +60,7 @@ async function command() {
     case 'withdraw-all':
       const deployments = await client.deployments.list();
       for (const deployment of deployments) {
-        await deployment.vault.withdraw().catch(() => {});
+        await deployment.vault.withdraw().catch(() => { });
       }
       return;
     case 'createAndDeploy':
