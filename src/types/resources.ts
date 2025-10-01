@@ -30,6 +30,7 @@ export type HFResource = ResourceBase & {
   type: 'HF';
   repo: string;
   revision?: string;
+  files?: string[];
   accessToken?: string;
 };
 
