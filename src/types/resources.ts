@@ -22,7 +22,7 @@ export type S3Auth = {
 };
 
 export type ResourceBase = {
-  type: 'S3' | 'HF';
+  type: 'S3' | 'HF' | 'Ollama';
   target: string;
 };
 
@@ -34,8 +34,14 @@ export type HFResource = ResourceBase & {
   accessToken?: string;
 };
 
+export type OllamaResource = Partial<ResourceBase> & {
+  type: 'Ollama';
+  model: string;
+  target?: string
+};
+
 export type S3Resource = ResourceBase & S3Unsecure;
 
-export type Resource = S3Resource | HFResource;
+export type Resource = S3Resource | HFResource | OllamaResource;
 
 export type RequiredResource = Omit<Resource, 'target'>;
