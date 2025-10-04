@@ -84,7 +84,7 @@ type LiteralString = string &
     value: 'literalString';
     validate: `
       typeof $input === "string" &&
-      /^%%(ops|globals)\.[^%]+%%$/.test($input)
+      /^%%(ops|global)\.[^%]+%%$/.test($input)
     `;
     message: 'Must be a literal string like %%ops.template.results.expose%%';
   }>;
@@ -103,7 +103,7 @@ type SpreadMarker<T = unknown> = {
       !Array.isArray($input) &&
       Object.keys($input).length === 1 &&
       typeof $input.__spread__ === "string" &&
-      /^%%(ops|globals)\.[^%]+%%$/.test($input.__spread__)
+      /^%%(ops|global)\.[^%]+%%$/.test($input.__spread__)
     `;
     message: '__spread__ must be a placeholder string';
   }>;
@@ -128,7 +128,7 @@ export type UniqueExposedPorts = Array<ExposeArrayElement> &
         const ranges = [];
         for (const el of $input) {
           // Skip dynamic placeholders and spread markers for uniqueness check
-          if (typeof el === "string" && /^%%(ops|globals)\.[^%]+%%$/.test(el)) continue;
+          if (typeof el === "string" && /^%%(ops|global)\.[^%]+%%$/.test(el)) continue;
           if (el && typeof el === "object" && !Array.isArray(el) && el.__spread__) continue;
 
           const port = typeof el === "object" ? el.port : el;
@@ -215,6 +215,9 @@ export type JobDefinition = {
       [key: string]: string;
     };
     work_dir?: string;
+    variables?: {
+      [key: string]: string;
+    };
   };
   ops: Ops;
 };
