@@ -90,8 +90,7 @@ type LiteralString = string &
   }>;
 
 // Spread marker to inject JSON (array/object) resolved from a placeholder at runtime
-// Note: Generic T is for TypeScript documentation only - not validated at runtime
-type SpreadMarker<T = unknown> = {
+type SpreadMarker = {
   __spread__: LiteralString;
 } &
   tags.TagBase<{
@@ -117,7 +116,7 @@ type ExposeArrayElement =
   | PortRangeString
   | ExposedPort
   | LiteralString
-  | SpreadMarker<ExposedPort[]>;
+  | SpreadMarker;
 
 // Custom tag for unique exposed ports validation
 export type UniqueExposedPorts = Array<ExposeArrayElement> &
@@ -263,7 +262,7 @@ export interface OperationArgsMap {
     | number
     | PortRangeString
     | LiteralString
-    | SpreadMarker<ExposedPort[]>
+    | SpreadMarker
     | UniqueExposedPorts;
     private?: boolean;
     gpu?: boolean;
@@ -274,7 +273,7 @@ export interface OperationArgsMap {
       [key: string]: string;
     };
     required_vram?: number;
-    resources?: Array<Resource | SpreadMarker<Resource[]> | RemoveIfEmptyMarker>;
+    resources?: Array<Resource | SpreadMarker | RemoveIfEmptyMarker>;
     authentication?: {
       docker?: DockerAuth;
     };
