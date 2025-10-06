@@ -270,7 +270,7 @@ export interface OperationArgsMap {
       [key: string]: string;
     };
     required_vram?: number;
-    resources?: Resource[];
+    resources?: Array<Resource | SpreadMarker<Resource[]>>;
     authentication?: {
       docker?: DockerAuth;
     };
