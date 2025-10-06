@@ -90,7 +90,7 @@ type LiteralString = string &
   }>;
 
 // Spread marker to inject JSON (array/object) resolved from a placeholder at runtime
-type SpreadMarker<T = unknown> = {
+type SpreadMarker = {
   __spread__: LiteralString;
 } &
   tags.TagBase<{
@@ -108,12 +108,15 @@ type SpreadMarker<T = unknown> = {
     message: '__spread__ must be a placeholder string';
   }>;
 
+// Marker string to remove array field if it becomes empty after processing
+type RemoveIfEmptyMarker = '__remove-if-empty__';
+
 type ExposeArrayElement =
   | number
   | PortRangeString
   | ExposedPort
   | LiteralString
-  | SpreadMarker<ExposedPort[]>;
+  | SpreadMarker;
 
 // Custom tag for unique exposed ports validation
 export type UniqueExposedPorts = Array<ExposeArrayElement> &
@@ -248,7 +251,7 @@ export interface OperationArgsMap {
   'container/run': {
     image: string;
     aliases?: string | string[];
-    cmd?: string[] | string;
+    cmd?: string | string[] | Array<string | RemoveIfEmptyMarker>;
     volumes?: [
       {
         name: string;
@@ -259,18 +262,18 @@ export interface OperationArgsMap {
     | number
     | PortRangeString
     | LiteralString
-    | SpreadMarker<ExposedPort[]>
+    | SpreadMarker
     | UniqueExposedPorts;
     private?: boolean;
     gpu?: boolean;
     work_dir?: string;
     output?: string;
-    entrypoint?: string | string[];
+    entrypoint?: string | string[] | Array<string | RemoveIfEmptyMarker>;
     env?: {
       [key: string]: string;
     };
     required_vram?: number;
-    resources?: Resource[];
+    resources?: Array<Resource | SpreadMarker | RemoveIfEmptyMarker>;
     authentication?: {
       docker?: DockerAuth;
     };
