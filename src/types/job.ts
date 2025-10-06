@@ -90,6 +90,7 @@ type LiteralString = string &
   }>;
 
 // Spread marker to inject JSON (array/object) resolved from a placeholder at runtime
+// Note: Generic T is for TypeScript documentation only - not validated at runtime
 type SpreadMarker<T = unknown> = {
   __spread__: LiteralString;
 } &
@@ -107,6 +108,9 @@ type SpreadMarker<T = unknown> = {
     `;
     message: '__spread__ must be a placeholder string';
   }>;
+
+// Marker string to remove array field if it becomes empty after processing
+type RemoveIfEmptyMarker = '__remove-if-empty__';
 
 type ExposeArrayElement =
   | number
@@ -248,7 +252,7 @@ export interface OperationArgsMap {
   'container/run': {
     image: string;
     aliases?: string | string[];
-    cmd?: string[] | string;
+    cmd?: string | string[] | Array<string | RemoveIfEmptyMarker>;
     volumes?: [
       {
         name: string;
@@ -265,12 +269,12 @@ export interface OperationArgsMap {
     gpu?: boolean;
     work_dir?: string;
     output?: string;
-    entrypoint?: string | string[];
+    entrypoint?: string | string[] | Array<string | RemoveIfEmptyMarker>;
     env?: {
       [key: string]: string;
     };
     required_vram?: number;
-    resources?: Array<Resource | SpreadMarker<Resource[]>>;
+    resources?: Array<Resource | SpreadMarker<Resource[]> | RemoveIfEmptyMarker>;
     authentication?: {
       docker?: DockerAuth;
     };
