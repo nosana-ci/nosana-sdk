@@ -1,73 +1,48 @@
-import type { Api } from './index.js';
+import { NosanaAPIQueryClient } from './client/index.js';
 
-export interface ListJobRequest {
-  ipfsHash: string;
-  market: string;
-  timeout?: number;
-  host?: string;
+import {
+  ListJobWithCreditsRequest,
+  ListJobWithCreditsResponse,
+  ExtendJobWithCreditsRequest,
+  ExtendJobWithCreditsResponse,
+  StopJobWithCreditsRequest,
+  StopJobWithCreditsResponse
+} from './types.js';
+
+export interface JobsApi {
+  list: (request: ListJobWithCreditsRequest) => Promise<ListJobWithCreditsResponse>;
+  extend: (request: ExtendJobWithCreditsRequest) => Promise<ExtendJobWithCreditsResponse>;
+  stop: (request: StopJobWithCreditsRequest) => Promise<StopJobWithCreditsResponse>;
 }
 
-export interface ListJobResponse {
-  jobAddress: string;
-  costUSD: number;
-  creditsUsed: number;
-  reservationId: string;
-  project: string;
-}
-
-export interface ExtendJobRequest {
-  jobAddress: string;
-  extensionSeconds: number;
-}
-
-export interface ExtendJobResponse {
-  jobAddress: string;
-  costUSD: number;
-  creditsUsed: number;
-  reservationId: string;
-  extensionSeconds: number;
-}
-
-export interface StopJobRequest {
-  jobAddress: string;
-}
-
-export interface StopJobResponse {
-  success: boolean;
-  message: string;
-  jobAddress: string;
-  transactionId: string;
-  delisted: boolean;
-}
-
-export class Jobs {
-  private api: Api;
-
-  constructor(api: Api) {
-    this.api = api;
-  }
-
-  async list(request: ListJobRequest): Promise<ListJobResponse> {
-    return this.api.makeRequest<ListJobResponse>(
-      '/jobs/create-with-credits',
-      'POST',
-      request,
-    );
-  }
-
-  async extend(request: ExtendJobRequest): Promise<ExtendJobResponse> {
-    return this.api.makeRequest<ExtendJobResponse>(
-      '/jobs/extend-with-credits',
-      'POST',
-      request,
-    );
-  }
-
-  async stop(request: StopJobRequest): Promise<StopJobResponse> {
-    return this.api.makeRequest<StopJobResponse>(
-      '/jobs/stop-with-credits',
-      'POST',
-      request,
-    );
+export function createJobs(client: NosanaAPIQueryClient) {
+  return {
+    async list(request: ListJobWithCreditsRequest) {
+      const { data, error } = await client.POST('/api/jobs/create-with-credits', {
+        body: request,
+      });
+      if (!data || error) {
+        throw new Error(`Failed to create job: ${error || 'Unknown error'}`);
+      }
+      return data;
+    },
+    async extend(request: ExtendJobWithCreditsRequest) {
+      const { data, error } = await client.POST('/api/jobs/extend-with-credits', {
+        body: request,
+      });
+      if (!data || error) {
+        throw new Error(`Failed to extend job: ${error || 'Unknown error'}`);
+      }
+      return data;
+    },
+    async stop(request: StopJobWithCreditsRequest) {
+      const { data, error } = await client.POST('/api/jobs/stop-with-credits', {
+        body: request,
+      });
+      if (!data || error) {
+        throw new Error(`Failed to stop job: ${error || 'Unknown error'}`);
+      }
+      return data;
+    }
   }
 }
