@@ -1,19 +1,21 @@
-import type { Api } from './index.js';
+import { NosanaAPIQueryClient } from './client/index.js';
 
-export interface BalanceResponse {
-  assignedCredits: number;
-  reservedCredits: number;
-  settledCredits: number;
+import { Balance } from './types.js';
+
+export interface CreditsApi {
+  balance: () => Promise<Balance>;
 }
 
-export class Credits {
-  private api: Api;
+export function createCredits(client: NosanaAPIQueryClient): CreditsApi {
+  const balance = async () => {
+    const { data, error } = await client.GET('/api/credits/balance');
+    if (!data || error) {
+      throw new Error(`Failed to fetch balance`);
+    }
+    return data;
+  };
 
-  constructor(api: Api) {
-    this.api = api;
-  }
-
-  async balance(): Promise<BalanceResponse> {
-    return this.api.makeRequest<BalanceResponse>('/credits/balance', 'GET');
-  }
+  return {
+    balance
+  };
 }

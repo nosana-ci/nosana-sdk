@@ -9,8 +9,9 @@ import {
   Nodes,
   Stake,
   Swap,
-  createDeployments,
   Api,
+  createDeployments,
+  createApi,
 } from './services/index.js';
 import { KeyWallet, polyfill } from './utils.js';
 
@@ -63,6 +64,6 @@ export class Client {
       config?.deployments,
     );
 
-    this.api = new Api(environment, config?.api, config?.apiKey);
+    this.api = createApi(environment, config?.api, config?.apiKey);
   }
 }

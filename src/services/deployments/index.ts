@@ -1,6 +1,6 @@
 import { getWallet } from '../../utils.js';
 import type { components } from './client/schema.js';
-import { clientSelector } from './client/index.js';
+import { createDeploymentClient } from './client/index.js';
 import { errorFormatter } from '../../utils/errorFormatter.js';
 import { deploymentsConfigPreset, solanaConfigPreset } from '../../config.js';
 import { createDeployment } from './deployment/createDeployment.js';
@@ -38,7 +38,7 @@ export function createDeployments(
   Object.assign(deploymentsPreset, deploymentsConfig);
 
   const anchorWallet = getWallet(wallet);
-  const client = clientSelector(wallet, deploymentsPreset);
+  const client = createDeploymentClient(wallet, deploymentsPreset);
 
   if (!wallet) {
     throw new Error('Wallet is required to create deployments');

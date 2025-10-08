@@ -4,44 +4,36 @@ import { getWallet } from '../../../utils.js';
 import { AuthorizationManager } from '../../authorization.js';
 
 import { DeploymentsConfig, Wallet } from '../../../types/index.js';
-import { AuthenticatedPaths, AuthenticatedClient } from '../types.js';
+import { AuthenticatedPaths, AuthenticatedClient } from '../../../types/utils.js';
+import { paths } from "./schema.js"
 
 export type * from './schema.d.ts';
-export type QueryClient = AuthenticatedClient;
+export type QueryClient = AuthenticatedClient<paths>;
 
-export const clientSelector = (
+export const createDeploymentClient = (
   wallet: Wallet,
   deploymentsConfig: DeploymentsConfig,
 ): QueryClient => {
-  let instance: QueryClient | undefined = undefined;
+  const userId = getWallet(wallet).publicKey.toString();
+  const authorizationManager = new AuthorizationManager(wallet);
 
-  if (!instance) {
-    const userId = getWallet(wallet).publicKey.toString();
-    const authorizationManager = new AuthorizationManager(wallet);
+  const authMiddleware: Middleware = {
+    async onRequest({ request }) {
+      request.headers.set('x-user-id', userId);
 
-    const authMiddleware: Middleware = {
-      async onRequest({ request }) {
-        request.headers.set('x-user-id', userId);
-        
-        const authHeader = await authorizationManager.generate('DeploymentsAuthorization', {
-          includeTime: true,
-        });
-        
-        request.headers.set('Authorization', authHeader);
-      },
-    };
+      const authHeader = await authorizationManager.generate('DeploymentsAuthorization', {
+        includeTime: true,
+      });
 
-    const baseClient = createClient<AuthenticatedPaths>({
-      baseUrl: deploymentsConfig.backend_url,
-      // headers: {
-      //   'Content-Type': 'application/json',
-      // },
-    });
+      request.headers.set('Authorization', authHeader);
+    },
+  };
 
-    baseClient.use(authMiddleware);
+  const baseClient = createClient<AuthenticatedPaths<paths>>({
+    baseUrl: deploymentsConfig.backend_url,
+  });
 
-    instance = baseClient as unknown as QueryClient;
-  }
+  baseClient.use(authMiddleware);
 
-  return instance;
+  return baseClient;
 };
