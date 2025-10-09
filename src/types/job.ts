@@ -293,7 +293,11 @@ export type OperationResults = {
 
 export type OperationResult = {
   regex: string;
-  logType: [StdOptions, StdOptions?, StdOptions?, StdOptions?];
+  logType:
+  | [StdOptions]
+  | [StdOptions, StdOptions]
+  | [StdOptions, StdOptions, StdOptions]
+  | [StdOptions, StdOptions, StdOptions, StdOptions];
 };
 
 /************************
@@ -351,13 +355,6 @@ type UniqueById = tags.TagBase<{
   message: 'ops[*].id must be unique';
 }>;
 
-type JobDefinitionWithRule = Omit<JobDefinition, 'ops'> & {
-  ops: JobDefinition['ops'] & UniqueById;
-};
-
-export const validateJobDefinition =
-  typia.createValidateEquals<JobDefinitionWithRule>();
-
 export type Job = {
   ipfsJob: string;
   ipfsResult: string;
@@ -371,3 +368,14 @@ export type Job = {
   timeStart: number;
   timeout: number;
 };
+
+
+type JobDefinitionWithRule = Omit<JobDefinition, 'ops'> & {
+  ops: JobDefinition['ops'] & UniqueById;
+};
+
+export const validateJobDefinition =
+  typia.createValidateEquals<JobDefinitionWithRule>();
+
+export const jobSchemas = typia.json.schemas<[JobDefinition, Job], "3.0">();
+
