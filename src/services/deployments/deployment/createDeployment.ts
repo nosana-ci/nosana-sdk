@@ -34,11 +34,11 @@ export function createDeployment(
     status: deployment.status,
     replicas: deployment.replicas,
     timeout: deployment.timeout,
-    ipfs_definition_hash: deployment.ipfs_definition_hash,
-    //@ts-ignore
     endpoints: deployment.endpoints,
     events: deployment.events,
     jobs: deployment.jobs,
+    active_revision: deployment.active_revision,
+    revisions: deployment.revisions,
     updated_at: new Date(deployment.updated_at),
     created_at: new Date(deployment.created_at),
     ...(deployment.strategy === 'SCHEDULED'

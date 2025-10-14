@@ -71,7 +71,7 @@ async function command() {
           replicas: 1,
           timeout: 60,
           strategy: 'SIMPLE',
-          ipfs_definition_hash: await client.jobs.pinJobDefinition(HELLO_JOB),
+          job_definition: HELLO_JOB,
         },
         async (deployment) => {
           console.log(`Successfully created deployment ${deployment.id}`);
