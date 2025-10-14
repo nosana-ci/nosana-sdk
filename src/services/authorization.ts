@@ -18,6 +18,7 @@ type ValidateOptions = {
   expiry: number;
   publicKey: PublicKey;
   seperator: string;
+  expected_message?: string;
 };
 
 type GenerateOptions = {
@@ -78,7 +79,7 @@ export class AuthorizationManager {
     validationString: string,
     options?: Partial<ValidateOptions>,
   ): boolean {
-    const { expiry, publicKey, seperator }: ValidateOptions = {
+    const { expiry, publicKey, seperator, expected_message }: ValidateOptions = {
       expiry: 300,
       publicKey: this.wallet.publicKey,
       seperator: ':',
@@ -89,6 +90,10 @@ export class AuthorizationManager {
 
     if (!message || !signatureB64) {
       throw new Error('Invalid signature.');
+    }
+
+    if (expected_message && message !== expected_message) {
+      throw new Error("Failed to authenticate message.");
     }
 
     if (date) {
@@ -130,7 +135,7 @@ export class AuthorizationManager {
     options?: Partial<Pick<AuthorizationOptions, 'key'>> &
       Partial<ValidateOptions>,
   ): boolean {
-    const { key, expiry, seperator, publicKey } = {
+    const { key, expiry, seperator, publicKey, expected_message } = {
       key: 'authorization',
       expiry: 300,
       seperator: ':',
@@ -148,6 +153,6 @@ export class AuthorizationManager {
       throw new Error('Header has invalid type.');
     }
 
-    return this.validate(validationHeader, { expiry, seperator, publicKey });
+    return this.validate(validationHeader, { expiry, seperator, publicKey, expected_message });
   }
 }
