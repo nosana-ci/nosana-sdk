@@ -27,28 +27,11 @@ export function createDeployment(
   { client, wallet, solanaConfig }: CreateDeploymentOptions,
 ): Deployment {
   const state: DeploymentState = {
-    id: deployment.id,
+    ...deployment,
     market: new PublicKey(deployment.market),
     owner: new PublicKey(deployment.owner),
-    name: deployment.name,
-    status: deployment.status,
-    replicas: deployment.replicas,
-    timeout: deployment.timeout,
-    endpoints: deployment.endpoints,
-    events: deployment.events,
-    jobs: deployment.jobs,
-    active_revision: deployment.active_revision,
-    revisions: deployment.revisions,
     updated_at: new Date(deployment.updated_at),
     created_at: new Date(deployment.created_at),
-    ...(deployment.strategy === 'SCHEDULED'
-      ? {
-        strategy: deployment.strategy,
-        schedule: deployment.schedule,
-      }
-      : {
-        strategy: deployment.strategy,
-      }),
   };
 
   /**
