@@ -377,5 +377,5 @@ type JobDefinitionWithRule = Omit<JobDefinition, 'ops'> & {
 export const validateJobDefinition =
   typia.createValidateEquals<JobDefinitionWithRule>();
 
-export const jobSchemas = typia.json.schemas<[JobDefinition, Job], "3.0">();
+export const jobSchemas = typia.json.schemas<[JobDefinition, FlowState], "3.0">();
 
