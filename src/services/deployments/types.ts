@@ -1,6 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 
 import { components } from './client/index.js';
+import { JobDefinition } from '../../client.js';
 
 export type DeploymentState = Omit<components['schemas']['Deployment'], "updated_at" | "created_at" | "market" | "owner" | "vault"> & {
   market: PublicKey;
@@ -30,9 +31,12 @@ export type Deployment = DeploymentState & {
   stop: () => Promise<void>;
   archive: () => Promise<void>;
   getTasks: () => Promise<components['schemas']['Task'][]>;
+  generateAuthHeader: () => Promise<string>;
+  createRevision: (jobDefinition: JobDefinition) => Promise<void>;
+  updateActiveRevision: (revision: number) => Promise<void>;
   updateReplicaCount: (replicas: number) => Promise<void>;
   updateTimeout: (timeout: number) => Promise<void>;
-  generateAuthHeader: () => Promise<string>;
+  updateSchedule: (schedule: string) => Promise<void>;
 };
 
 export const DeploymentStatus: {

@@ -63,11 +63,29 @@ async function command() {
         await deployment.vault.withdraw().catch(() => { });
       }
       return;
+    case 'balance-all':
+      const deploymentsb = await client.deployments.list();
+      for (const deployment of deploymentsb) {
+        console.log(await deployment.vault.getBalance().catch(() => { }));
+      }
+      return;
+    case 'createRevision':
+      deployment = await client.deployments.get(args[1]);
+      await deployment.createRevision(HELLO_JOB);
+      return deployment;
+    case 'updateActiveRevision':
+      deployment = await client.deployments.get(args[1]);
+      await deployment.updateActiveRevision(parseInt(args[2], 10));
+      return deployment;
+    case 'updateSchedule':
+      deployment = await client.deployments.get(args[1]);
+      await deployment.updateSchedule(args[2]);
+      return deployment;
     case 'createAndDeploy':
       return await client.deployments.pipe(
         {
           name: 'my first deployment',
-          market: '7AtiXMSH6R1jjBxrcYjehCkkSF7zvYWte63gwEDBcGHq',
+          market: 'rdRYm53F9nj7VWenCvuJw4Zf85KEo5op9kAiQk52kFh',
           replicas: 1,
           timeout: 60,
           strategy: 'SIMPLE',

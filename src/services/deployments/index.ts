@@ -47,7 +47,7 @@ export function createDeployments(
   const create = async (
     deploymentBody: CreateDeployment,
   ): Promise<Deployment> => {
-    const { data, error } = await client.POST('/api/deployment/create', {
+    const { data, error } = await client.POST('/api/deployments/create', {
       body: deploymentBody,
     });
 
@@ -63,7 +63,7 @@ export function createDeployments(
   };
 
   const get = async (deployment: string): Promise<Deployment> => {
-    const { data, error } = await client.GET('/api/deployment/{deployment}', {
+    const { data, error } = await client.GET('/api/deployments/{deployment}', {
       params: {
         path: {
           deployment,
@@ -124,7 +124,7 @@ export function createDeployments(
   };
 
   const createVault = async () => {
-    const { data, error } = await client.POST('/api/vault/create', {});
+    const { data, error } = await client.POST('/api/deployments/vaults/create', {});
 
     if (error || !data) {
       throw errorFormatter('Error creating vault', error);
@@ -134,7 +134,7 @@ export function createDeployments(
   }
 
   const listVaults = async () => {
-    const { data, error } = await client.GET('/api/vaults', {});
+    const { data, error } = await client.GET('/api/deployments/vaults', {});
 
     if (error || !data) {
       throw errorFormatter('Error listing vaults', error);

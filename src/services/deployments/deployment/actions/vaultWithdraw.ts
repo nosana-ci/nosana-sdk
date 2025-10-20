@@ -20,7 +20,7 @@ export async function vaultWithdraw(
   wallet: Wallet,
   { client, connection }: VaultWithdrawOptions,
 ) {
-  const { data, error } = await client.POST('/api/vault/{vault}/withdraw', {
+  const { data, error } = await client.POST('/api/deployments/vaults/{vault}/withdraw', {
     params: {
       path: { vault: publicKey.toString() },
     },

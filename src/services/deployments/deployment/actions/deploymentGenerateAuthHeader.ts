@@ -8,7 +8,7 @@ export async function deploymentGenerateAuthHeader(
   state: DeploymentState,
 ): Promise<string> {
   const { data, error } = await client.GET(
-    '/api/deployment/{deployment}/header',
+    '/api/deployments/{deployment}/header',
     {
       params: { path: { deployment: state.id } },
     },

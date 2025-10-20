@@ -20,7 +20,7 @@ export async function deploymentStart(
   }
 
   const { data, error } = await client.POST(
-    '/api/deployment/{deployment}/start',
+    '/api/deployments/{deployment}/start',
     {
       params: { path: { deployment: state.id } },
     },

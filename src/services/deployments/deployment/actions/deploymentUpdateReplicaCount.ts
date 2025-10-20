@@ -21,7 +21,7 @@ export async function deploymentUpdateReplicaCount(
   }
 
   const { data, error } = await client.PATCH(
-    '/api/deployment/{deployment}/update-replica-count',
+    '/api/deployments/{deployment}/update-replica-count',
     {
       params: { path: { deployment: state.id } },
       body: { replicas },
