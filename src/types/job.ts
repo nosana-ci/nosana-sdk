@@ -309,19 +309,36 @@ export type FlowState = {
   endTime: number | null;
   errors?: Array<any>;
   opStates: Array<OpState>;
-  secrets?: {
-    [key: string]: string;
-  };
+  secrets?: FlowSecrets;
 };
 export type Flow = {
   id: string;
   jobDefinition: JobDefinition;
+  project: string;
   state: FlowState;
 };
 
 export type Log = {
   type: StdOptions;
   log: string | undefined;
+};
+
+export type EndpointStatus = 'ONLINE' | 'OFFLINE' | 'UNKNOWN';
+
+export type EndpointSecret = {
+  opID: string;
+  port: number | string;
+  url: string;
+  status: EndpointStatus;
+};
+
+export interface JobExposeSecrets {
+  [exposeId: string]: EndpointSecret;
+}
+
+export type FlowSecrets = {
+  urlmode?: 'private' | 'public';
+  [jobId: string]: JobExposeSecrets | 'private' | 'public' | undefined;
 };
 
 export type OpState = {
@@ -377,5 +394,5 @@ type JobDefinitionWithRule = Omit<JobDefinition, 'ops'> & {
 export const validateJobDefinition =
   typia.createValidateEquals<JobDefinitionWithRule>();
 
-export const jobSchemas = typia.json.schemas<[JobDefinition, Job], "3.0">();
+export const jobSchemas = typia.json.schemas<[JobDefinition, FlowState], "3.0">();
 
