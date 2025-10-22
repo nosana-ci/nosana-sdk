@@ -344,6 +344,7 @@ export type FlowSecrets = {
 export type OpState = {
   providerId: string | null;
   operationId: string | null;
+  group: string | null;
   status: string | null;
   startTime: number | null;
   endTime: number | null;
