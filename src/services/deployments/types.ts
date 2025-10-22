@@ -1,32 +1,14 @@
 import { PublicKey } from '@solana/web3.js';
 
 import { components } from './client/index.js';
+import { JobDefinition } from '../../client.js';
 
-export type DeploymentState = {
-  id: string;
-  name: string;
+export type DeploymentState = Omit<components['schemas']['Deployment'], "updated_at" | "created_at" | "market" | "owner" | "vault"> & {
   market: PublicKey;
   owner: PublicKey;
-  timeout: number;
-  replicas: number;
-  status: DeploymentStatus;
-  ipfs_definition_hash: string;
-  // @ts-ignore
-  endpoints: components['schemas']['Endpoint'][];
-  events: components['schemas']['Events'][];
-  jobs: components['schemas']['Jobs'][];
   updated_at: Date;
   created_at: Date;
-} & (
-    | {
-      strategy: 'SCHEDULED';
-      schedule: string;
-    }
-    | {
-      strategy: Exclude<DeploymentStrategy, 'SCHEDULED'>;
-      schedule?: never;
-    }
-  );
+}
 
 export type CreateDeployment = components['schemas']['DeploymentCreateBody'];
 
@@ -49,9 +31,12 @@ export type Deployment = DeploymentState & {
   stop: () => Promise<void>;
   archive: () => Promise<void>;
   getTasks: () => Promise<components['schemas']['Task'][]>;
+  generateAuthHeader: () => Promise<string>;
+  createRevision: (jobDefinition: JobDefinition) => Promise<void>;
+  updateActiveRevision: (revision: number) => Promise<void>;
   updateReplicaCount: (replicas: number) => Promise<void>;
   updateTimeout: (timeout: number) => Promise<void>;
-  generateAuthHeader: () => Promise<string>;
+  updateSchedule: (schedule: string) => Promise<void>;
 };
 
 export const DeploymentStatus: {

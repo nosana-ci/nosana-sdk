@@ -1,3 +1,4 @@
+import { errorFormatter } from '../../utils/errorFormatter.js';
 import { NosanaAPIQueryClient } from './client/index.js';
 
 import {
@@ -22,7 +23,7 @@ export function createJobs(client: NosanaAPIQueryClient) {
         body: request,
       });
       if (!data || error) {
-        throw new Error(`Failed to create job: ${error || 'Unknown error'}`);
+        throw errorFormatter('Failed to create job', error);
       }
       return data;
     },
@@ -31,7 +32,7 @@ export function createJobs(client: NosanaAPIQueryClient) {
         body: request,
       });
       if (!data || error) {
-        throw new Error(`Failed to extend job: ${error || 'Unknown error'}`);
+        throw errorFormatter('Failed to extend job', error);
       }
       return data;
     },
@@ -40,7 +41,7 @@ export function createJobs(client: NosanaAPIQueryClient) {
         body: request,
       });
       if (!data || error) {
-        throw new Error(`Failed to stop job: ${error || 'Unknown error'}`);
+        throw errorFormatter('Failed to stop job', error);
       }
       return data;
     }

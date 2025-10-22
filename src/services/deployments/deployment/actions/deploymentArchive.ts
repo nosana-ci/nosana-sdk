@@ -19,8 +19,8 @@ export async function deploymentArchive(
     throw errorFormatter('Deployment must be stopped before archiving');
   }
 
-  const { data, error } = await client.PATCH(
-    '/api/deployment/{deployment}/archive',
+  const { data, error } = await client.POST(
+    '/api/deployments/{deployment}/archive',
     {
       params: { path: { deployment: state.id } },
     },

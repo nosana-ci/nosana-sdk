@@ -17,7 +17,7 @@ export async function deploymentGetTasks(
   state: DeploymentState,
 ): Promise<components['schemas']['Task'][]> {
   const { data, error } = await client.GET(
-    '/api/deployment/{deployment}/tasks',
+    '/api/deployments/{deployment}/tasks',
     {
       params: { path: { deployment: state.id } },
     },

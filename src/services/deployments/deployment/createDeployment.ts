@@ -2,7 +2,7 @@ import { Wallet } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 
 import { createVault } from './createVault.js';
-import { SolanaConfig } from '../../../client.js';
+import { JobDefinition, SolanaConfig } from '../../../client.js';
 import { QueryClient, components } from '../client/index.js';
 import {
   deploymentStop,
@@ -11,10 +11,13 @@ import {
   deploymentUpdateReplicaCount,
   deploymentGetTasks,
   deploymentUpdateTimeout,
+  deploymentCreateNewRevision,
+  deploymentUpdateActiveRevision,
+  deploymentUpdateSchedule,
+  deploymentGenerateAuthHeader
 } from './actions/index.js';
 
 import { Deployment, DeploymentState } from '../types.js';
-import { deploymentGenerateAuthHeader } from './actions/deploymentGenerateAuthHeader.js';
 
 export interface CreateDeploymentOptions {
   client: QueryClient;
@@ -27,28 +30,11 @@ export function createDeployment(
   { client, wallet, solanaConfig }: CreateDeploymentOptions,
 ): Deployment {
   const state: DeploymentState = {
-    id: deployment.id,
+    ...deployment,
     market: new PublicKey(deployment.market),
     owner: new PublicKey(deployment.owner),
-    name: deployment.name,
-    status: deployment.status,
-    replicas: deployment.replicas,
-    timeout: deployment.timeout,
-    ipfs_definition_hash: deployment.ipfs_definition_hash,
-    //@ts-ignore
-    endpoints: deployment.endpoints,
-    events: deployment.events,
-    jobs: deployment.jobs,
     updated_at: new Date(deployment.updated_at),
     created_at: new Date(deployment.created_at),
-    ...(deployment.strategy === 'SCHEDULED'
-      ? {
-        strategy: deployment.strategy,
-        schedule: deployment.schedule,
-      }
-      : {
-        strategy: deployment.strategy,
-      }),
   };
 
   /**
@@ -98,6 +84,18 @@ export function createDeployment(
   };
 
   /**
+   * @param jobDefinition Job definition for the new revision
+   * @throws Error if there is an error creating the new revision
+   * @returns Promise<void>
+   * @description Creates a new revision for the deployment.
+   * This will create a new version of the deployment based on the provided job definition.
+   * It is useful for updating the deployment with new configurations or code.
+   */
+  const createRevision = async (jobDefinition: JobDefinition) => {
+    await deploymentCreateNewRevision(jobDefinition, client, state);
+  }
+
+  /**
    * @param replicas Number of replicas to set for the deployment
    * @throws Error if replicas is less than 1
    * @throws Error if there is an error updating the replica count
@@ -122,6 +120,24 @@ export function createDeployment(
   };
 
   /**
+   * @param active_revision 
+   * @throws Error if there is an error updating the active revision
+   * @returns Promise<void>
+   * @description Updates the active revision for the deployment.
+   * This will change which revision of the deployment is currently active and serving traffic.
+   */
+  const updateActiveRevision = async (active_revision: number) => {
+    await deploymentUpdateActiveRevision(active_revision, client, state);
+  };
+
+  /**
+   * 
+   */
+  const updateSchedule = async (schedule: string) => {
+    await deploymentUpdateSchedule(schedule, client, state);
+  }
+
+  /**
    * @throws Error if there is an error generating the auth header
    * @returns Promise<void>
    * @description Generates a new authentication header for the deployment.
@@ -141,8 +157,11 @@ export function createDeployment(
     stop,
     archive,
     getTasks,
+    generateAuthHeader,
+    createRevision,
     updateReplicaCount,
+    updateActiveRevision,
     updateTimeout,
-    generateAuthHeader
+    updateSchedule,
   });
 }
