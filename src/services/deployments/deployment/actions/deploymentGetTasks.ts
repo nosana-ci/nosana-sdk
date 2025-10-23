@@ -2,7 +2,7 @@ import { errorFormatter } from '../../../../utils/errorFormatter.js';
 
 import type { QueryClient } from '../../client/index.js';
 import type { components } from '../../client/schema.js';
-import type { DeploymentState } from '../../types';
+import type { DeploymentState } from '../../types.js';
 
 /**
  * @returns Promise<components["schemas"]["Task"][]>

@@ -1,7 +1,7 @@
-import { QueryClient } from "../../client";
-import { errorFormatter } from "../../../../utils/errorFormatter";
+import { QueryClient } from "../../client/index.js";
+import { errorFormatter } from "../../../../utils/errorFormatter.js";
 
-import { DeploymentState } from "../../types";
+import { DeploymentState } from "../../types.js";
 
 export async function deploymentUpdateSchedule(schedule: string, client: QueryClient, state: DeploymentState) {
   const { data, error } = await client.PATCH(`/api/deployments/{deployment}/update-schedule`, {

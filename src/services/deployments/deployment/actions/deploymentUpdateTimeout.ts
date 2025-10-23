@@ -1,7 +1,7 @@
 import { errorFormatter } from '../../../../utils/errorFormatter.js';
 
 import type { QueryClient } from '../../client/index.js';
-import type { DeploymentState } from '../../types';
+import type { DeploymentState } from '../../types.js';
 
 /**
  * @param timeout Timeout in seconds

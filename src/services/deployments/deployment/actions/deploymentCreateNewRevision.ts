@@ -1,8 +1,8 @@
-import { QueryClient } from "../../client";
-import { errorFormatter } from "../../../../utils/errorFormatter";
+import { QueryClient } from "../../client/index.js";
+import { errorFormatter } from "../../../../utils/errorFormatter.js";
 
-import { DeploymentState } from "../../types";
-import { JobDefinition, validateJobDefinition } from "../../../../types";
+import { DeploymentState } from "../../types.js";
+import { JobDefinition, validateJobDefinition } from "../../../../types/index.js";
 
 export async function deploymentCreateNewRevision(jobDefinition: JobDefinition, client: QueryClient, state: DeploymentState) {
   if (!validateJobDefinition(jobDefinition)) {
