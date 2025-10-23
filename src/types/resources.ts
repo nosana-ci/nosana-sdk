@@ -5,15 +5,14 @@ type S3Base = {
   files?: string[];
   allowWrite?: boolean;
   IAM?: S3Auth;
-};
-
-type S3WithBucket = S3Base & { bucket?: string; buckets?: never };
-type S3WithBuckets = S3Base & {
-  buckets?: { url: string; files?: string[] }[];
   bucket?: never;
+  buckets?: never;
 };
 
-export type S3Unsecure = S3WithBucket | S3WithBuckets;
+type S3WithBucket = S3Base & { bucket: string; buckets?: never };
+type S3WithBuckets = S3Base & { buckets: { url: string; files?: string[] }[]; bucket?: never };
+
+export type S3Unsecure = S3Base | S3WithBucket | S3WithBuckets;
 
 export type S3Auth = {
   REGION: string;
