@@ -287,17 +287,35 @@ export type OperationType = keyof OperationArgsMap;
 
 export type StdOptions = 'stdin' | 'stdout' | 'stderr' | 'nodeerr';
 
+type UniqueLogTypeTag = tags.TagBase<{
+  kind: 'uniqueTuple';
+  target: 'array';
+  value: 'uniqueTuple';
+  validate: `
+    Array.isArray($input)
+    && $input.length >= 1
+    && $input.length <= 4
+    && (() => {
+      const seen = new Set();
+      for (const v of $input) {
+        if (seen.has(v)) return false;
+        seen.add(v);
+      }
+      return true;
+    })()
+  `;
+  message: 'logType values must be unique and length 1-4';
+}>;
+
+export type LogTypeTuple = StdOptions[] & UniqueLogTypeTag;
+
 export type OperationResults = {
   [key: string]: string | OperationResult;
 };
 
 export type OperationResult = {
   regex: string;
-  logType:
-  | [StdOptions]
-  | [StdOptions, StdOptions]
-  | [StdOptions, StdOptions, StdOptions]
-  | [StdOptions, StdOptions, StdOptions, StdOptions];
+  logType: LogTypeTuple;
 };
 
 /************************
