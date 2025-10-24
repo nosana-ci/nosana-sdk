@@ -3,6 +3,7 @@ import { createTestClient } from './utils/createTestClient';
 import { createDeployment } from './create_deployment';
 import { sleep } from '../../src';
 import { HELLO_JOB } from './jobs';
+import { ApiDeployment } from '../../src/services/deployments/types';
 
 const client = createTestClient();
 

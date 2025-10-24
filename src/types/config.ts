@@ -14,12 +14,12 @@ export type SolanaConfig = {
   maximumPriorityFee?: number;
   dynamicPriorityFee?: boolean;
   priorityFeeStrategy?:
-    | 'min'
-    | 'low'
-    | 'medium'
-    | 'high'
-    | 'veryHigh'
-    | 'unsafeMax';
+  | 'min'
+  | 'low'
+  | 'medium'
+  | 'high'
+  | 'veryHigh'
+  | 'unsafeMax';
   priorityFeeAccounts?: string[];
   feePayer?: Signer;
 };
@@ -33,13 +33,8 @@ export type IPFSConfig = {
 export type ClientConfig = {
   solana?: Partial<SolanaConfig>;
   ipfs?: Partial<IPFSConfig>;
-  deployments?: Partial<DeploymentsConfig>;
   api?: Partial<ApiConfig>;
   apiKey?: string;
-};
-
-export type DeploymentsConfig = {
-  backend_url: string;
 };
 
 export type ApiConfig = {

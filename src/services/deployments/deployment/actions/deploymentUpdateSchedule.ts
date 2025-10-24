@@ -1,6 +1,6 @@
-import { QueryClient } from "../../client/index.js";
 import { errorFormatter } from "../../../../utils/errorFormatter.js";
 
+import type { QueryClient } from '../../../../client/index.js';
 import { DeploymentState } from "../../types.js";
 
 export async function deploymentUpdateSchedule(schedule: string, client: QueryClient, state: DeploymentState) {

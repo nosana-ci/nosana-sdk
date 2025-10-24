@@ -1,6 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
 
-import { components } from './client/index.js';
+import { components } from '../../client/index.js';
 import { JobDefinition } from '../../client.js';
 
 export type DeploymentState = Omit<components['schemas']['Deployment'], "updated_at" | "created_at" | "market" | "owner" | "vault"> & {
@@ -39,6 +39,8 @@ export type Deployment = DeploymentState & {
   updateSchedule: (schedule: string) => Promise<void>;
 };
 
+export type ApiDeployment = Omit<Deployment, 'vault'>;
+
 export const DeploymentStatus: {
   [key in components['schemas']['DeploymentStatus']]: components['schemas']['DeploymentStatus'];
 } = {
@@ -64,4 +66,26 @@ export const DeploymentStrategy: {
 export type DeploymentStatus = components['schemas']['DeploymentStatus'];
 export type DeploymentStrategy = components['schemas']['DeploymentStrategy'];
 
+export interface Deployments {
+  create: (deploymentBody: CreateDeployment) => Promise<Deployment>;
+  get: (deployment: string) => Promise<Deployment>;
+  list: () => Promise<Deployment[]>;
+  pipe: (
+    deploymentIDorCreateObject: string | CreateDeployment,
+    ...actions: Array<(deployment: Deployment) => Promise<any> | any>
+  ) => Promise<Deployment>;
+  vaults: {
+    create: () => Promise<components['schemas']['Vault']>;
+    list: () => Promise<components['schemas']['Vault'][]>;
+  }
+}
 
+export interface DeploymentsApi {
+  create: (deploymentBody: CreateDeployment) => Promise<ApiDeployment>;
+  get: (deployment: string) => Promise<ApiDeployment>;
+  list: () => Promise<ApiDeployment[]>;
+  pipe: (
+    deploymentIDorCreateObject: string | CreateDeployment,
+    ...actions: Array<(deployment: ApiDeployment) => Promise<any> | any>
+  ) => Promise<ApiDeployment>;
+}

@@ -1,7 +1,7 @@
 import { Wallet } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 
-import { QueryClient } from '../client/index.js';
+import { QueryClient } from '../../../client/index.js';
 import { SolanaConfig } from '../../../client.js';
 import { createConnection } from '../../../utils.js';
 import { vaultTopup } from './actions/vaultTopup.js';

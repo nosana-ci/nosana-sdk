@@ -1,52 +1,35 @@
 import { getWallet } from '../../utils.js';
-import type { components } from './client/schema.js';
-import { createDeploymentClient } from './client/index.js';
 import { errorFormatter } from '../../utils/errorFormatter.js';
-import { deploymentsConfigPreset, solanaConfigPreset } from '../../config.js';
+import { solanaConfigPreset } from '../../config.js';
 import { createDeployment } from './deployment/createDeployment.js';
 
 import type {
-  DeploymentsConfig,
   SolanaConfig,
   Wallet,
 } from '../../types/index.js';
-import type { CreateDeployment, Deployment } from './types.js';
+import type { ApiDeployment, CreateDeployment, Deployment, Deployments, DeploymentsApi } from './types.js';
+import { QueryClient, components } from '../../client/index.js';
 
-export interface Deployments {
-  create: (deploymentBody: CreateDeployment) => Promise<Deployment>;
-  get: (deployment: string) => Promise<Deployment>;
-  list: () => Promise<Deployment[]>;
-  pipe: (
-    deploymentIDorCreateObject: string | CreateDeployment,
-    ...actions: Array<(deployment: Deployment) => Promise<any> | any>
-  ) => Promise<Deployment>;
-  vaults: {
-    create: () => Promise<components['schemas']['Vault']>;
-    list: () => Promise<components['schemas']['Vault'][]>;
-  }
-}
+export type { Deployments, DeploymentsApi } from './types.js';
+
+export function createDeployments(environment: 'devnet' | 'mainnet', client: QueryClient, wallet: Wallet, solanaConfig: Partial<SolanaConfig> | undefined, hasApiKey: false): Deployments
+export function createDeployments(environment: 'devnet' | 'mainnet', client: QueryClient, wallet: Wallet, solanaConfig: Partial<SolanaConfig> | undefined, hasApiKey: true): DeploymentsApi
 
 export function createDeployments(
   environment: 'devnet' | 'mainnet',
+  client: QueryClient,
   wallet: Wallet,
-  solanaConfig: Partial<SolanaConfig> | undefined,
-  deploymentsConfig: Partial<DeploymentsConfig> | undefined,
+  solana: Partial<SolanaConfig> | undefined,
+  hasApiKey: false | true,
 ) {
-  const solanaPreset = solanaConfigPreset[environment];
-  const deploymentsPreset = deploymentsConfigPreset[environment];
-  Object.assign(solanaPreset, solanaConfig);
-  Object.assign(deploymentsPreset, deploymentsConfig);
+  const config = solanaConfigPreset[environment];
+  Object.assign(config, solana);
 
   const anchorWallet = getWallet(wallet);
-  const client = createDeploymentClient(wallet, deploymentsPreset);
-
-  if (!wallet) {
-    throw new Error('Wallet is required to create deployments');
-  }
 
   const create = async (
     deploymentBody: CreateDeployment,
-  ): Promise<Deployment> => {
+  ) => {
     const { data, error } = await client.POST('/api/deployments/create', {
       body: deploymentBody,
     });
@@ -55,14 +38,18 @@ export function createDeployments(
       throw errorFormatter('Error creating deployment', error);
     }
 
-    return createDeployment(data, {
+    return hasApiKey ? createDeployment(data, {
       client,
       wallet: anchorWallet,
-      solanaConfig: solanaPreset,
-    });
+      solanaConfig: config,
+    }, true) : createDeployment(data, {
+      client,
+      wallet: anchorWallet,
+      solanaConfig: config,
+    }, false);
   };
 
-  const get = async (deployment: string): Promise<Deployment> => {
+  const get = async (deployment: string) => {
     const { data, error } = await client.GET('/api/deployments/{deployment}', {
       params: {
         path: {
@@ -75,14 +62,18 @@ export function createDeployments(
       throw errorFormatter('Error getting deployment', error);
     }
 
-    return createDeployment(data, {
+    return hasApiKey ? createDeployment(data, {
       client,
       wallet: anchorWallet,
-      solanaConfig: solanaPreset,
-    });
+      solanaConfig: config,
+    }, true) : createDeployment(data, {
+      client,
+      wallet: anchorWallet,
+      solanaConfig: config,
+    }, false);
   };
 
-  const list = async (): Promise<Deployment[]> => {
+  const list = async () => {
     const { data, error } = await client.GET('/api/deployments', {});
 
     if (error || !data) {
@@ -90,11 +81,15 @@ export function createDeployments(
     }
 
     return data.map((deployment: components['schemas']['Deployment']) => {
-      return createDeployment(deployment, {
+      return hasApiKey ? createDeployment(deployment, {
         client,
         wallet: anchorWallet,
-        solanaConfig: solanaPreset,
-      });
+        solanaConfig: config,
+      }, true) : createDeployment(deployment, {
+        client,
+        wallet: anchorWallet,
+        solanaConfig: config,
+      }, false);
     });
   };
 
@@ -102,9 +97,9 @@ export function createDeployments(
     deploymentIDorCreateObject:
       | string
       | components['schemas']['DeploymentCreateBody'],
-    ...actions: Array<(deployment: Deployment) => Promise<any> | any>
-  ): Promise<Deployment> => {
-    let deployment: Deployment;
+    ...actions: Array<(deployment: any) => Promise<any> | any>
+  ) => {
+    let deployment: any;
 
     if (typeof deploymentIDorCreateObject === 'string') {
       deployment = await get(deploymentIDorCreateObject);
@@ -148,9 +143,11 @@ export function createDeployments(
     get,
     list,
     pipe,
-    vaults: {
-      create: createVault,
-      list: listVaults
-    }
+    ...(!hasApiKey ? {
+      vaults: {
+        create: createVault,
+        list: listVaults
+      }
+    } : {}),
   };
 }

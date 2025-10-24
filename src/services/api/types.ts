@@ -1,4 +1,4 @@
-import { operations } from "./client/index.js";
+import { operations } from "../../client/index.js";
 
 export type ListJobWithCreditsRequest = operations['postApiJobsCreate-with-credits']['requestBody']['content']['application/json']
 export type ExtendJobWithCreditsRequest = operations['postApiJobsExtend-with-credits']['requestBody']['content']['application/json']

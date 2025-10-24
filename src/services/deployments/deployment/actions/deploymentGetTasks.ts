@@ -1,7 +1,6 @@
 import { errorFormatter } from '../../../../utils/errorFormatter.js';
 
-import type { QueryClient } from '../../client/index.js';
-import type { components } from '../../client/schema.js';
+import type { QueryClient, components } from '../../../../client/index.js';
 import type { DeploymentState } from '../../types.js';
 
 /**
