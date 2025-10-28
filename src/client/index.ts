@@ -41,8 +41,6 @@ export function createNosanaApiClient(
     }
   }
 
-  console.log({ baseUrl: backend_url })
-
   const client = createClient<AuthenticatedPaths<paths>>({ baseUrl: backend_url });
 
   client.use(authenticateAllRequests);
