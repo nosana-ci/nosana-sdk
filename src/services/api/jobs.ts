@@ -1,7 +1,8 @@
 import { errorFormatter } from '../../utils/errorFormatter.js';
-import { NosanaAPIQueryClient } from './client/index.js';
 
-import {
+import type { QueryClient } from '../../client/index.js';
+
+import type {
   ListJobWithCreditsRequest,
   ListJobWithCreditsResponse,
   ExtendJobWithCreditsRequest,
@@ -16,7 +17,7 @@ export interface JobsApi {
   stop: (request: StopJobWithCreditsRequest) => Promise<StopJobWithCreditsResponse>;
 }
 
-export function createJobs(client: NosanaAPIQueryClient) {
+export function createJobs(client: QueryClient) {
   return {
     async list(request: ListJobWithCreditsRequest) {
       const { data, error } = await client.POST('/api/jobs/create-with-credits', {

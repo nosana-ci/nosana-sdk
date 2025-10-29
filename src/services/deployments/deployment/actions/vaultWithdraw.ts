@@ -1,7 +1,7 @@
 import { Wallet } from '@coral-xyz/anchor';
 import { Connection, PublicKey, VersionedTransaction } from '@solana/web3.js';
 
-import { QueryClient } from '../../client/index.js';
+import type { QueryClient } from '../../../../client/index.js';
 import { errorFormatter } from '../../../../utils/errorFormatter.js';
 
 interface VaultWithdrawOptions {

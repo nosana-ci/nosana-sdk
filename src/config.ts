@@ -1,13 +1,4 @@
-import type { SolanaConfig, IPFSConfig, DeploymentsConfig, ApiConfig } from './types/index.js';
-
-export const deploymentsConfigPreset: { [key: string]: DeploymentsConfig } = {
-  mainnet: {
-    backend_url: 'https://deployment-manager.k8s.prd.nos.ci',
-  },
-  devnet: {
-    backend_url: 'https://deployment-manager.k8s.dev.nos.ci',
-  },
-};
+import type { SolanaConfig, IPFSConfig, ApiConfig } from './types/index.js';
 
 export const apiConfigPreset: { [key: string]: ApiConfig } = {
   mainnet: {

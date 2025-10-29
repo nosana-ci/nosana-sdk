@@ -4,6 +4,7 @@ import {
   IPFS,
   AuthorizationManager,
   Deployments,
+  DeploymentsApi,
   SolanaManager,
   Jobs,
   Nodes,
@@ -16,6 +17,7 @@ import {
 import { KeyWallet, polyfill } from './utils.js';
 
 import type { ClientConfig, Wallet } from './types/index.js';
+import { createNosanaApiClient } from './client/index.js';
 
 export * from './types/index.js';
 export * from './utils.js';
@@ -30,9 +32,11 @@ export {
 
 polyfill();
 
-export class Client {
+type HasApiKey<T> = T extends { apiKey: string } ? true : false;
+
+export class Client<TConfig extends Partial<ClientConfig> = {}> {
   authorization: AuthorizationManager;
-  deployments: Deployments;
+  deployments: HasApiKey<TConfig> extends true ? DeploymentsApi : Deployments;
   solana: SolanaManager;
   ipfs: IPFS;
   jobs: Jobs;
@@ -44,11 +48,13 @@ export class Client {
   constructor(
     environment: 'devnet' | 'mainnet' = 'devnet',
     wallet?: Wallet,
-    config?: Partial<ClientConfig>,
+    config?: TConfig,
   ) {
     if (!wallet) {
       wallet = process?.env?.SOLANA_WALLET || new KeyWallet(Keypair.generate());
     }
+    const apiKey = config?.apiKey;
+    const client = createNosanaApiClient(environment, wallet, config);
 
     this.authorization = new AuthorizationManager(wallet);
     this.solana = new SolanaManager(environment, wallet, config?.solana);
@@ -57,13 +63,10 @@ export class Client {
     this.nodes = new Nodes(environment, wallet, config?.solana);
     this.stake = new Stake(environment, wallet, config?.solana);
     this.swap = new Swap(environment, wallet, config?.solana);
-    this.deployments = createDeployments(
-      environment,
-      wallet,
-      config?.solana,
-      config?.deployments,
-    );
+    this.deployments = (apiKey !== undefined
+      ? createDeployments(environment, client, wallet, config?.solana, true)
+      : createDeployments(environment, client, wallet, config?.solana, false)) as HasApiKey<TConfig> extends true ? DeploymentsApi : Deployments;
 
-    this.api = createApi(environment, config?.api, config?.apiKey);
+    this.api = createApi(client);
   }
 }

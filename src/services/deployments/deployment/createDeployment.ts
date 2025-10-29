@@ -3,7 +3,7 @@ import { PublicKey } from '@solana/web3.js';
 
 import { createVault } from './createVault.js';
 import { JobDefinition, SolanaConfig } from '../../../client.js';
-import { QueryClient, components } from '../client/index.js';
+import { QueryClient, components } from '../../../client/index.js';
 import {
   deploymentStop,
   deploymentStart,
@@ -17,7 +17,7 @@ import {
   deploymentGenerateAuthHeader
 } from './actions/index.js';
 
-import { Deployment, DeploymentState } from '../types.js';
+import { ApiDeployment, Deployment, DeploymentState } from '../types.js';
 
 export interface CreateDeploymentOptions {
   client: QueryClient;
@@ -25,10 +25,15 @@ export interface CreateDeploymentOptions {
   solanaConfig: SolanaConfig;
 }
 
+export function createDeployment(deployment: components['schemas']['Deployment'], options: CreateDeploymentOptions, hasApiKey: true): ApiDeployment;
+export function createDeployment(deployment: components['schemas']['Deployment'], options: CreateDeploymentOptions, hasApiKey: false): Deployment;
+
+
 export function createDeployment(
   deployment: components['schemas']['Deployment'],
   { client, wallet, solanaConfig }: CreateDeploymentOptions,
-): Deployment {
+  hasApiKey: true | false,
+) {
   const state: DeploymentState = {
     ...deployment,
     market: new PublicKey(deployment.market),
@@ -148,10 +153,8 @@ export function createDeployment(
   };
 
   return Object.assign(state, {
-    vault: createVault(new PublicKey(deployment.vault), {
-      client,
-      wallet,
-      solanaConfig,
+    ...(hasApiKey ? {} : {
+      vault: createVault(new PublicKey(deployment.vault), { client, wallet, solanaConfig })
     }),
     start,
     stop,

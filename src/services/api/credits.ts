@@ -1,12 +1,11 @@
-import { NosanaAPIQueryClient } from './client/index.js';
-
-import { Balance } from './types.js';
+import type { QueryClient } from '../../client/index.js';
+import type { Balance } from './types.js';
 
 export interface CreditsApi {
   balance: () => Promise<Balance>;
 }
 
-export function createCredits(client: NosanaAPIQueryClient): CreditsApi {
+export function createCredits(client: QueryClient): CreditsApi {
   const balance = async () => {
     const { data, error } = await client.GET('/api/credits/balance');
     if (!data || error) {
