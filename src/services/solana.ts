@@ -94,14 +94,11 @@ const { decodeUTF8 } = tweetnaclutil;
         // Create a patched version that accepts both signatures
         class PatchedSendTransactionError extends OriginalError {
           constructor(
-            arg1: string | { action: 'send' | 'simulate'; signature: string; transactionMessage: string; logs?: string[] },
-            arg2?: string[]
+            message: string | { action: 'send' | 'simulate'; signature: string; transactionMessage: string; logs?: string[] },
+            logs?: string[]
           ) {
             // Check if using old signature: (message, logs)
-            if (typeof arg1 === 'string' && arg2 !== undefined) {
-              const message = arg1;
-              const logs = arg2;
-
+            if (typeof message === 'string' && logs !== undefined) {
               // Extract signature from message (Anchor's format: "Raw transaction <sig> failed...")
               // Match the pattern: "Raw transaction " followed by base58 signature
               const sigMatch = message.match(/Raw transaction\s+([A-HJ-NP-Za-km-z1-9]{32,})/i);
@@ -116,7 +113,7 @@ const { decodeUTF8 } = tweetnaclutil;
               });
             } else {
               // New signature: pass through as-is
-              super(arg1 as { action: 'send' | 'simulate'; signature: string; transactionMessage: string; logs?: string[] });
+              super(message as { action: 'send' | 'simulate'; signature: string; transactionMessage: string; logs?: string[] });
             }
           }
         }
