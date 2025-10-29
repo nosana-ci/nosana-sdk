@@ -30,7 +30,6 @@ import {
   TokenAmount,
   Keypair,
   Signer,
-  SendTransactionError,
 } from '@solana/web3.js';
 import { associatedAddress } from '@coral-xyz/anchor/dist/cjs/utils/token.js';
 import { bs58, utf8 } from '@coral-xyz/anchor/dist/cjs/utils/bytes/index.js';
@@ -73,64 +72,6 @@ import { NosanaProgram } from '../classes/nosanaProgram/index.js';
 import { MethodsBuilder } from '@coral-xyz/anchor/dist/cjs/program/namespace/methods.js';
 
 const { decodeUTF8 } = tweetnaclutil;
-
-/**
- * Patch SendTransactionError in the web3.js module to support both old and new constructor signatures.
- * Anchor tries to call: new SendTransactionError(message, logs)
- * But new signature requires: new SendTransactionError({action, signature, transactionMessage, logs})
- */
-(function patchSendTransactionError() {
-  // Patch CommonJS module cache (Anchor uses require())
-  // @ts-ignore - require is available at runtime in Node.js
-  if (typeof require !== 'undefined') {
-    try {
-      // @ts-ignore - require.resolve and require.cache are Node.js APIs
-      const modulePath = require.resolve('@solana/web3.js');
-      // @ts-ignore
-      const web3Module = require.cache[modulePath];
-      if (web3Module && web3Module.exports) {
-        const OriginalError = web3Module.exports.SendTransactionError || SendTransactionError;
-
-        // Create a patched version that accepts both signatures
-        class PatchedSendTransactionError extends OriginalError {
-          constructor(
-            message: string | { action: 'send' | 'simulate'; signature: string; transactionMessage: string; logs?: string[] },
-            logs?: string[]
-          ) {
-            // Check if using old signature: (message, logs)
-            if (typeof message === 'string' && logs !== undefined) {
-              // Extract signature from message (Anchor's format: "Raw transaction <sig> failed...")
-              // Match the pattern: "Raw transaction " followed by base58 signature
-              const sigMatch = message.match(/Raw transaction\s+([A-HJ-NP-Za-km-z1-9]{32,})/i);
-              const signature = sigMatch ? sigMatch[1] : 'unknown';
-
-              // Call parent with new signature
-              super({
-                action: 'send',
-                signature,
-                transactionMessage: message,
-                logs,
-              });
-            } else {
-              // New signature: pass through as-is
-              super(message as { action: 'send' | 'simulate'; signature: string; transactionMessage: string; logs?: string[] });
-            }
-          }
-        }
-
-        // Replace in module exports
-        web3Module.exports.SendTransactionError = PatchedSendTransactionError;
-        // Also replace if it's a default export
-        if (web3Module.exports.default) {
-          web3Module.exports.default.SendTransactionError = PatchedSendTransactionError;
-        }
-      }
-    } catch (e) {
-      // If patching fails, we'll fall back to wrapping sendAndConfirm
-      console.warn('Could not patch SendTransactionError in web3.js module:', e);
-    }
-  }
-})();
 
 /**
  * Class to interact with Nosana Programs on the Solana Blockchain,
@@ -193,8 +134,6 @@ export class SolanaManager {
       tx.feePayer = this.feePayer.publicKey;
     }
     const { signers } = await txBuilder.prepare();
-
-    // Use Anchor's sendAndConfirm - the patch should make SendTransactionError work correctly
     return this.provider!.sendAndConfirm(tx, signers);
   }
 
