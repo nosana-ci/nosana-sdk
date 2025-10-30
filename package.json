@@ -1,6 +1,6 @@
 {
   "name": "@nosana/sdk",
-  "version": "0.4.50",
+  "version": "0.4.51",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,10 +14,10 @@
     "example": "npx ts-node --esm examples/example.ts",
     "build": "npm run generate && npm run prepare && tsc && npm run build:generate",
     "build:browser": "npm run prepare && rollup -c",
-    "build:generate": "openapi-typescript https://deployment-manager.k8s.prd.nos.ci/documentation/json -o ./dist/services/deployments/client/schema.d.ts && openapi-typescript https://dashboard.k8s.prd.nos.ci/api/swagger/json -o ./dist/services/api/client/schema.d.ts",
-    "generate": "openapi-typescript https://deployment-manager.k8s.prd.nos.ci/documentation/json -o ./src/services/deployments/client/schema.d.ts && openapi-typescript https://dashboard.k8s.prd.nos.ci/api/swagger/json -o ./src/services/api/client/schema.d.ts",
-    "generate:dev": "openapi-typescript https://deployment-manager.k8s.dev.nos.ci/documentation/json -o ./src/services/deployments/client/schema.d.ts && openapi-typescript https://dashboard.k8s.dev.nos.ci/api/swagger/json -o ./dist/services/api/client/schema.d.ts",
-    "generate:local": "openapi-typescript http://localhost:3001/documentation/json -o ./src/services/deployments/client/schema.d.ts",
+    "build:generate": "openapi-typescript https://dashboard.k8s.prd.nos.ci/api/swagger/json -o ./dist/client/schema.d.ts",
+    "generate": "openapi-typescript https://dashboard.k8s.prd.nos.ci/api/swagger/json -o ./src/client/schema.d.ts",
+    "generate:dev": "openapi-typescript https://dashboard.k8s.dev.nos.ci/api/swagger/json -o ./src/client/schema.d.ts",
+    "generate:local": "openapi-typescript http://localhost:3001/documentation/json -o ./src/client/schema.d.ts",
     "prepare": "ts-patch install && typia patch",
     "publish:public": "npm version patch && npm run build && npm run build:browser && npm publish --access public"
   },
