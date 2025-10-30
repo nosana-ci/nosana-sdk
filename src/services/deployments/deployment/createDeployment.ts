@@ -18,6 +18,7 @@ import {
 } from './actions/index.js';
 
 import { ApiDeployment, Deployment, DeploymentState } from '../types.js';
+import { deploymentGetJob } from './actions/deploymentGetJob.js';
 
 export interface CreateDeploymentOptions {
   client: QueryClient;
@@ -152,6 +153,10 @@ export function createDeployment(
     return await deploymentGenerateAuthHeader(client, state);
   };
 
+  const getJob = async (job: string) => {
+    return await deploymentGetJob(client, state.id, job);
+  }
+
   return Object.assign(state, {
     ...(hasApiKey ? {} : {
       vault: createVault(new PublicKey(deployment.vault), { client, wallet, solanaConfig })
@@ -160,6 +165,7 @@ export function createDeployment(
     stop,
     archive,
     getTasks,
+    getJob,
     generateAuthHeader,
     createRevision,
     updateReplicaCount,

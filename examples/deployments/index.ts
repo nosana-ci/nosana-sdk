@@ -54,6 +54,10 @@ async function command() {
       deployment = await client.deployments.get(args[1]);
       console.log(await deployment.generateAuthHeader());
       return;
+    case 'getJob':
+      deployment = await client.deployments.get(args[1]);
+      console.log(await deployment.getJob(args[2]));
+      return;
     case 'withdraw':
       deployment = await client.deployments.get(args[1]);
       await deployment.vault.withdraw();
