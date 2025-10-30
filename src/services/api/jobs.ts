@@ -17,8 +17,21 @@ export interface JobsApi {
   stop: (request: StopJobWithCreditsRequest) => Promise<StopJobWithCreditsResponse>;
 }
 
-export function createJobs(client: QueryClient) {
+export function createJobs(client: QueryClient): JobsApi {
   return {
+    async get() {
+      const { data, error } = await client.GET('/api/jobs/{address}', {
+        params: {
+          path: {
+            address: 'job_id'
+          }
+        }
+      });
+      if (!data || error) {
+        throw errorFormatter('Failed to get job', error);
+      }
+      return data;
+    },
     async list(request: ListJobWithCreditsRequest) {
       const { data, error } = await client.POST('/api/jobs/create-with-credits', {
         body: request,
