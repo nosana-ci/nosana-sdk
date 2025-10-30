@@ -3,6 +3,7 @@ import { errorFormatter } from '../../utils/errorFormatter.js';
 import type { QueryClient } from '../../client/index.js';
 
 import type {
+  GetJobByAddressResponse,
   ListJobWithCreditsRequest,
   ListJobWithCreditsResponse,
   ExtendJobWithCreditsRequest,
@@ -12,6 +13,7 @@ import type {
 } from './types.js';
 
 export interface JobsApi {
+  get: (address: string) => Promise<GetJobByAddressResponse>;
   list: (request: ListJobWithCreditsRequest) => Promise<ListJobWithCreditsResponse>;
   extend: (request: ExtendJobWithCreditsRequest) => Promise<ExtendJobWithCreditsResponse>;
   stop: (request: StopJobWithCreditsRequest) => Promise<StopJobWithCreditsResponse>;
@@ -19,11 +21,11 @@ export interface JobsApi {
 
 export function createJobs(client: QueryClient): JobsApi {
   return {
-    async get() {
+    async get(address: string): Promise<GetJobByAddressResponse> {
       const { data, error } = await client.GET('/api/jobs/{address}', {
         params: {
           path: {
-            address: 'job_id'
+            address
           }
         }
       });
