@@ -7,7 +7,7 @@ import type {
   SolanaConfig,
   Wallet,
 } from '../../types/index.js';
-import type { ApiDeployment, CreateDeployment, Deployment, Deployments, DeploymentsApi } from './types.js';
+import type { CreateDeployment, Deployments, DeploymentsApi } from './types.js';
 import { QueryClient, components } from '../../client/index.js';
 
 export type { Deployments, DeploymentsApi } from './types.js';
@@ -31,7 +31,7 @@ export function createDeployments(
     deploymentBody: CreateDeployment,
   ) => {
     const { data, error } = await client.POST('/api/deployments/create', {
-      body: deploymentBody,
+      body: deploymentBody as components['schemas']['DeploymentCreateBody'],
     });
 
     if (error || !data) {
@@ -96,7 +96,7 @@ export function createDeployments(
   const pipe = async (
     deploymentIDorCreateObject:
       | string
-      | components['schemas']['DeploymentCreateBody'],
+      | CreateDeployment,
     ...actions: Array<(deployment: any) => Promise<any> | any>
   ) => {
     let deployment: any;

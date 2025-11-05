@@ -31,6 +31,8 @@ export function createNosanaApiClient(
       if (incomingConfig?.apiKey) {
         request.headers.set("Authorization", `Bearer ${incomingConfig.apiKey}`);
       } else {
+        if (!request.url.includes('deployments')) throw Error('API key is required, please configure your Client with an apiKey.');
+
         const authorizationHeader = await authorizationManager.generate(`NosanaApiAuthentication`, {
           includeTime: true
         });

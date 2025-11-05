@@ -10,7 +10,9 @@ export type DeploymentState = Omit<components['schemas']['Deployment'], "updated
   created_at: Date;
 }
 
-export type CreateDeployment = components['schemas']['DeploymentCreateBody'];
+export type CreateDeployment = Omit<components['schemas']['DeploymentCreateBody'], 'job_definition'> & {
+  job_definition: JobDefinition;
+};
 
 export interface TopupVaultOptions {
   SOL?: number;

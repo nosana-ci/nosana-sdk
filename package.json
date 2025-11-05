@@ -1,6 +1,6 @@
 {
   "name": "@nosana/sdk",
-  "version": "0.4.54",
+  "version": "0.4.55",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,8 +13,10 @@
     "test": "jest --watch",
     "example": "npx ts-node --esm examples/example.ts",
     "build": "npm run generate && npm run prepare && tsc && npm run build:generate",
+    "build:dev": "npm run generate:dev && npm run prepare && tsc && npm run build:generate:dev",
     "build:browser": "npm run prepare && rollup -c",
     "build:generate": "openapi-typescript https://dashboard.k8s.prd.nos.ci/api/swagger/json -o ./dist/client/schema.d.ts",
+    "build:generate:dev": "openapi-typescript https://dashboard.k8s.prd.nos.ci/api/swagger/json -o ./dist/client/schema.d.ts",
     "build:local": "npm run generate:local && npm run prepare && tsc",
     "generate": "openapi-typescript https://dashboard.k8s.prd.nos.ci/api/swagger/json -o ./src/client/schema.d.ts",
     "generate:dev": "openapi-typescript https://dashboard.k8s.dev.nos.ci/api/swagger/json -o ./src/client/schema.d.ts",
