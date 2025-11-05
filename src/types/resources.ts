@@ -1,4 +1,4 @@
-type S3Base = {
+export type S3Base = {
   type: 'S3';
   target: string;
   url?: string;
@@ -8,7 +8,7 @@ type S3Base = {
   // No bucket, no buckets
 };
 
-type S3WithBucket = {
+export type S3WithBucket = {
   type: 'S3';
   target: string;
   bucket: string;
@@ -18,7 +18,7 @@ type S3WithBucket = {
   // No buckets, no files
 };
 
-type S3WithBuckets = {
+export type S3WithBuckets = {
   type: 'S3';
   target: string;
   buckets: { url: string; files?: string[] }[];
