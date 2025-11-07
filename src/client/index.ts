@@ -33,9 +33,22 @@ export function createNosanaApiClient(
       } else {
         if (!request.url.includes('deployments')) throw Error('API key is required, please configure your Client with an apiKey.');
 
-        const authorizationHeader = await authorizationManager.generate(`NosanaApiAuthentication`, {
-          includeTime: true
-        });
+        let authorizationHeader: string | undefined = undefined;
+
+        if (incomingConfig?.api?.authorization?.store) {
+          const { get } = incomingConfig.api.authorization.store;
+          authorizationHeader = get(userId);
+        }
+        if (!authorizationHeader) {
+          authorizationHeader = await authorizationManager.generate(`NosanaApiAuthentication`, {
+            includeTime: true
+          });
+
+          if (incomingConfig?.api?.authorization?.store) {
+            const { set } = incomingConfig.api.authorization.store;
+            set(userId, authorizationHeader);
+          }
+        }
 
         request.headers.set('x-user-id', userId);
         request.headers.set("Authorization", authorizationHeader);

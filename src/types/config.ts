@@ -39,4 +39,10 @@ export type ClientConfig = {
 
 export type ApiConfig = {
   backend_url: string;
+  authorization: {
+    store: {
+      get: (key: string) => string | undefined;
+      set: (key: string, value: string) => void;
+    }
+  }
 };
