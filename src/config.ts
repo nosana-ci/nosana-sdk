@@ -1,6 +1,6 @@
 import type { SolanaConfig, IPFSConfig, ApiConfig } from './types/index.js';
 
-export const apiConfigPreset: { [key: string]: ApiConfig } = {
+export const apiConfigPreset: { [key: string]: Omit<ApiConfig, "authorization"> } = {
   mainnet: {
     backend_url: 'https://dashboard.k8s.prd.nos.ci',
   },
