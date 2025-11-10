@@ -15,10 +15,10 @@ export type QueryClient = AuthenticatedClient<paths>;
 export function createNosanaApiClient(
   environment: 'devnet' | 'mainnet',
   wallet: Wallet,
+  authorizationManager: AuthorizationManager,
   incomingConfig?: Partial<ClientConfig>
 ): QueryClient {
   const userId = getWallet(wallet).publicKey.toString();
-  const authorizationManager = new AuthorizationManager(wallet);
 
   const { backend_url } = { ...apiConfigPreset[environment], ...incomingConfig?.api };
 

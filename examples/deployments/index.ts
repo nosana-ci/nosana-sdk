@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { Deployment } from '../../src';
 import { createTestClient } from './utils/createTestClient';
 import { createDeployment } from './create_deployment';

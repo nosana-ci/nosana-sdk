@@ -10,7 +10,7 @@ import { AuthorizationOptions, AuthorizationStore, GenerateOptions, ValidateOpti
 
 export class AuthorizationManager {
   private wallet: AnchorWallet;
-  private store?: AuthorizationStore;
+  private store: AuthorizationStore | undefined;
 
   constructor(wallet: Wallet, store?: AuthorizationStore) {
     this.wallet = getWallet(wallet);
