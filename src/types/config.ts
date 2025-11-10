@@ -1,4 +1,4 @@
-import { Signer } from '@solana/web3.js';
+import { PublicKey, Signer } from '@solana/web3.js';
 
 export type SolanaConfig = {
   network: string;
@@ -35,14 +35,34 @@ export type ClientConfig = {
   ipfs?: Partial<IPFSConfig>;
   api?: Partial<ApiConfig>;
   apiKey?: string;
+  authorization?: {
+    store: AuthorizationStore;
+  }
 };
 
+export type AuthorizationStore = {
+  get: (key: string, options: GenerateOptions) => string | undefined;
+  set: (key: string, options: GenerateOptions, value: string) => void;
+}
+
 export type ApiConfig = {
-  backend_url: string;
-  authorization: {
-    store: {
-      get: (key: string) => string | undefined;
-      set: (key: string, value: string) => void;
-    }
-  }
+  backend_url: string
+};
+
+export type AuthorizationOptions = {
+  expiry: number;
+  includeTime: boolean;
+  key: string;
+};
+
+export type ValidateOptions = {
+  expiry: number;
+  publicKey: PublicKey;
+  seperator: string;
+  expected_message?: string;
+};
+
+export type GenerateOptions = {
+  includeTime: boolean;
+  seperator: string;
 };

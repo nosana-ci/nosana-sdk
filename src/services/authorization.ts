@@ -2,35 +2,19 @@ import base58 from 'bs58';
 import nacl from 'tweetnacl';
 import naclUtil from 'tweetnacl-util';
 import { IncomingHttpHeaders } from 'http';
-import { PublicKey } from '@solana/web3.js';
 import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
 
 import { getWallet } from '../utils.js';
-import { Wallet } from '../types/index.js';
+import { AuthorizationOptions, AuthorizationStore, GenerateOptions, ValidateOptions, Wallet } from '../types/index.js';
 
-type AuthorizationOptions = {
-  expiry: number;
-  includeTime: boolean;
-  key: string;
-};
-
-type ValidateOptions = {
-  expiry: number;
-  publicKey: PublicKey;
-  seperator: string;
-  expected_message?: string;
-};
-
-type GenerateOptions = {
-  includeTime: boolean;
-  seperator: string;
-};
 
 export class AuthorizationManager {
   private wallet: AnchorWallet;
+  private store?: AuthorizationStore;
 
-  constructor(wallet: Wallet) {
+  constructor(wallet: Wallet, store?: AuthorizationStore) {
     this.wallet = getWallet(wallet);
+    this.store = store;
   }
 
   public async generate(
@@ -42,6 +26,13 @@ export class AuthorizationManager {
       seperator: ':',
       ...options,
     };
+
+    if (this.store) {
+      const cached = this.store.get(this.wallet.publicKey.toString(), { includeTime, seperator });
+      if (cached) {
+        return cached;
+      }
+    }
 
     let signature: Uint8Array | undefined = undefined;
 
@@ -71,8 +62,13 @@ export class AuthorizationManager {
       throw new Error('Wallet does not support message signing');
     }
 
-    return `${message}${seperator}${base58.encode(signature)}${includeTime ? seperator + new Date().getTime() : ''
-      }`;
+    const value = `${message}${seperator}${base58.encode(signature)}${includeTime ? seperator + new Date().getTime() : ''}`;
+
+    if (this.store) {
+      this.store.set(this.wallet.publicKey.toString(), { includeTime, seperator }, value);
+    }
+
+    return value;
   }
 
   public validate(

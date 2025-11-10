@@ -56,7 +56,7 @@ export class Client<TConfig extends Partial<ClientConfig> = {}> {
     const apiKey = config?.apiKey;
     const client = createNosanaApiClient(environment, wallet, config);
 
-    this.authorization = new AuthorizationManager(wallet);
+    this.authorization = new AuthorizationManager(wallet, config?.authorization?.store);
     this.solana = new SolanaManager(environment, wallet, config?.solana);
     this.ipfs = new IPFS(environment, config?.ipfs);
     this.jobs = new Jobs(environment, wallet, config?.solana, this.ipfs);
