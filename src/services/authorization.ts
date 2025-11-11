@@ -28,7 +28,9 @@ export class AuthorizationManager {
     };
 
     if (this.store) {
-      const cached = this.store.get(this.wallet.publicKey.toString(), { includeTime, seperator });
+      const cached = await Promise.resolve(
+        this.store.get(this.wallet.publicKey.toString(), { includeTime, seperator })
+      );
       if (cached) {
         return cached;
       }
