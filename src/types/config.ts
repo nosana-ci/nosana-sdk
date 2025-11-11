@@ -42,7 +42,7 @@ export type ClientConfig = {
 
 export type AuthorizationStore = {
   get: (key: string, options: GenerateOptions) => Promise<string | undefined> | string | undefined;
-  set: (key: string, options: GenerateOptions, value: string) => void;
+  set: (key: string, options: GenerateOptions, value: string | undefined) => void;
 }
 
 export type ApiConfig = {

@@ -27,50 +27,57 @@ export class AuthorizationManager {
       ...options,
     };
 
-    if (this.store) {
-      const cached = await Promise.resolve(
-        this.store.get(this.wallet.publicKey.toString(), { includeTime, seperator })
-      );
-      if (cached) {
-        return cached;
-      }
-    }
-
-    let signature: Uint8Array | undefined = undefined;
-
-    if (typeof window !== "undefined") {
-      const encodedMessage = new TextEncoder().encode(message);
-
-      if ((window as any).phantom?.solana?.signMessage) {
-        const response = await (window as any).phantom.solana.signMessage(
-          encodedMessage,
-          'utf8',
+    try {
+      if (this.store) {
+        const cached = await Promise.resolve(
+          this.store.get(this.wallet.publicKey.toString(), { includeTime, seperator })
         );
-        signature = response.signature;
-      } else if (
-        (this.wallet as any).adapter &&
-        typeof (this.wallet as any).adapter.signMessage === 'function'
-      ) {
-        signature = await (this.wallet as any).adapter.signMessage(
-          encodedMessage,
-        );
+        if (cached) {
+          return cached;
+        }
       }
-    } else if (this.wallet.payer.secretKey) {
-      const messageBytes = naclUtil.decodeUTF8(message);
-      signature = nacl.sign.detached(messageBytes, this.wallet.payer.secretKey);
+
+      let signature: Uint8Array | undefined = undefined;
+
+      if (typeof window !== "undefined") {
+        const encodedMessage = new TextEncoder().encode(message);
+
+        if ((window as any).phantom?.solana?.signMessage) {
+          const response = await (window as any).phantom.solana.signMessage(
+            encodedMessage,
+            'utf8',
+          );
+          signature = response.signature;
+        } else if (
+          (this.wallet as any).adapter &&
+          typeof (this.wallet as any).adapter.signMessage === 'function'
+        ) {
+          signature = await (this.wallet as any).adapter.signMessage(
+            encodedMessage,
+          );
+        }
+      } else if (this.wallet.payer.secretKey) {
+        const messageBytes = naclUtil.decodeUTF8(message);
+        signature = nacl.sign.detached(messageBytes, this.wallet.payer.secretKey);
+      }
+
+      if (!signature) {
+        throw new Error('Wallet does not support message signing');
+      }
+
+      const value = `${message}${seperator}${base58.encode(signature)}${includeTime ? seperator + new Date().getTime() : ''}`;
+
+      if (this.store) {
+        this.store.set(this.wallet.publicKey.toString(), { includeTime, seperator }, value);
+      }
+
+      return value;
+    } catch (err) {
+      if (this.store) {
+        this.store.set(this.wallet.publicKey.toString(), { includeTime, seperator }, undefined);
+      }
+      throw err;
     }
-
-    if (!signature) {
-      throw new Error('Wallet does not support message signing');
-    }
-
-    const value = `${message}${seperator}${base58.encode(signature)}${includeTime ? seperator + new Date().getTime() : ''}`;
-
-    if (this.store) {
-      this.store.set(this.wallet.publicKey.toString(), { includeTime, seperator }, value);
-    }
-
-    return value;
   }
 
   public validate(
