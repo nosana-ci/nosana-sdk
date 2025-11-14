@@ -22,6 +22,7 @@ export function createVault(
   publicKey: PublicKey,
   { client, wallet, solanaConfig, created_at }: CreateVaultOptions & { created_at?: Date },
 ): Vault {
+  const vault = new PublicKey(publicKey);
   const { network, nos_address } = solanaConfig;
   const connection = createConnection(network);
 
@@ -33,7 +34,7 @@ export function createVault(
    * It updates the balance in the backend and returns the current balance.
    */
   const getBalance = async (): Promise<{ SOL: number; NOS: number }> => {
-    return await vaultGetBalance(publicKey, {
+    return await vaultGetBalance(vault, {
       connection,
       nos_address,
     });
@@ -51,7 +52,7 @@ export function createVault(
     lamports = false,
   }: TopupVaultOptions) => {
     return await vaultTopup(
-      publicKey,
+      vault,
       wallet,
       { SOL, NOS, lamports },
       { nos_address, connection },
@@ -65,11 +66,11 @@ export function createVault(
    * It sends a transaction to withdraw the SOL and NOS from the vault.
    */
   const withdraw = async () => {
-    await vaultWithdraw(publicKey, wallet, { client, connection });
+    await vaultWithdraw(vault, wallet, { client, connection });
   };
 
   return {
-    publicKey,
+    publicKey: vault,
     ...(created_at ? { created_at: created_at } : {}),
     getBalance,
     topup,
