@@ -22,6 +22,7 @@ export interface TopupVaultOptions {
 
 export interface Vault {
   publicKey: PublicKey;
+  created_at?: Date;
   getBalance: () => Promise<{ SOL: number; NOS: number }>;
   topup: (options: TopupVaultOptions) => Promise<void>;
   withdraw: () => Promise<void>;
@@ -78,8 +79,8 @@ export interface Deployments {
     ...actions: Array<(deployment: Deployment) => Promise<any> | any>
   ) => Promise<Deployment>;
   vaults: {
-    create: () => Promise<components['schemas']['Vault']>;
-    list: () => Promise<components['schemas']['Vault'][]>;
+    create: () => Promise<Vault>;
+    list: () => Promise<Vault[]>;
   }
 }
 

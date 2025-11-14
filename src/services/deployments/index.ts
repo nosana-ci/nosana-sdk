@@ -1,14 +1,17 @@
+import { PublicKey } from '@solana/web3.js';
+
 import { getWallet } from '../../utils.js';
 import { errorFormatter } from '../../utils/errorFormatter.js';
 import { solanaConfigPreset } from '../../config.js';
 import { createDeployment } from './deployment/createDeployment.js';
+import { createVault as createVaultFactory } from './deployment/createVault.js';
 
 import type {
   SolanaConfig,
   Wallet,
 } from '../../types/index.js';
 import type { CreateDeployment, Deployments, DeploymentsApi } from './types.js';
-import { QueryClient, components } from '../../client/index.js';
+import { type QueryClient, components } from '../../client/index.js';
 
 export type { Deployments, DeploymentsApi } from './types.js';
 
@@ -125,7 +128,13 @@ export function createDeployments(
       throw errorFormatter('Error creating vault', error);
     }
 
-    return data;
+    return createVaultFactory(
+      new PublicKey(data.vault), {
+      client,
+      wallet: anchorWallet,
+      solanaConfig: config,
+      created_at: new Date(data.created_at),
+    });
   }
 
   const listVaults = async () => {
@@ -135,7 +144,13 @@ export function createDeployments(
       throw errorFormatter('Error listing vaults', error);
     }
 
-    return data;
+    return data.map(({ vault, created_at }) => createVaultFactory(
+      new PublicKey(vault), {
+      client,
+      wallet: anchorWallet,
+      solanaConfig: config,
+      created_at: new Date(created_at),
+    }));
   }
 
   return {

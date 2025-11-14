@@ -15,9 +15,12 @@ interface CreateVaultOptions {
   solanaConfig: SolanaConfig;
 }
 
+export function createVault(publicKey: PublicKey, { client, wallet, solanaConfig }: CreateVaultOptions): Vault;
+export function createVault(publicKey: PublicKey, { client, wallet, solanaConfig }: CreateVaultOptions & { created_at: Date }): Vault;
+
 export function createVault(
   publicKey: PublicKey,
-  { client, wallet, solanaConfig }: CreateVaultOptions,
+  { client, wallet, solanaConfig, created_at }: CreateVaultOptions & { created_at?: Date },
 ): Vault {
   const { network, nos_address } = solanaConfig;
   const connection = createConnection(network);
@@ -67,6 +70,7 @@ export function createVault(
 
   return {
     publicKey,
+    ...(created_at ? { createdAt: created_at } : {}),
     getBalance,
     topup,
     withdraw,
