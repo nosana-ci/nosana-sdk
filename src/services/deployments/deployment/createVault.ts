@@ -70,7 +70,7 @@ export function createVault(
 
   return {
     publicKey,
-    ...(created_at ? { createdAt: created_at } : {}),
+    ...(created_at ? { created_at: created_at } : {}),
     getBalance,
     topup,
     withdraw,
