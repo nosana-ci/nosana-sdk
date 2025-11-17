@@ -1,10 +1,5 @@
-import {
-  Connection,
-  PublicKey,
-  sendAndConfirmTransaction,
-  Signer,
-  Transaction,
-} from '@solana/web3.js';
+import { AnchorProvider } from '@coral-xyz/anchor';
+import { Connection, PublicKey, Signer, Transaction } from '@solana/web3.js';
 
 import { createTransferNOSInstruction } from './helpers/NOS/createTransferNOSInstruction.js';
 import { createTransferSOLInstruction } from './helpers/SOL/createTransferSOLInstruction.js';
@@ -16,6 +11,7 @@ export class TokenManager {
   public payer: 'SOURCE' | 'DESTINATION';
   private connection: Connection;
   private nos_address: string;
+  private provider: AnchorProvider;
 
   constructor(
     sourceWallet: PublicKey | string,
@@ -23,6 +19,7 @@ export class TokenManager {
     payer: 'SOURCE' | 'DESTINATION',
     nos_address: string,
     connection: Connection,
+    provider: AnchorProvider
   ) {
     this.payer = payer;
     this.transaction = new Transaction();
@@ -40,6 +37,7 @@ export class TokenManager {
 
     this.nos_address = nos_address;
     this.connection = connection;
+    this.provider = provider;
   }
 
   public async addNOS(amount?: number) {
@@ -65,8 +63,7 @@ export class TokenManager {
   }
 
   public async signAndSerialize(signer: Signer): Promise<string> {
-    let blockhash = (await this.connection.getLatestBlockhash('finalized'))
-      .blockhash;
+    const { blockhash } = (await this.connection.getLatestBlockhash('finalized'))
     this.transaction.recentBlockhash = blockhash;
     this.transaction.sign(signer);
     return this.transaction
@@ -74,7 +71,22 @@ export class TokenManager {
       .toString('base64');
   }
 
-  public async transfer(signers: Signer[]) {
-    await sendAndConfirmTransaction(this.connection, this.transaction, signers);
+  public async transfer(): Promise<void> {
+    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash();
+    this.transaction.recentBlockhash = blockhash;
+    const signedTransaction = await this.provider.wallet.signTransaction(this.transaction);
+    const signature = await this.connection.sendRawTransaction(
+      signedTransaction.serialize(),
+      {
+        skipPreflight: false,
+        maxRetries: 5,
+      },
+    );
+
+    await this.connection.confirmTransaction({
+      blockhash,
+      lastValidBlockHeight,
+      signature,
+    }, 'processed');
   }
 }

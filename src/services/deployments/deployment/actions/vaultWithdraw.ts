@@ -1,4 +1,4 @@
-import { Wallet } from '@coral-xyz/anchor';
+import { AnchorProvider } from '@coral-xyz/anchor';
 import { Connection, PublicKey, VersionedTransaction } from '@solana/web3.js';
 
 import type { QueryClient } from '../../../../client/index.js';
@@ -7,6 +7,7 @@ import { errorFormatter } from '../../../../utils/errorFormatter.js';
 interface VaultWithdrawOptions {
   client: QueryClient;
   connection: Connection;
+  provider: AnchorProvider
 }
 
 /**
@@ -17,8 +18,7 @@ interface VaultWithdrawOptions {
  */
 export async function vaultWithdraw(
   publicKey: PublicKey,
-  wallet: Wallet,
-  { client, connection }: VaultWithdrawOptions,
+  { client, connection, provider }: VaultWithdrawOptions,
 ) {
   const { data, error } = await client.POST('/api/deployments/vaults/{vault}/withdraw', {
     params: {
@@ -35,15 +35,24 @@ export async function vaultWithdraw(
   const transaction = VersionedTransaction.deserialize(
     new Uint8Array(Buffer.from(data.transaction, 'base64')),
   );
-  transaction.sign([wallet.payer]);
+
   try {
-    const signature = await connection.sendTransaction(transaction);
-    const latestBlockHash = await connection.getLatestBlockhash();
+    const signedTransaction = await provider.wallet.signTransaction(transaction);
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+
+    const signature = await connection.sendRawTransaction(
+      signedTransaction.serialize(),
+      {
+        skipPreflight: false,
+        maxRetries: 5,
+      },
+    );
+
     await connection.confirmTransaction({
-      blockhash: latestBlockHash.blockhash,
-      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      blockhash,
+      lastValidBlockHeight,
       signature,
-    });
+    }, 'processed');
   } catch (error) {
     errorFormatter('Vault withdrawal transaction failed.', error);
   }

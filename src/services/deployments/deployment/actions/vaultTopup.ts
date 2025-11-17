@@ -1,4 +1,4 @@
-import { Wallet } from '@coral-xyz/anchor';
+import { AnchorProvider, Wallet } from '@coral-xyz/anchor';
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 
 import { errorFormatter } from '../../../../utils/errorFormatter.js';
@@ -9,6 +9,7 @@ import type { TopupVaultOptions } from '../../types.js';
 interface VaultTopupOptions {
   nos_address: string;
   connection: Connection;
+  provider: AnchorProvider
 }
 
 /**
@@ -21,7 +22,7 @@ export async function vaultTopup(
   publicKey: PublicKey,
   wallet: Wallet,
   { SOL = 0, NOS = 0, lamports = false }: TopupVaultOptions,
-  { nos_address, connection }: VaultTopupOptions,
+  { nos_address, connection, provider }: VaultTopupOptions,
 ): Promise<void> {
   const manager = new TokenManager(
     wallet.publicKey,
@@ -29,6 +30,7 @@ export async function vaultTopup(
     'SOURCE',
     nos_address,
     connection,
+    provider
   );
 
   try {
@@ -40,7 +42,7 @@ export async function vaultTopup(
       await manager.addSOL(lamports ? SOL : SOL * LAMPORTS_PER_SOL);
     }
 
-    await manager.transfer([wallet.payer]);
+    await manager.transfer();
   } catch (e) {
     throw errorFormatter('Failed to topup vault.', {
       error: (e as Error).message,

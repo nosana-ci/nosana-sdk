@@ -1,4 +1,4 @@
-import { Wallet } from '@coral-xyz/anchor';
+import { AnchorProvider, Wallet } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 
 import { QueryClient } from '../../../client/index.js';
@@ -25,6 +25,7 @@ export function createVault(
   const vault = new PublicKey(publicKey);
   const { network, nos_address } = solanaConfig;
   const connection = createConnection(network);
+  const provider = new AnchorProvider(connection, wallet, {});
 
   /**
    * @throws Error if the vault is not initialized
@@ -55,7 +56,7 @@ export function createVault(
       vault,
       wallet,
       { SOL, NOS, lamports },
-      { nos_address, connection },
+      { nos_address, connection, provider },
     );
   };
 
@@ -66,7 +67,7 @@ export function createVault(
    * It sends a transaction to withdraw the SOL and NOS from the vault.
    */
   const withdraw = async () => {
-    await vaultWithdraw(vault, wallet, { client, connection });
+    await vaultWithdraw(vault, { client, connection, provider });
   };
 
   return {
