@@ -9,14 +9,20 @@ import type {
   ExtendJobWithCreditsRequest,
   ExtendJobWithCreditsResponse,
   StopJobWithCreditsRequest,
-  StopJobWithCreditsResponse
+  StopJobWithCreditsResponse,
 } from './types.js';
 
 export interface JobsApi {
   get: (address: string) => Promise<GetJobByAddressResponse>;
-  list: (request: ListJobWithCreditsRequest) => Promise<ListJobWithCreditsResponse>;
-  extend: (request: ExtendJobWithCreditsRequest) => Promise<ExtendJobWithCreditsResponse>;
-  stop: (request: StopJobWithCreditsRequest) => Promise<StopJobWithCreditsResponse>;
+  list: (
+    request: ListJobWithCreditsRequest,
+  ) => Promise<ListJobWithCreditsResponse>;
+  extend: (
+    request: ExtendJobWithCreditsRequest,
+  ) => Promise<ExtendJobWithCreditsResponse>;
+  stop: (
+    request: StopJobWithCreditsRequest,
+  ) => Promise<StopJobWithCreditsResponse>;
 }
 
 export function createJobs(client: QueryClient): JobsApi {
@@ -25,9 +31,9 @@ export function createJobs(client: QueryClient): JobsApi {
       const { data, error } = await client.GET('/api/jobs/{address}', {
         params: {
           path: {
-            address
-          }
-        }
+            address,
+          },
+        },
       });
       if (!data || error) {
         throw errorFormatter('Failed to get job', error);
@@ -35,7 +41,7 @@ export function createJobs(client: QueryClient): JobsApi {
       return data;
     },
     async list(request: ListJobWithCreditsRequest) {
-      const { data, error } = await client.POST('/api/jobs/create-with-credits', {
+      const { data, error } = await client.POST('/api/jobs/list', {
         body: request,
       });
       if (!data || error) {
@@ -44,8 +50,14 @@ export function createJobs(client: QueryClient): JobsApi {
       return data;
     },
     async extend(request: ExtendJobWithCreditsRequest) {
-      const { data, error } = await client.POST('/api/jobs/extend-with-credits', {
-        body: request,
+      const { jobAddress, seconds } = request;
+      const { data, error } = await client.POST('/api/jobs/{address}/extend', {
+        params: {
+          path: {
+            address: jobAddress,
+          },
+        },
+        body: seconds !== undefined ? { seconds } : {},
       });
       if (!data || error) {
         throw errorFormatter('Failed to extend job', error);
@@ -53,13 +65,17 @@ export function createJobs(client: QueryClient): JobsApi {
       return data;
     },
     async stop(request: StopJobWithCreditsRequest) {
-      const { data, error } = await client.POST('/api/jobs/stop-with-credits', {
-        body: request,
+      const { data, error } = await client.POST('/api/jobs/{address}/stop', {
+        params: {
+          path: {
+            address: request.jobAddress,
+          },
+        },
       });
       if (!data || error) {
         throw errorFormatter('Failed to stop job', error);
       }
       return data;
-    }
-  }
+    },
+  };
 }
