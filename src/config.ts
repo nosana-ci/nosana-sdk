@@ -1,5 +1,29 @@
 import type { SolanaConfig, IPFSConfig, ApiConfig } from './types/index.js';
 
+// Mainnet pool rotation schedule. Each entry becomes active at its start timestamp (unix seconds).
+const MAINNET_POOL_SCHEDULE: Array<{ address: string; start: number }> = [
+  { address: 'HES33F37n7sUkweDubLzs9NaSxKpRVPnuELGB4WQdmmx', start: 1764331620 },
+  { address: '2w8zWwG2XKD9P645iFbFAgAsXSgvvoRPpMGUpi1qG8hr', start: 1766959620 },
+  { address: '9BRAdxFX67FLbZ1wYoLyckvAJwEV24SmDVp6FehorPm2', start: 1769587620 },
+  { address: '4s8abV6djWVvncmRVL9DHQ6e4nm1aXrxQ6ZZ1ZeVgZ5B', start: 1772215620 },
+  { address: 'Dq17LmmA1bxmSEfGpJpGu9sPiQQpm7zgk2M7GGMw2pdw', start: 1774843620 },
+  { address: '5SdnB8ZMqqfVKPUHFqx3KVfx4Aj4y352uCe8C71GHUqU', start: 1777471620 },
+];
+
+// Select the current pool based on the time. Before the first start, keep the existing default.
+const resolveMainnetPoolAddress = (nowSec: number = Math.floor(Date.now() / 1000)): string => {
+  let selected: string | undefined;
+  for (const entry of MAINNET_POOL_SCHEDULE) {
+    if (nowSec >= entry.start) {
+      selected = entry.address;
+    } else {
+      break;
+    }
+  }
+  // Fallback to the previous default pool before any scheduled start kicks in
+  return selected ?? 'Djy1xNoPnuUdHUTCkzEDQkxo3EpPJxXU7GbXEHXJfcEB';
+};
+
 export const apiConfigPreset: { [key: string]: Omit<ApiConfig, "authorization"> } = {
   mainnet: {
     backend_url: 'https://dashboard.k8s.prd.nos.ci',
@@ -20,7 +44,7 @@ export const solanaConfigPreset: { [key: string]: SolanaConfig } = {
     nodes_address: 'nosNeZR64wiEhQc5j251bsP4WqDabT6hmz4PHyoHLGD',
     stake_address: 'nosScmHY2uR24Zh751PmGj9ww9QRNHewh9H59AfrTJE',
     pools_address: 'nosPdZrfDzND1LAR28FLMDEATUPK53K8xbRBXAirevD',
-    pool_address: 'Djy1xNoPnuUdHUTCkzEDQkxo3EpPJxXU7GbXEHXJfcEB',
+    pool_address: resolveMainnetPoolAddress(),
     priority_fee: 10000,
     dynamicPriorityFee: true,
     priorityFeeStrategy: 'medium',
