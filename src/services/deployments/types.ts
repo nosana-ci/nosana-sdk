@@ -4,7 +4,6 @@ import { components, paths } from '../../client/index.js';
 import { JobDefinition } from '../../client.js';
 
 export type DeploymentState = Omit<components['schemas']['Deployment'], "updated_at" | "created_at" | "market" | "owner" | "vault"> & {
-  market: PublicKey;
   owner: PublicKey;
   updated_at: Date;
   created_at: Date;

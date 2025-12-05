@@ -37,7 +37,6 @@ export function createDeployment(
 ) {
   const state: DeploymentState = {
     ...deployment,
-    market: new PublicKey(deployment.market),
     owner: new PublicKey(deployment.owner),
     updated_at: new Date(deployment.updated_at),
     created_at: new Date(deployment.created_at),
